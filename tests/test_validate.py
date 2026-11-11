@@ -167,3 +167,36 @@ def test_a2_6_unsupported_non_object_schema(schema):
 def test_a2_6_annotations_and_resolvable_ref_are_accepted():
     Schema.from_dict({"$schema": "s", "$id": "i", "title": "t", "description": "d",
                       "$defs": {"d": {"type": "null"}}, "properties": {"a": {"$ref": "#/$defs/d"}}})
+
+
+MALFORMED = [
+    {"type": "foo"}, {"type": []}, {"type": ["string", "foo"]}, {"type": 1},
+    {"pattern": "("}, {"pattern": 1},
+    {"required": "a"}, {"required": [1]},
+    {"properties": []}, {"properties": {"a": 1}}, {"$defs": []},
+    {"oneOf": []}, {"oneOf": {}}, {"enum": "a"},
+    {"minimum": "1"}, {"minimum": True}, {"minItems": -1}, {"minItems": 1.5}, {"minItems": True},
+    {"$ref": 1}, {"$ref": "#/$defs/a"},
+    {"$defs": {"a": {"$ref": "#/$defs/a"}}, "$ref": "#/$defs/a"},
+    {"$defs": {"a": {"$ref": "#/$defs/b"}, "b": {"$ref": "#/$defs/a"}}, "$ref": "#/$defs/a"},
+    {"$defs": {"a": {"oneOf": [{"$ref": "#/$defs/a"}]}}, "$ref": "#/$defs/a"},
+]
+
+
+@pytest.mark.parametrize("schema", MALFORMED, ids=lambda s: json.dumps(s)[:60])
+def test_a2_6_malformed_keyword_values_rejected_at_construction(schema):
+    with pytest.raises(UnsupportedSchema):
+        Schema.from_dict(schema)
+
+
+def test_a2_6_valid_values_still_accepted():
+    Schema.from_dict({"type": ["string", "null"], "pattern": "^a$", "required": [], "minimum": 0.5,
+                      "minItems": 0, "enum": [1], "additionalProperties": True,
+                      "oneOf": [{"type": "null"}]})
+
+
+def test_a2_6_recursion_through_properties_is_allowed():
+    tree = Schema.from_dict({"$defs": {"n": {"type": "object", "properties": {"kid": {"$ref": "#/$defs/n"}}}},
+                             "$ref": "#/$defs/n"})
+    assert validate({"kid": {"kid": {}}}, tree) == []
+    assert validate({"kid": {"kid": 1}}, tree)

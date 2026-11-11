@@ -34,6 +34,55 @@ class Schema:
         return cls(d)
 
 
+_TYPES = {"string", "number", "integer", "boolean", "object", "array", "null"}
+
+
+def _bad(keyword: str, why: str) -> UnsupportedSchema:
+    return UnsupportedSchema(f"invalid value for {keyword}: {why}")
+
+
+def _verify_values(schema: dict) -> None:
+    if "type" in schema:
+        names = schema["type"] if isinstance(schema["type"], list) else [schema["type"]]
+        if not names or not all(isinstance(n, str) and n in _TYPES for n in names):
+            raise _bad("type", "expected a type name or a non-empty list of type names")
+    if "pattern" in schema:
+        try:
+            re.compile(schema["pattern"])
+        except (re.error, TypeError) as e:
+            raise _bad("pattern", f"not a valid regular expression ({e})") from e
+    required = schema.get("required", [])
+    if not isinstance(required, list) or not all(isinstance(k, str) for k in required):
+        raise _bad("required", "expected a list of strings")
+    for key in ("properties", "$defs"):
+        if not isinstance(schema.get(key, {}), dict):
+            raise _bad(key, "expected an object")
+    if "oneOf" in schema and (not isinstance(schema["oneOf"], list) or not schema["oneOf"]):
+        raise _bad("oneOf", "expected a non-empty list")
+    if "enum" in schema and not isinstance(schema["enum"], list):
+        raise _bad("enum", "expected a list")
+    if "minimum" in schema and not _is_number(schema["minimum"]):
+        raise _bad("minimum", "expected a number")
+    if "minItems" in schema:
+        n = schema["minItems"]
+        if not isinstance(n, int) or isinstance(n, bool) or n < 0:
+            raise _bad("minItems", "expected an integer >= 0")
+    if "$ref" in schema and not isinstance(schema["$ref"], str):
+        raise _bad("$ref", "expected a string")
+
+
+def _forbid_ref_cycle(schema: dict, root: dict, seen: frozenset = frozenset()) -> None:
+    """A $ref/oneOf chain that returns to itself never consumes the instance: reject it."""
+    if id(schema) in seen:
+        raise UnsupportedSchema("circular $ref that does not descend into the instance")
+    seen = seen | {id(schema)}
+    nexts = list(schema.get("oneOf", []))
+    if "$ref" in schema:
+        nexts.append(_resolve(schema["$ref"], root))
+    for nxt in nexts:
+        _forbid_ref_cycle(nxt, root, seen)
+
+
 def _verify(schema: Any, root: dict) -> None:
     """Reject, before any validation, whatever falls outside the supported subset."""
     if not isinstance(schema, dict):
@@ -41,6 +90,7 @@ def _verify(schema: Any, root: dict) -> None:
     unknown = set(schema) - _SUPPORTED - _ANNOTATIONS
     if unknown:
         raise UnsupportedSchema(f"unsupported keyword(s): {', '.join(sorted(unknown))}")
+    _verify_values(schema)
     if "$ref" in schema:
         _resolve(schema["$ref"], root)
     subschemas = [*schema.get("properties", {}).values(), *schema.get("$defs", {}).values(),
@@ -50,6 +100,7 @@ def _verify(schema: Any, root: dict) -> None:
             subschemas.append(schema[key])
     for sub in subschemas:
         _verify(sub, root)
+    _forbid_ref_cycle(schema, root)
 
 
 def load_schema(name: str) -> Schema:
