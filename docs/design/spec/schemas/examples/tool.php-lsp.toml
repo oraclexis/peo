@@ -1,0 +1,51 @@
+id          = "php-lsp"
+kind        = "claude-plugin"
+name        = "PHP LSP (Intelephense)"
+description = "PHP language server for go-to-definition, references, hover and diagnostics"
+status      = "conditional"
+license     = "TBD"
+source      = { repo = "https://github.com/anthropics/claude-plugins-official", marketplace = "claude-plugins-official", checked = "2026-11-11" }
+
+[versions]
+tested = "1.0.0"
+
+[capabilities]
+provides = ["nav.lsp.php"]
+
+[relations]
+requires = ["cli:intelephense"]
+
+[selection]
+when = { any = ["any(profile.components, 'php' in it.languages)"] }
+
+[[prerequisites]]
+check    = "bin:intelephense"
+fix      = "cli:intelephense"
+blocking = true
+
+[[prerequisites]]
+check    = "path:{component:php}/vendor"
+hint     = "Install PHP dependencies so Intelephense can index the framework: {runtime_prefix}composer install"
+blocking = false
+
+[surface]
+hooks   = []
+network = "none"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager     = "claude"
+plugin      = "php-lsp"
+marketplace = "claude-plugins-official"
+verify      = "intelephense --version"
+
+[uninstall]
+config = "remove-enabled-plugin"
+
+[notes]
+risks     = ["Symbols of the framework resolve only when vendor/ exists on the host (bind mount)"]
+evaluated = "2026-11-11"
+review_by = "2027-02-11"

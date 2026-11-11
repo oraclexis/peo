@@ -1,0 +1,305 @@
+{
+  "schema": 1,
+  "generated": "2026-11-11T16:00:00+01:00",
+  "kind": {
+    "value": "existing",
+    "confidence": "fact",
+    "evidence": "93 commits"
+  },
+  "metrics": {
+    "commits": 93,
+    "tracked_files": 99,
+    "contributors": 1,
+    "loc": {
+      "vue": 2351,
+      "ts": 1129,
+      "php": 1114,
+      "css": 123
+    },
+    "loc_total": 4717
+  },
+  "components": [
+    {
+      "id": "root",
+      "path": ".",
+      "kind": "frontend",
+      "ecosystems": [
+        "node"
+      ],
+      "languages": [
+        "typescript",
+        "css"
+      ],
+      "stacks": [
+        {
+          "id": "nuxt",
+          "version": "4",
+          "confidence": "fact",
+          "evidence": "package.json: nuxt"
+        },
+        {
+          "id": "vue",
+          "version": "3",
+          "confidence": "fact",
+          "evidence": "package.json: vue"
+        },
+        {
+          "id": "tailwind",
+          "confidence": "fact",
+          "evidence": "package.json: @nuxtjs/tailwindcss"
+        },
+        {
+          "id": "threejs",
+          "confidence": "fact",
+          "evidence": "package.json: three"
+        },
+        {
+          "id": "vitest",
+          "confidence": "fact",
+          "evidence": "package.json: vitest"
+        },
+        {
+          "id": "playwright",
+          "confidence": "fact",
+          "evidence": "package.json: @playwright/test"
+        },
+        {
+          "id": "typescript",
+          "confidence": "fact",
+          "evidence": "package.json: typescript, vue-tsc"
+        }
+      ],
+      "runtime": {
+        "value": "host",
+        "confidence": "fact",
+        "evidence": "no compose service builds '.'; node on PATH"
+      },
+      "commands": {
+        "typecheck": {
+          "value": "npm run typecheck",
+          "confidence": "fact",
+          "evidence": "package.json scripts.typecheck"
+        },
+        "test": {
+          "value": "npm test",
+          "confidence": "fact",
+          "evidence": "package.json scripts.test = vitest run"
+        },
+        "e2e": {
+          "value": "npm run test:e2e",
+          "confidence": "fact",
+          "evidence": "package.json scripts.test:e2e"
+        },
+        "build": {
+          "value": "npm run build",
+          "confidence": "fact",
+          "evidence": "package.json scripts.build"
+        },
+        "lint": {
+          "value": null,
+          "confidence": "unknown",
+          "evidence": "no eslint, no lint script"
+        }
+      },
+      "paths": {
+        "code": [
+          "**/*.vue",
+          "**/*.ts",
+          "**/*.css",
+          "!backend/**"
+        ]
+      }
+    },
+    {
+      "id": "backend",
+      "path": "backend",
+      "kind": "backend",
+      "ecosystems": [
+        "php"
+      ],
+      "languages": [
+        "php"
+      ],
+      "stacks": [
+        {
+          "id": "php-laravel",
+          "version": "11",
+          "confidence": "fact",
+          "evidence": "backend/composer.json: laravel/framework ^11.9"
+        },
+        {
+          "id": "filament",
+          "version": "3",
+          "confidence": "fact",
+          "evidence": "backend/composer.json: filament/filament ^3.2"
+        },
+        {
+          "id": "phpunit",
+          "confidence": "fact",
+          "evidence": "backend/composer.json require-dev: phpunit/phpunit"
+        },
+        {
+          "id": "pint",
+          "confidence": "fact",
+          "evidence": "backend/composer.json require-dev: laravel/pint"
+        },
+        {
+          "id": "postgres",
+          "version": "16",
+          "confidence": "fact",
+          "evidence": "docker-compose.yml: service db"
+        }
+      ],
+      "runtime": {
+        "value": "docker:api",
+        "confidence": "fact",
+        "evidence": "docker-compose.yml: api build.context ./backend, volume ./backend:/var/www/html; php not on PATH"
+      },
+      "commands": {
+        "test": {
+          "value": "docker compose exec -T api php artisan test",
+          "confidence": "likely",
+          "evidence": "phpunit declared, artisan present, no test script"
+        },
+        "lint": {
+          "value": "docker compose exec -T api vendor/bin/pint --test",
+          "confidence": "likely",
+          "evidence": "laravel/pint declared"
+        }
+      },
+      "paths": {
+        "code": [
+          "backend/**/*.php"
+        ]
+      }
+    }
+  ],
+  "monorepo": false,
+  "multi_component": true,
+  "commands": {
+    "verify": {
+      "value": null,
+      "confidence": "unknown",
+      "evidence": "no verify/check target in Makefile"
+    }
+  },
+  "conventions": {
+    "branches": {
+      "prefixes": [
+        "feat",
+        "fix"
+      ],
+      "id_style": "mixed",
+      "id_shares": {
+        "alnum-id": 0.52,
+        "free": 0.48
+      },
+      "pattern": "^(feat|fix)/[A-Za-z0-9-]+$",
+      "share": 1.0,
+      "confidence": "fact",
+      "evidence": "46 of 46 branches outside main"
+    },
+    "commits": {
+      "style": "conventional",
+      "language": "fr",
+      "share": 1.0,
+      "excluded_merges": 46,
+      "confidence": "fact",
+      "evidence": "47 of 47 non-merge subjects"
+    }
+  },
+  "git": {
+    "remote": false,
+    "default_branch": "main"
+  },
+  "ci": {
+    "kind": "none",
+    "file": null
+  },
+  "docs": {
+    "readme": true,
+    "claude_md": {
+      "class": "thin",
+      "lines": 27,
+      "rules_count": 9
+    },
+    "agents_md": false,
+    "handoff": "HANDOFF.md",
+    "adr": null
+  },
+  "present_tools": [
+    {
+      "ref": "cli:playwright",
+      "via": "dev-dependency",
+      "component": "root",
+      "evidence": "package.json devDependencies: @playwright/test"
+    }
+  ],
+  "signals": {
+    "auth": {
+      "value": true,
+      "confidence": "likely",
+      "evidence": "README: Keycloak planned; no auth dependency yet"
+    },
+    "public_surface": {
+      "value": true,
+      "confidence": "likely",
+      "evidence": "README: contact form planned"
+    },
+    "frontend_heavy": {
+      "value": true,
+      "confidence": "fact",
+      "evidence": "package.json: three"
+    },
+    "design_rules_in_instructions": {
+      "value": true,
+      "confidence": "fact",
+      "evidence": "CLAUDE.md: border-radius, tokens, chamfer rules"
+    }
+  },
+  "intent_from_docs": [
+    {
+      "tool": "spec-kit",
+      "confidence": "likely",
+      "evidence": "README.md mentions Spec Kit"
+    }
+  ],
+  "docs_drift": [
+    {
+      "rule": "D1",
+      "file": "README.md",
+      "line": 82,
+      "confidence": "likely",
+      "message": "Unchecked TODO cites BlockRenderer.vue, which exists (app/components/article/BlockRenderer.vue)"
+    },
+    {
+      "rule": "D1",
+      "file": "CLAUDE.md",
+      "line": 27,
+      "confidence": "likely",
+      "message": "Priority TODO cites BlockRenderer.vue, which exists"
+    },
+    {
+      "rule": "D3",
+      "file": "README.md",
+      "line": 72,
+      "confidence": "likely",
+      "message": "Path apps/laravel/ announced as upcoming does not exist; backend code lives in backend/"
+    },
+    {
+      "rule": "D4",
+      "file": "HANDOFF.md",
+      "confidence": "likely",
+      "message": "Last changed 92 commits before HEAD while files it cites changed since"
+    }
+  ],
+  "gaps": [
+    "no-ci",
+    "no-verify",
+    "no-remote",
+    "no-agents-md",
+    "no-adr",
+    "no-tests:backend",
+    "no-lint:root"
+  ]
+}

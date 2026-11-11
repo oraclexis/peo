@@ -1,0 +1,74 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, py${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.13"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - name: Install
+        run: uv sync --locked --group dev
+      - name: Lint
+        run: uv run ruff check .
+      - name: Version consistency
+        run: uv run python tools/release.py check-version
+      - name: Tests
+        run: uv run pytest -q
+      - name: Spec schema examples
+        run: uv run python docs/design/spec/schemas/check_examples.py docs/design/spec/schemas
+
+  anonymizer-py39:
+    # tools/anonymize_epure.py runs on the system python3 of macOS: keep it 3.9-compatible.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.9"
+      - run: uv run --no-project --python 3.9 python -m py_compile tools/anonymize_epure.py
+
+  package:
+    # Build the wheel exactly as the release does, then run it outside the project.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - name: Build
+        run: uv build
+      - name: Smoke test the wheel
+        run: |
+          wheel=$(ls dist/*.whl)
+          uvx --from "$wheel" peo --version
+          uv run --no-project --with "$wheel" python -c "import importlib.resources as r; assert len([p for p in r.files('peo.schemas').iterdir() if p.name.endswith('.schema.json')]) == 7"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7

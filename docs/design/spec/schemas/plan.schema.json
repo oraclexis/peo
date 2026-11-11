@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peo.dev/schemas/plan.schema.json",
+  "title": "Output of peo plan (data field)",
+  "type": "object",
+  "required": [
+    "schema",
+    "plan_id",
+    "catalog",
+    "actions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "catalog": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "ref",
+        "commit"
+      ],
+      "additionalProperties": false
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    }
+  },
+  "$defs": {
+    "action": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^a[0-9]{3}$"
+        },
+        "group": {
+          "enum": [
+            "prerequisites",
+            "cli",
+            "framework",
+            "plugins",
+            "mcp",
+            "files",
+            "ci",
+            "peo"
+          ]
+        },
+        "op": {
+          "enum": [
+            "add",
+            "change",
+            "remove",
+            "keep",
+            "manual"
+          ]
+        },
+        "risk": {
+          "enum": [
+            "R0",
+            "R1",
+            "R2",
+            "R3",
+            "R4"
+          ]
+        },
+        "tool": {
+          "type": "string",
+          "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+        },
+        "target": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "enum": [
+                "plugin",
+                "marketplace",
+                "mcp",
+                "cli",
+                "framework",
+                "file",
+                "block",
+                "json-keys",
+                "ci"
+              ]
+            },
+            "path": {
+              "type": "string"
+            },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "block": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "preconditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  {
+                    "const": "absent"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "reason": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "group",
+        "op",
+        "risk",
+        "tool",
+        "target",
+        "reason"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

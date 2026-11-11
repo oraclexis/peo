@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peo.dev/schemas/lock.schema.json",
+  "title": "PEO lock file (.peo/peo.lock.json)",
+  "type": "object",
+  "required": [
+    "schema",
+    "generated",
+    "peo",
+    "catalog",
+    "tools"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "generated": {
+      "type": "string"
+    },
+    "peo": {
+      "type": "string"
+    },
+    "catalog": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "ref",
+        "commit"
+      ],
+      "additionalProperties": false
+    },
+    "claude_code": {
+      "type": "string"
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/installed"
+      }
+    }
+  },
+  "$defs": {
+    "installed": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "scope": {
+          "enum": [
+            "project",
+            "user",
+            "local",
+            "none"
+          ]
+        },
+        "reused": {
+          "type": "boolean"
+        },
+        "upstream_commit": {
+          "type": "string"
+        },
+        "write_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "path_arg": {
+          "type": "string"
+        },
+        "owns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/owned"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "enabled",
+        "owns"
+      ],
+      "additionalProperties": false
+    },
+    "owned": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "json-keys"
+            },
+            "file": {
+              "type": "string"
+            },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "type",
+            "file",
+            "keys",
+            "sha256"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "block"
+            },
+            "file": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "type",
+            "file",
+            "id",
+            "sha256"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "file"
+            },
+            "file": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "type",
+            "file",
+            "sha256"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "install"
+            },
+            "manager": {
+              "enum": [
+                "claude",
+                "uv",
+                "npm",
+                "specify"
+              ]
+            },
+            "package": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "manager",
+            "package",
+            "version"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

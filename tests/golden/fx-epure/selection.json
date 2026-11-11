@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "ok": true,
+  "backbone": {
+    "id": "speckit-egm-mattpocock",
+    "tools": [
+      "framework:spec-kit",
+      "claude-plugin:egm",
+      "claude-plugin:mattpocock-skills"
+    ]
+  },
+  "requirements": [
+    {
+      "capability": "clarify.interview",
+      "strength": "hard",
+      "source": "backbone",
+      "covered_by": "claude-plugin:mattpocock-skills"
+    },
+    {
+      "capability": "spec.authoring",
+      "strength": "hard",
+      "source": "backbone",
+      "covered_by": "framework:spec-kit"
+    },
+    {
+      "capability": "spec.review.independent",
+      "strength": "hard",
+      "source": "backbone",
+      "covered_by": "claude-plugin:egm"
+    },
+    {
+      "capability": "plan.tasks",
+      "strength": "hard",
+      "source": "backbone",
+      "covered_by": "framework:spec-kit"
+    },
+    {
+      "capability": "tdd.discipline",
+      "strength": "hard",
+      "source": "backbone",
+      "covered_by": "claude-plugin:mattpocock-skills"
+    },
+    {
+      "capability": "review.code",
+      "strength": "hard",
+      "source": "backbone",
+      "covered_by": "claude-plugin:mattpocock-skills"
+    },
+    {
+      "capability": "debug.diagnosis",
+      "strength": "hard",
+      "source": "backbone",
+      "covered_by": "claude-plugin:mattpocock-skills"
+    },
+    {
+      "capability": "drift.docs",
+      "strength": "hard",
+      "source": "backbone",
+      "covered_by": "claude-plugin:egm"
+    },
+    {
+      "capability": "process.gates",
+      "strength": "hard",
+      "source": "always",
+      "covered_by": "peo:gates"
+    },
+    {
+      "capability": "nav.lsp.typescript",
+      "strength": "soft",
+      "source": "lsp-per-language (root)",
+      "covered_by": "claude-plugin:typescript-lsp"
+    },
+    {
+      "capability": "nav.lsp.php",
+      "strength": "soft",
+      "source": "lsp-per-language (backend)",
+      "covered_by": "claude-plugin:php-lsp"
+    },
+    {
+      "capability": "review.security.sast",
+      "strength": "soft",
+      "source": "sast-when-exposed",
+      "covered_by": "ci-check:semgrep"
+    },
+    {
+      "capability": "browser.e2e",
+      "strength": "soft",
+      "source": "e2e-for-frontends",
+      "covered_by": "cli:playwright"
+    }
+  ],
+  "selected": [
+    {
+      "ref": "framework:spec-kit",
+      "covers": [
+        "spec.authoring",
+        "plan.tasks"
+      ],
+      "rule": "backbone",
+      "reason": "Default backbone; Spec Kit already intended by README",
+      "cost": 4
+    },
+    {
+      "ref": "cli:specify-cli",
+      "covers": [],
+      "rule": "requires (framework:spec-kit)",
+      "reason": "Installer required by Spec Kit",
+      "cost": 1
+    },
+    {
+      "ref": "claude-plugin:egm",
+      "covers": [
+        "spec.review.independent",
+        "drift.docs"
+      ],
+      "rule": "backbone",
+      "reason": "Default backbone",
+      "cost": 2
+    },
+    {
+      "ref": "claude-plugin:mattpocock-skills",
+      "covers": [
+        "clarify.interview",
+        "tdd.discipline",
+        "review.code",
+        "debug.diagnosis"
+      ],
+      "rule": "backbone",
+      "reason": "Default backbone",
+      "cost": 2
+    },
+    {
+      "ref": "peo:gates",
+      "covers": [
+        "process.gates"
+      ],
+      "rule": "always",
+      "reason": "Gate hook and approvals",
+      "cost": 7
+    },
+    {
+      "ref": "claude-plugin:typescript-lsp",
+      "covers": [
+        "nav.lsp.typescript"
+      ],
+      "rule": "lsp-per-language",
+      "reason": "Component root is TypeScript/Vue",
+      "cost": 1
+    },
+    {
+      "ref": "claude-plugin:php-lsp",
+      "covers": [
+        "nav.lsp.php"
+      ],
+      "rule": "lsp-per-language",
+      "reason": "Component backend is PHP; Intelephense does not need PHP on the host",
+      "cost": 2,
+      "prerequisites": [
+        {
+          "check": "bin:intelephense",
+          "status": "unmet",
+          "action": "fix",
+          "fix": "cli:intelephense"
+        },
+        {
+          "check": "path:backend/vendor",
+          "status": "unmet",
+          "action": "hint"
+        }
+      ]
+    },
+    {
+      "ref": "cli:intelephense",
+      "covers": [],
+      "rule": "prerequisite (claude-plugin:php-lsp)",
+      "reason": "Language server binary for php-lsp",
+      "cost": 1
+    },
+    {
+      "ref": "ci-check:semgrep",
+      "covers": [
+        "review.security.sast"
+      ],
+      "rule": "sast-when-exposed",
+      "reason": "Contact form and admin planned (likely, confirmed in round 1); runs in CI only, zero context cost",
+      "cost": 1
+    }
+  ],
+  "reused": [
+    {
+      "ref": "cli:playwright",
+      "covers": [
+        "browser.e2e"
+      ],
+      "evidence": "package.json devDependencies: @playwright/test"
+    }
+  ],
+  "rejected": [
+    {
+      "ref": "mcp:serena",
+      "code": "CONDITION_FALSE",
+      "detail": "profile.metrics.loc_total > 50000 is false (4717)"
+    },
+    {
+      "ref": "cli:graphify",
+      "code": "CONDITION_FALSE",
+      "detail": "profile.metrics.loc_total > 100000 is false (4717)"
+    },
+    {
+      "ref": "vendored-skill:ui-ux-pro-max",
+      "code": "CONTRAINDICATED",
+      "detail": "profile.signals.design_rules_in_instructions is true: art direction fixed in CLAUDE.md"
+    },
+    {
+      "ref": "claude-plugin:security-guidance",
+      "code": "CONDITION_FALSE",
+      "detail": "profile.signals.auth.confidence == 'fact' is false (auth only planned)"
+    },
+    {
+      "ref": "claude-plugin:pyright-lsp",
+      "code": "NOT_REQUIRED",
+      "detail": "no Python component"
+    },
+    {
+      "ref": "claude-plugin:context7",
+      "code": "NOT_REQUIRED",
+      "detail": "docs.libraries not requested"
+    },
+    {
+      "ref": "claude-plugin:superpowers",
+      "code": "BACKBONE_EXCLUSIVE",
+      "detail": "alternative backbone"
+    },
+    {
+      "ref": "claude-plugin:compound-engineering",
+      "code": "BACKBONE_EXCLUSIVE",
+      "detail": "alternative backbone"
+    },
+    {
+      "ref": "claude-plugin:everything-claude-code",
+      "code": "STATUS",
+      "detail": "status watch"
+    }
+  ],
+  "uncovered": [],
+  "cost_total": 21
+}

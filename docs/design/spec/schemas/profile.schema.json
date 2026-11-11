@@ -1,0 +1,616 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peo.dev/schemas/profile.schema.json",
+  "title": "PEO project profile (.peo/profile.json), output of peo discover",
+  "type": "object",
+  "required": [
+    "schema",
+    "kind",
+    "metrics",
+    "components",
+    "monorepo",
+    "conventions",
+    "docs",
+    "signals",
+    "docs_drift",
+    "gaps"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "generated": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "enum": [
+            "new",
+            "existing"
+          ]
+        },
+        "confidence": {
+          "enum": [
+            "fact",
+            "likely",
+            "unknown"
+          ]
+        },
+        "evidence": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "confidence"
+      ],
+      "additionalProperties": false
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "commits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tracked_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contributors": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "loc": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "loc_total": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "commits",
+        "tracked_files",
+        "loc",
+        "loc_total"
+      ],
+      "additionalProperties": false
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/component"
+      },
+      "minItems": 1
+    },
+    "monorepo": {
+      "type": "boolean"
+    },
+    "multi_component": {
+      "type": "boolean"
+    },
+    "commands": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "enum": [
+              "fact",
+              "likely",
+              "unknown"
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "confidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "conventions": {
+      "type": "object",
+      "properties": {
+        "branches": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/branches"
+            }
+          ]
+        },
+        "commits": {
+          "type": "object",
+          "properties": {
+            "style": {
+              "enum": [
+                "conventional",
+                "free",
+                "unknown"
+              ]
+            },
+            "language": {
+              "enum": [
+                "fr",
+                "en",
+                "unknown"
+              ]
+            },
+            "share": {
+              "type": "number",
+              "minimum": 0
+            },
+            "excluded_merges": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "confidence": {
+              "enum": [
+                "fact",
+                "likely",
+                "unknown"
+              ]
+            },
+            "evidence": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "style",
+            "language",
+            "confidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "branches",
+        "commits"
+      ],
+      "additionalProperties": false
+    },
+    "git": {
+      "type": "object",
+      "properties": {
+        "remote": {
+          "type": "boolean"
+        },
+        "default_branch": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "remote"
+      ],
+      "additionalProperties": false
+    },
+    "ci": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "none",
+            "gitlab",
+            "github",
+            "other"
+          ]
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "docs": {
+      "type": "object",
+      "properties": {
+        "readme": {
+          "type": "boolean"
+        },
+        "claude_md": {
+          "type": "object",
+          "properties": {
+            "class": {
+              "enum": [
+                "absent",
+                "pointer",
+                "thin",
+                "rich"
+              ]
+            },
+            "lines": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rules_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "class"
+          ],
+          "additionalProperties": false
+        },
+        "agents_md": {
+          "type": "boolean"
+        },
+        "handoff": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "adr": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "readme",
+        "claude_md",
+        "agents_md"
+      ],
+      "additionalProperties": false
+    },
+    "present_tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+          },
+          "via": {
+            "enum": [
+              "plugin",
+              "mcp",
+              "cli",
+              "dev-dependency",
+              "file"
+            ]
+          },
+          "component": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "via",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "signals": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "enum": [
+              "fact",
+              "likely",
+              "unknown"
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "confidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "intent_from_docs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tool": {
+            "type": "string"
+          },
+          "confidence": {
+            "const": "likely"
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "docs_drift": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "enum": [
+              "D1",
+              "D2",
+              "D3",
+              "D4"
+            ]
+          },
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "message": {
+            "type": "string"
+          },
+          "confidence": {
+            "const": "likely"
+          }
+        },
+        "required": [
+          "rule",
+          "file",
+          "message",
+          "confidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(no-ci|no-verify|no-remote|no-agents-md|no-adr|no-tests:[a-z0-9-]+|no-lint:[a-z0-9-]+)$"
+      }
+    }
+  },
+  "$defs": {
+    "component": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "path": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "frontend",
+            "backend",
+            "fullstack",
+            "library"
+          ]
+        },
+        "ecosystems": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "node",
+              "php",
+              "python",
+              "go",
+              "rust",
+              "jvm",
+              "ruby"
+            ]
+          },
+          "minItems": 1
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stacks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "confidence": {
+                "enum": [
+                  "fact",
+                  "likely",
+                  "unknown"
+                ]
+              },
+              "evidence": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "confidence",
+              "evidence"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "runtime": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string",
+              "pattern": "^(host|docker:[A-Za-z0-9_.-]+)$"
+            },
+            "confidence": {
+              "enum": [
+                "fact",
+                "likely",
+                "unknown"
+              ]
+            },
+            "evidence": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "value",
+            "confidence"
+          ],
+          "additionalProperties": false
+        },
+        "commands": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "confidence": {
+                "enum": [
+                  "fact",
+                  "likely",
+                  "unknown"
+                ]
+              },
+              "evidence": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "paths": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "code"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "kind",
+        "ecosystems",
+        "languages",
+        "stacks",
+        "runtime",
+        "commands",
+        "paths"
+      ],
+      "additionalProperties": false
+    },
+    "branches": {
+      "type": "object",
+      "properties": {
+        "prefixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id_style": {
+          "enum": [
+            "numeric",
+            "timestamp",
+            "alnum-id",
+            "free",
+            "mixed"
+          ]
+        },
+        "id_shares": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "share": {
+          "type": "number",
+          "minimum": 0
+        },
+        "confidence": {
+          "enum": [
+            "fact",
+            "likely",
+            "unknown"
+          ]
+        },
+        "evidence": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "prefixes",
+        "id_style",
+        "pattern",
+        "share",
+        "confidence",
+        "evidence"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

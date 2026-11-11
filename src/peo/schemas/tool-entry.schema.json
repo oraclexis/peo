@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peo.dev/schemas/tool-entry.schema.json",
+  "title": "PEO catalog tool entry (tools/<kind>/<id>.toml, parsed with tomllib)",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "name",
+    "status",
+    "license",
+    "source",
+    "versions",
+    "capabilities",
+    "surface",
+    "install",
+    "uninstall",
+    "notes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "kind": {
+      "enum": [
+        "claude-plugin",
+        "mcp",
+        "cli",
+        "vendored-skill",
+        "framework",
+        "ci-check",
+        "rule",
+        "peo"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "core",
+        "conditional",
+        "optional",
+        "reuse",
+        "backbone-alt",
+        "rejected",
+        "watch"
+      ]
+    },
+    "license": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "repo": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "checked": {
+          "type": "string"
+        },
+        "marketplace": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "repo",
+        "checked"
+      ],
+      "additionalProperties": false
+    },
+    "versions": {
+      "type": "object",
+      "properties": {
+        "tested": {
+          "type": "string"
+        },
+        "min": {
+          "type": "string"
+        },
+        "max": {
+          "type": "string"
+        },
+        "pin": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tested"
+      ],
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "provides": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+(\\.[a-z0-9-]+)+$"
+          }
+        }
+      },
+      "required": [
+        "provides"
+      ],
+      "additionalProperties": false
+    },
+    "relations": {
+      "type": "object",
+      "properties": {
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+          }
+        },
+        "overlaps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+          }
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "selection": {
+      "type": "object",
+      "properties": {
+        "when": {
+          "type": "object",
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "all": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "not": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "reuse_only": {
+          "type": "boolean"
+        },
+        "detect_only": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "check": {
+            "type": "string",
+            "pattern": "^(bin|path|runtime):.+$"
+          },
+          "fix": {
+            "type": "string",
+            "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "blocking": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "check",
+          "blocking"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "detect": {
+      "type": "object",
+      "properties": {
+        "npm": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "composer": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pip": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bin": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "plugin": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mcp": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "conventions": {
+      "type": "object",
+      "properties": {
+        "branch_final_segment": {
+          "type": "string"
+        },
+        "branch_configurable": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "specs_dir": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "surface": {
+      "type": "object",
+      "properties": {
+        "hooks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mcp_tools": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "write_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "path_arg": {
+          "type": "string"
+        },
+        "writes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "network": {
+          "enum": [
+            "none",
+            "install-only",
+            "runtime"
+          ]
+        },
+        "runs_target": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "hooks",
+        "network"
+      ],
+      "additionalProperties": false
+    },
+    "cost": {
+      "type": "object",
+      "properties": {
+        "context_static_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runtime": {
+          "type": "string"
+        },
+        "evidence": {
+          "enum": [
+            "measured",
+            "vendor-claim",
+            "estimate"
+          ]
+        }
+      },
+      "required": [
+        "context_static_tokens",
+        "evidence"
+      ],
+      "additionalProperties": false
+    },
+    "install": {
+      "type": "object",
+      "properties": {
+        "manager": {
+          "enum": [
+            "claude",
+            "uv",
+            "npm",
+            "specify",
+            "files",
+            "ci",
+            "none"
+          ]
+        },
+        "plugin": {
+          "type": "string"
+        },
+        "marketplace": {
+          "type": "string"
+        },
+        "package": {
+          "type": "string"
+        },
+        "python": {
+          "type": "string"
+        },
+        "cli": {
+          "type": "string"
+        },
+        "config": {
+          "type": "object"
+        },
+        "verify": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "manager"
+      ],
+      "additionalProperties": false
+    },
+    "uninstall": {
+      "type": "object",
+      "properties": {
+        "cli": {
+          "type": "string"
+        },
+        "config": {
+          "type": "string"
+        },
+        "keep": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "object",
+      "properties": {
+        "risks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evaluated": {
+          "type": "string"
+        },
+        "review_by": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "evaluated",
+        "review_by"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,63 @@
+schema      = 1
+peo_version = "0.1.0"
+
+[project]
+name      = "sample"
+mission   = "Studio website with a journal (Nuxt SSR) and a Laravel/Filament CMS."
+kind      = "existing"
+category  = "website"
+languages = { artifacts = "fr", code = "en" }
+
+[backbone]
+id = "speckit-egm-mattpocock"
+
+[components.root]
+path     = "."
+runtime  = "host"
+commands = { typecheck = "npm run typecheck", test = "npm test", e2e = "npm run test:e2e" }
+paths    = { code = ["**/*.vue", "**/*.ts", "**/*.css", "!backend/**"] }
+
+[components.backend]
+path     = "backend"
+runtime  = "docker:api"
+commands = { lint = "docker compose exec -T api vendor/bin/pint --test" }
+paths    = { code = ["backend/**/*.php"] }
+
+[tools]
+"claude-plugin:typescript-lsp" = { enabled = true, reason = "component root is TypeScript/Vue (fact)" }
+"claude-plugin:php-lsp"        = { enabled = true, reason = "component backend is PHP (fact)" }
+"ci-check:semgrep"             = { enabled = true, reason = "public form and admin planned (confirmed)" }
+
+[commands]
+verify = "make verify"
+
+[conventions]
+branch_prefix_feature = "feat"
+branch_prefix_fix     = "fix"
+branch_mode           = "speckit-numbered"
+
+[gates]
+mode              = "ask"
+on_error          = "open"
+require_work_item = false
+before_code       = { feature = ["G1", "G3", "G4"], bugfix = ["G2", "G1"] }
+before_merge      = ["G5", "G7"]
+
+[tracks]
+default = "M"
+
+[policy]
+autonomy        = "guided"
+updates         = "prepare"
+require_consent = ["install", "remove", "modify-settings", "network"]
+
+[catalog]
+source = "https://example.test/peo/catalog.git"
+ref    = "v2026.11"
+
+[answers]
+"q.confirm_profile" = true
+"q.docs_drift"      = "archive-handoff-fix-readme"
+"q.verify_cmd"      = "make-verify"
+"q.ci"              = "gitlab"
+"q.gate_mode"       = "ask"

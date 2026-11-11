@@ -1,0 +1,251 @@
+{
+  "schema": 1,
+  "plan_id": "1d9b8623c7f260da471f1071ed1bcc6e3bebf7db646ecff1e203a56268f371bb",
+  "catalog": {
+    "source": "https://example.test/peo/catalog.git",
+    "ref": "v2026.11",
+    "commit": "TBD"
+  },
+  "actions": [
+    {
+      "id": "a001",
+      "group": "prerequisites",
+      "op": "add",
+      "risk": "R3",
+      "tool": "cli:intelephense",
+      "target": {
+        "type": "cli",
+        "name": "intelephense"
+      },
+      "command": [
+        "npm",
+        "install",
+        "-g",
+        "intelephense@TBD"
+      ],
+      "reason": "Required by claude-plugin:php-lsp"
+    },
+    {
+      "id": "a002",
+      "group": "prerequisites",
+      "op": "manual",
+      "risk": "R0",
+      "tool": "claude-plugin:php-lsp",
+      "target": {
+        "type": "file",
+        "path": "backend/vendor"
+      },
+      "reason": "Non-blocking prerequisite",
+      "text": "Install PHP dependencies so Intelephense indexes Laravel: docker compose exec api composer install"
+    },
+    {
+      "id": "a003",
+      "group": "cli",
+      "op": "add",
+      "risk": "R3",
+      "tool": "cli:specify-cli",
+      "target": {
+        "type": "cli",
+        "name": "specify-cli"
+      },
+      "command": [
+        "uv",
+        "tool",
+        "install",
+        "specify-cli==1.4.0"
+      ],
+      "reason": "Installer required by Spec Kit"
+    },
+    {
+      "id": "a004",
+      "group": "framework",
+      "op": "add",
+      "risk": "R2",
+      "tool": "framework:spec-kit",
+      "target": {
+        "type": "framework",
+        "path": ".specify"
+      },
+      "command": [
+        "specify",
+        "init",
+        "--here",
+        "--force",
+        "--integration",
+        "claude",
+        "--integration-options=--no-model-invocation"
+      ],
+      "preconditions": [
+        {
+          "path": ".specify",
+          "sha256": "absent"
+        }
+      ],
+      "reason": "Default backbone"
+    },
+    {
+      "id": "a005",
+      "group": "framework",
+      "op": "add",
+      "risk": "R1",
+      "tool": "framework:spec-kit",
+      "target": {
+        "type": "file",
+        "path": ".specify/extensions/git/git-config.yml"
+      },
+      "reason": "Keep the feat/ prefix: branch_prefix feat gives feat/001-slug, which matches ^(feat|fix)/[A-Za-z0-9-]+$"
+    },
+    {
+      "id": "a006",
+      "group": "plugins",
+      "op": "add",
+      "risk": "R3",
+      "tool": "claude-plugin:egm",
+      "target": {
+        "type": "plugin",
+        "name": "egm@egm"
+      },
+      "command": [
+        "claude",
+        "plugin",
+        "install",
+        "egm@egm",
+        "--scope",
+        "project",
+        "--json"
+      ],
+      "reason": "Default backbone"
+    },
+    {
+      "id": "a007",
+      "group": "plugins",
+      "op": "add",
+      "risk": "R3",
+      "tool": "claude-plugin:php-lsp",
+      "target": {
+        "type": "plugin",
+        "name": "php-lsp@claude-plugins-official"
+      },
+      "command": [
+        "claude",
+        "plugin",
+        "install",
+        "php-lsp@claude-plugins-official",
+        "--scope",
+        "project",
+        "--json"
+      ],
+      "reason": "Component backend is PHP"
+    },
+    {
+      "id": "a008",
+      "group": "files",
+      "op": "change",
+      "risk": "R1",
+      "tool": "peo:core",
+      "target": {
+        "type": "block",
+        "path": "CLAUDE.md",
+        "block": "claude-md"
+      },
+      "preconditions": [
+        {
+          "path": "CLAUDE.md",
+          "sha256": "2e286d00a809f4dde964b0199bf995f2a03749fd57b8b5cb3c4800ab1fbd362a"
+        }
+      ],
+      "reason": "Keep content (S-3); prepend @AGENTS.md and add managed block"
+    },
+    {
+      "id": "a009",
+      "group": "files",
+      "op": "change",
+      "risk": "R2",
+      "tool": "peo:gates",
+      "target": {
+        "type": "json-keys",
+        "path": ".claude/settings.json",
+        "keys": [
+          "hooks.PreToolUse[command=peo gate]",
+          "hooks.SessionStart[command=peo context]",
+          "permissions.ask[Bash(peo flow approve:*)]",
+          "permissions.ask[Bash(peo flow override:*)]"
+        ]
+      },
+      "preconditions": [
+        {
+          "path": ".claude/settings.json",
+          "sha256": "absent"
+        }
+      ],
+      "reason": "Gate and context hooks; approvals require a human"
+    },
+    {
+      "id": "a010",
+      "group": "files",
+      "op": "change",
+      "risk": "R1",
+      "tool": "peo:core",
+      "target": {
+        "type": "file",
+        "path": "HANDOFF.md"
+      },
+      "preconditions": [
+        {
+          "path": "HANDOFF.md",
+          "sha256": "d7a56ecb3c699cc94fe1e8c05bde41c145c7a750dfb52f6d68e94eb64da0d456"
+        }
+      ],
+      "reason": "Answer q.docs_drift: move to docs/archive/HANDOFF.md"
+    },
+    {
+      "id": "a011",
+      "group": "ci",
+      "op": "add",
+      "risk": "R1",
+      "tool": "ci-check:semgrep",
+      "target": {
+        "type": "ci",
+        "path": ".gitlab-ci.yml",
+        "block": "peo-ci"
+      },
+      "preconditions": [
+        {
+          "path": ".gitlab-ci.yml",
+          "sha256": "absent"
+        }
+      ],
+      "reason": "Answer q.ci = gitlab"
+    },
+    {
+      "id": "a012",
+      "group": "peo",
+      "op": "add",
+      "risk": "R1",
+      "tool": "peo:core",
+      "target": {
+        "type": "file",
+        "path": ".peo/peo.toml"
+      },
+      "preconditions": [
+        {
+          "path": ".peo/peo.toml",
+          "sha256": "absent"
+        }
+      ],
+      "reason": "Project configuration"
+    },
+    {
+      "id": "a013",
+      "group": "files",
+      "op": "keep",
+      "risk": "R0",
+      "tool": "cli:playwright",
+      "target": {
+        "type": "cli",
+        "name": "@playwright/test"
+      },
+      "reason": "Reused for browser.e2e"
+    }
+  ]
+}

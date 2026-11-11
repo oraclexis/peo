@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "generated": "2026-11-11T16:20:00+01:00",
+  "peo": "0.1.0",
+  "catalog": {
+    "source": "https://example.test/peo/catalog.git",
+    "ref": "v2026.11",
+    "commit": "TBD"
+  },
+  "claude_code": "TBD",
+  "tools": {
+    "claude-plugin:egm": {
+      "version": "0.1.1",
+      "scope": "project",
+      "enabled": true,
+      "owns": [
+        {
+          "type": "json-keys",
+          "file": ".claude/settings.json",
+          "keys": []
+        }
+      ]
+    },
+    "claude-plugin:php-lsp": {
+      "version": "1.0.0",
+      "scope": "project",
+      "enabled": true,
+      "owns": [
+        {
+          "type": "json-keys",
+          "file": ".claude/settings.json",
+          "keys": [
+            "enabledPlugins.php-lsp@claude-plugins-official"
+          ],
+          "sha256": "895b6297b74da092347d31e5da9915adf918f85dd868e8718886c4ef3abd81c4"
+        }
+      ]
+    },
+    "cli:intelephense": {
+      "version": "TBD",
+      "scope": "user",
+      "enabled": true,
+      "owns": [
+        {
+          "type": "install",
+          "manager": "npm",
+          "package": "intelephense",
+          "version": "TBD"
+        }
+      ]
+    },
+    "cli:specify-cli": {
+      "version": "1.4.0",
+      "scope": "user",
+      "enabled": true,
+      "owns": [
+        {
+          "type": "install",
+          "manager": "uv",
+          "package": "specify-cli",
+          "version": "1.4.0"
+        }
+      ]
+    },
+    "framework:spec-kit": {
+      "version": "1.4.0",
+      "scope": "project",
+      "enabled": true,
+      "owns": [
+        {
+          "type": "file",
+          "file": ".specify/extensions/git/git-config.yml",
+          "sha256": "0ea655078c0f38f9656ff25615c0cd8bfd192e740f8c2cb7d17fae7e765ced63"
+        }
+      ]
+    },
+    "peo:gates": {
+      "version": "0.1.0",
+      "scope": "project",
+      "enabled": true,
+      "write_tools": [
+        "Edit",
+        "Write",
+        "MultiEdit",
+        "NotebookEdit"
+      ],
+      "owns": [
+        {
+          "type": "json-keys",
+          "file": ".claude/settings.json",
+          "keys": [
+            "hooks.PreToolUse[command=peo gate]",
+            "hooks.SessionStart[command=peo context]",
+            "permissions.ask[Bash(peo flow approve:*)]",
+            "permissions.ask[Bash(peo flow override:*)]"
+          ],
+          "sha256": "2fd6784d550e19e19ea18cccb529d99f6ae65b6fb919b98f85cbc8c823bec84a"
+        }
+      ]
+    },
+    "peo:core": {
+      "version": "0.1.0",
+      "scope": "project",
+      "enabled": true,
+      "owns": [
+        {
+          "type": "block",
+          "file": "AGENTS.md",
+          "id": "agents-md",
+          "sha256": "12aa6e92de7e2ba5de6648abff96055aa8e0462ea0f211982212a64428f5f857"
+        },
+        {
+          "type": "block",
+          "file": "CLAUDE.md",
+          "id": "claude-md",
+          "sha256": "f192ff627a7ea7f66463b582fa5bb562b5f6442b68157c1f0228a4c9ab5c4089"
+        },
+        {
+          "type": "block",
+          "file": ".gitignore",
+          "id": "gitignore",
+          "sha256": "e143e096e5680bcb40e0bbfe1a110875f17d2da558ad63a9de945611ecc7ad92"
+        },
+        {
+          "type": "block",
+          "file": "Makefile",
+          "id": "verify",
+          "sha256": "4ac88310acff94992dc44b57e7b380701a44df44be8e414f5e548c488957e86f"
+        }
+      ]
+    },
+    "cli:playwright": {
+      "version": "TBD",
+      "scope": "none",
+      "enabled": true,
+      "reused": true,
+      "owns": []
+    }
+  }
+}

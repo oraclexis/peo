@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peo.dev/schemas/peo-config.schema.json",
+  "title": "PEO project configuration (.peo/peo.toml, parsed with tomllib)",
+  "type": "object",
+  "required": [
+    "schema",
+    "peo_version",
+    "project",
+    "backbone",
+    "gates",
+    "policy",
+    "catalog"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "peo_version": {
+      "type": "string"
+    },
+    "project": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "mission": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "new",
+            "existing",
+            "modernize",
+            "rebuild"
+          ]
+        },
+        "category": {
+          "enum": [
+            "saas",
+            "internal-app",
+            "website",
+            "api",
+            "library",
+            "cli",
+            "other"
+          ]
+        },
+        "languages": {
+          "type": "object",
+          "properties": {
+            "artifacts": {
+              "type": "string"
+            },
+            "code": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "artifacts"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "mission",
+        "kind",
+        "languages"
+      ],
+      "additionalProperties": false
+    },
+    "backbone": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "runtime": {
+            "type": "string",
+            "pattern": "^(host|docker:[A-Za-z0-9_.-]+)$"
+          },
+          "commands": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "paths": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "code"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "path",
+          "runtime",
+          "paths"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "keep_config": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "commands": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "knowledge": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "conventions": {
+      "type": "object",
+      "properties": {
+        "branch_prefix_feature": {
+          "type": "string"
+        },
+        "branch_prefix_fix": {
+          "type": "string"
+        },
+        "branch_mode": {
+          "enum": [
+            "speckit-numbered",
+            "project-ids"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "gates": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "off",
+            "ask",
+            "deny"
+          ]
+        },
+        "on_error": {
+          "enum": [
+            "open",
+            "closed"
+          ]
+        },
+        "require_work_item": {
+          "type": "boolean"
+        },
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "before_code": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^G[1-7]$"
+            }
+          }
+        },
+        "before_merge": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^G[1-7]$"
+          }
+        }
+      },
+      "required": [
+        "mode",
+        "before_code",
+        "before_merge"
+      ],
+      "additionalProperties": false
+    },
+    "tracks": {
+      "type": "object",
+      "properties": {
+        "default": {
+          "enum": [
+            "S",
+            "M",
+            "L"
+          ]
+        }
+      },
+      "required": [
+        "default"
+      ],
+      "additionalProperties": false
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "autonomy": {
+          "enum": [
+            "guided",
+            "semi"
+          ]
+        },
+        "updates": {
+          "enum": [
+            "manual",
+            "prepare"
+          ]
+        },
+        "require_consent": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "install",
+              "remove",
+              "modify-settings",
+              "network",
+              "project-files"
+            ]
+          }
+        }
+      },
+      "required": [
+        "autonomy",
+        "updates"
+      ],
+      "additionalProperties": false
+    },
+    "catalog": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "ref"
+      ],
+      "additionalProperties": false
+    },
+    "answers": {
+      "type": "object"
+    }
+  }
+}
