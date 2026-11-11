@@ -110,6 +110,15 @@ Règles de dépendance : aucun cycle ; `gate.py` et `context.py` n'importent que
 | NF12 | Messages en anglais ; artefacts du projet dans la langue `project.languages.artifacts` | |
 | NF13 | Contrôle des caractères Unicode invisibles ou bidirectionnels dans toute fiche et tout fichier tiers copié (U+200B–U+200F, U+202A–U+202E, U+2066–U+2069, U+FEFF hors début de fichier) | Fiche de test piégée rejetée |
 
+**Contrat de `validate.py` (NF2, P1.1).**
+
+- `validate(instance, schema) -> list[ValidationError]` : fonction pure, liste vide = valide. `ValidationError` est un `NamedTuple(path, message)` ; `path` est un JSON Pointer (`/components/0/name`), `message` est en anglais. Seul le verdict est comparé à `jsonschema` ; le texte des messages ne l'est pas. Le `$ref` local (`#/$defs/<nom>`) se résout contre le `schema` racine reçu ; le chargement des schémas incombe à l'appelant.
+- Toutes les erreurs sont rapportées, triées par `(path, message)` (NF8).
+- Un mot-clé hors du sous-ensemble (`format`, `allOf`, `$ref` non local…) lève `UnsupportedSchema`. Les annotations `$schema`, `$id`, `title` et `description` sont ignorées.
+- `additionalProperties` accepte `false` ou un sous-schéma.
+- `oneOf` a la sémantique générale « exactement une alternative valide » ; la restriction de NF2 décrit l'emploi qu'en font les schémas, elle n'est pas contrôlée.
+- Cas limites alignés sur `jsonschema` (Draft 2020-12) : `bool` n'est ni `integer` ni `number` ; `1.0` est un `integer` ; un mot-clé qui ne concerne pas le type de l'instance est ignoré ; `pattern` utilise `re.search` ; `enum` et `const` ne confondent pas `True` et `1`.
+
 ## 5. Points techniques levés le 2026-11-11
 
 | Point | Résultat | Conséquence |
