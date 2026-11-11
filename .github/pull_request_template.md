@@ -4,7 +4,7 @@
 
 ## Constitution
 
-Tick each box, or write `n/a: <reason>` next to it. See `.specify/memory/constitution.md`.
+Tick each box, or write `n/a: <reason>` next to it. The principles are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 - [ ] **I. Specification first**: the behaviour change is described in `docs/design/spec/` in this PR, committed before the code (or no spec change is needed: say why)
 - [ ] **II. Tests first**: failing acceptance tests named after `16-test-plan.md` (A1.x, A2.x…) came first; no red test and no unexplained `xfail`

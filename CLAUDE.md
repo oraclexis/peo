@@ -11,7 +11,8 @@ Python CLI + thin Claude Code plugin. Specification: `docs/design/spec/` (French
 - Outputs are deterministic: sorted keys, stable order, no timestamps in plans.
 - Code, identifiers, messages and catalog entries in English. Design docs stay in French.
 - `src/peo/gate.py` and `src/peo/context.py` import only json, os, pathlib, fnmatch, tomllib and flow (latency < 100 ms).
-- Never commit files from a real project into `tests/fixtures/` except through `tools/anonymize_epure.py`.
+- Never commit files from a real project. Fixtures are hand-written (spec 16, section 2).
+- Contribution rules and the seven principles: `CONTRIBUTING.md`.
 
 ## Commands
 

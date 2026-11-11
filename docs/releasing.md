@@ -17,5 +17,5 @@
 
 ## Recommended repository settings
 
-- Branch protection on `main`: require the `ci` checks (`test (...)`, `package`, `anonymizer-py39`) and a pull request.
+- Branch protection on `main`: require the `ci` checks (`test (...)`, `package`) and a pull request.
 - Settings → Code security: enable Dependabot alerts and secret scanning (push protection).
