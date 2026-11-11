@@ -1,0 +1,11 @@
+id = "bad"
+kind = "cli"
+name = "Bad"
+status = "optional"
+license = "MIT"
+source = { repo = "https://example.test/bad", checked = "2026-11-11" }
+versions = { tested = "1.0.0" }
+capabilities = { provides = ["nav.graph"] }
+install = { manager = "uv", package = "bad" }
+uninstall = { cli = "uv tool uninstall bad" }
+notes = { evaluated = "2026-11-11", review_by = "2027-02-11" }

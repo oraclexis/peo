@@ -1,0 +1,7 @@
+schema = 1
+peo_version = "0.1.0"
+project = { name = "x", mission = "y", kind = "existing", languages = { artifacts = "fr" } }
+backbone = { id = "speckit-egm-mattpocock" }
+gates = { mode = "ask", before_code = { feature = ["G1"] }, before_merge = ["G5"] }
+policy = { autonomy = "autonomous", updates = "auto" }
+catalog = { source = "x", ref = "y" }

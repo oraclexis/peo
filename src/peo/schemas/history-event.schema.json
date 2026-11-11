@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peo.dev/schemas/history-event.schema.json",
+  "title": "One line of .peo/history.ndjson",
+  "type": "object",
+  "required": [
+    "ts",
+    "actor",
+    "cmd",
+    "action",
+    "result"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "ts": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([+-][0-9]{2}:[0-9]{2}|Z)$"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "cmd": {
+      "type": "string"
+    },
+    "action": {
+      "enum": [
+        "install",
+        "configure",
+        "write",
+        "remove",
+        "manual",
+        "flow-start",
+        "flow-done",
+        "gate-approve",
+        "gate-override",
+        "verify",
+        "tools-enable",
+        "tools-disable"
+      ]
+    },
+    "result": {
+      "enum": [
+        "ok",
+        "failed",
+        "skipped",
+        "manual"
+      ]
+    },
+    "plan": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "tool": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "file": {
+      "type": "string"
+    },
+    "before": {
+      "type": "string",
+      "pattern": "^(sha256:[0-9a-f]{64}|absent)$"
+    },
+    "after": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "backup": {
+      "type": "string"
+    },
+    "work": {
+      "type": "string"
+    },
+    "recipe": {
+      "enum": [
+        "feature",
+        "bugfix"
+      ]
+    },
+    "track": {
+      "enum": [
+        "S",
+        "M",
+        "L"
+      ]
+    },
+    "branch": {
+      "type": "string"
+    },
+    "gate": {
+      "type": "string",
+      "pattern": "^G[1-7]$"
+    },
+    "artifact": {
+      "type": "string"
+    },
+    "artifact_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    },
+    "exit_code": {
+      "type": "integer"
+    }
+  }
+}

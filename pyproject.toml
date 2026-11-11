@@ -1,0 +1,52 @@
+[project]
+name = "peo"
+version = "0.0.1"
+description = "Project Engineering Orchestrator: evaluated tool catalog, minimal justified selection and process gates for AI coding agents"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Amirouche" }]
+dependencies = []                      # NF1: standard library only at runtime
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Python :: 3 :: Only",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+]
+
+[project.scripts]
+peo = "peo.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "hypothesis>=6",
+    "jsonschema>=4.23",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/peo"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+xfail_strict = true                    # a spec test that starts passing must lose its xfail marker
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["tests/fixtures", "docs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S"]
+ignore = ["S101"]                      # assert is fine in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tools/*" = ["S603", "S607", "UP031", "E501"]  # git with fixed argument lists; %-format kept for Python 3.9 (macOS)
+"tests/*" = ["S603", "S607", "E501"]

@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peo.dev/schemas/selection.schema.json",
+  "title": "Output of peo select (data field)",
+  "type": "object",
+  "required": [
+    "schema",
+    "ok",
+    "backbone",
+    "requirements",
+    "selected",
+    "reused",
+    "rejected",
+    "uncovered",
+    "cost_total"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "backbone": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "tools"
+      ],
+      "additionalProperties": false
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string",
+            "pattern": "^[a-z]+(\\.[a-z0-9-]+)+$"
+          },
+          "strength": {
+            "enum": [
+              "hard",
+              "soft"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "covered_by": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "capability",
+          "strength",
+          "source",
+          "covered_by"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "selected": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+          },
+          "covers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z]+(\\.[a-z0-9-]+)+$"
+            }
+          },
+          "rule": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "prerequisites": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "check": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "met",
+                    "unmet"
+                  ]
+                },
+                "action": {
+                  "enum": [
+                    "none",
+                    "fix",
+                    "hint"
+                  ]
+                },
+                "fix": {
+                  "type": "string",
+                  "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+                }
+              },
+              "required": [
+                "check",
+                "status",
+                "action"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "ref",
+          "rule",
+          "reason",
+          "cost"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reused": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+          },
+          "covers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z]+(\\.[a-z0-9-]+)+$"
+            },
+            "minItems": 1
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "covers",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "rejected": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+          },
+          "code": {
+            "enum": [
+              "CONDITION_FALSE",
+              "CONTRAINDICATED",
+              "NOT_REQUIRED",
+              "REDUNDANT",
+              "CONFLICT",
+              "COST",
+              "PREREQ_UNMET",
+              "BACKBONE_EXCLUSIVE",
+              "STATUS"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "code",
+          "detail"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "uncovered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string",
+            "pattern": "^[a-z]+(\\.[a-z0-9-]+)+$"
+          },
+          "strength": {
+            "enum": [
+              "hard",
+              "soft"
+            ]
+          }
+        },
+        "required": [
+          "capability",
+          "strength"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "cost_total": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}
