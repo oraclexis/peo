@@ -239,7 +239,7 @@
     "auth": {
       "value": true,
       "confidence": "likely",
-      "evidence": "README: Keycloak planned; no auth dependency yet"
+      "evidence": "README: OIDC login planned; no auth dependency yet"
     },
     "public_surface": {
       "value": true,
@@ -254,7 +254,7 @@
     "design_rules_in_instructions": {
       "value": true,
       "confidence": "fact",
-      "evidence": "CLAUDE.md: border-radius, tokens, chamfer rules"
+      "evidence": "CLAUDE.md: design-system rules"
     }
   },
   "intent_from_docs": [
@@ -270,21 +270,21 @@
       "file": "README.md",
       "line": 82,
       "confidence": "likely",
-      "message": "Unchecked TODO cites BlockRenderer.vue, which exists (app/components/article/BlockRenderer.vue)"
+      "message": "Unchecked TODO cites ContentBlock.vue, which exists (app/components/ContentBlock.vue)"
     },
     {
       "rule": "D1",
       "file": "CLAUDE.md",
       "line": 27,
       "confidence": "likely",
-      "message": "Priority TODO cites BlockRenderer.vue, which exists"
+      "message": "Priority TODO cites ContentBlock.vue, which exists"
     },
     {
       "rule": "D3",
       "file": "README.md",
       "line": 72,
       "confidence": "likely",
-      "message": "Path apps/laravel/ announced as upcoming does not exist; backend code lives in backend/"
+      "message": "README announces backend/ as upcoming; it already exists"
     },
     {
       "rule": "D4",

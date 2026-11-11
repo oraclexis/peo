@@ -12,7 +12,7 @@ Analyse, challenge et conception du **Project Engineering Orchestrator**. Aucune
 
 ## Décisions
 
-Les décisions H1 à H12 ont été prises le 2026-11-11 (document 08, section 6 bis). Pilote existant n°1 : ÉPURE (document 09). Reste à désigner : un dépôt existant sans front lourd.
+Les décisions H1 à H12 ont été prises le 2026-11-11 (document 08, section 6 bis). Pilote existant n°1 : document 09. Reste à désigner : un dépôt existant sans front lourd.
 
 **Spécification détaillée du MVP : dossier [spec/](spec/10-spec-overview.md)** (documents 10 à 16 et schémas JSON validés). Elle attend ta validation, notamment des décisions S-1 à S-7, avant le début de la phase P1.
 
@@ -27,7 +27,7 @@ Les décisions H1 à H12 ont été prises le 2026-11-11 (document 08, section 6 
 | [05-plugin-manager.md](05-plugin-manager.md) | Types d'outils et adaptateurs, opérations, mises à jour, rollback, conflits, validation, stratégie de catalogue |
 | [06-modele-de-donnees.md](06-modele-de-donnees.md) | Capacités, fiche d'outil, socle, recette, `peo.toml`, `profile.json`, lock, journal, algorithme de sélection |
 | [07-mvp-et-roadmap.md](07-mvp-et-roadmap.md) | MVP (13 fonctionnalités avec critères d'acceptation), hors périmètre, feuille de route révisée, stratégie de tests, mesures |
-| [09-pilote-epure.md](09-pilote-epure.md) | Découverte, questionnaire et sélection joués à la main sur un projet réel ; 6 écarts de conception révélés |
+| [09-pilote-1.md](09-pilote-1.md) | Découverte, questionnaire et sélection joués à la main sur un projet réel ; 6 écarts de conception révélés |
 | [08-risques-et-decisions.md](08-risques-et-decisions.md) | 5 risques, 5 décisions, ce qu'il ne faut pas construire, choix techniques, alternatives, 12 décisions humaines |
 | [spec/10-spec-overview.md](spec/10-spec-overview.md) | Spécification : périmètre, glossaire, architecture du code, exigences non fonctionnelles, points techniques levés, décisions S-1 à S-7 |
 | [spec/11-cli-and-commands.md](spec/11-cli-and-commands.md) | CLI, sorties JSON, codes de sortie, skills, hooks |
@@ -35,8 +35,8 @@ Les décisions H1 à H12 ont été prises le 2026-11-11 (document 08, section 6 
 | [spec/13-catalog-and-selection.md](spec/13-catalog-and-selection.md) | Catalogue initial (19 fiches), langage `when`, questionnaire, Selector |
 | [spec/14-planner-installers.md](spec/14-planner-installers.md) | Actions et risques, Inventory, adaptateurs, Spec Kit, fichiers gérés, `CLAUDE.md`, lock, journal |
 | [spec/15-flow-and-gates.md](spec/15-flow-and-gates.md) | Recettes, portes, `peo gate`, `peo context`, `peo status` |
-| [spec/16-test-plan.md](spec/16-test-plan.md) | Fixtures, référence synthétique `fx-split-stack`, test local ÉPURE, tests d'acceptation F1 à F13 |
-| [spec/schemas/](spec/schemas/README.md) | 7 schémas JSON, exemples ÉPURE, contre-exemples, script de vérification |
+| [spec/16-test-plan.md](spec/16-test-plan.md) | Fixtures, référence synthétique `fx-split-stack`, test local du pilote n°1, tests d'acceptation F1 à F13 |
+| [spec/schemas/](spec/schemas/README.md) | 7 schémas JSON, exemples `fx-split-stack`, contre-exemples, script de vérification |
 
 Ordre de lecture conseillé : 01 → 08 → 04 → 03 → 02 → 06 → 05 → 07 → 09, puis la spécification 10 → 16.
 

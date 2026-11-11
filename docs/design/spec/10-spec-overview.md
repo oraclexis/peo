@@ -1,6 +1,6 @@
 # 10 — Spécification du MVP : vue d'ensemble
 
-> Statut : **proposition à valider**. Rien n'est construit. Cette spécification découle des décisions H1 à H12 (document 08, section 6 bis) et des écarts E1 à E6 révélés par le pilote ÉPURE (document 09).
+> Statut : **proposition à valider**. Rien n'est construit. Cette spécification découle des décisions H1 à H12 (document 08, section 6 bis) et des écarts E1 à E6 révélés par le pilote n°1 (document 09).
 >
 > Légende reprise du dossier : **[FAIT]** vérifié (source et date), **[HYPOTHÈSE]**, **[RECO]**, **[DÉCISION]** (arbitrage qui t'appartient), **[SPIKE]** point à vérifier par un essai court au début de la phase concernée.
 
@@ -15,7 +15,7 @@ La spécification décrit **ce que le MVP fait, avec quelles entrées et quelles
 | [13-catalog-and-selection.md](13-catalog-and-selection.md) | Catalogue, vocabulaire de capacités, langage `when`, banque de questions, Selector | F2, F4, F5 (E5, E6) |
 | [14-planner-installers.md](14-planner-installers.md) | Modèle d'action, risques, adaptateurs par type, fusion des fichiers, migration de `CLAUDE.md`, lock, journal | F3, F6, F7, F8, F9, F12, F13 (E3, E4, E5, E6) |
 | [15-flow-and-gates.md](15-flow-and-gates.md) | Recettes `feature` et `bugfix`, portes, `peo gate`, `peo context`, `peo status` | F10, F11 |
-| [16-test-plan.md](16-test-plan.md) | Fixtures, fichiers attendus, tests d'acceptation par fonctionnalité, pilote ÉPURE | toutes |
+| [16-test-plan.md](16-test-plan.md) | Fixtures, fichiers attendus, tests d'acceptation par fonctionnalité, pilote n°1 | toutes |
 | [schemas/](schemas/) | Schémas JSON (2020-12) et exemples validés | F1, F2, F5, F6, F8 |
 
 Ce que la spécification **ne couvre pas** : tout ce qui figure dans « Hors MVP » (document 07, section 3), et l'implémentation interne au-delà des contrats.
@@ -24,7 +24,7 @@ Ce que la spécification **ne couvre pas** : tout ce qui figure dans « Hors MVP
 
 | Terme | Définition |
 |---|---|
-| **Composant** | Partie d'un dépôt avec son propre manifeste, ses stacks, ses commandes et son environnement d'exécution. Un dépôt a au moins un composant (`.`). ÉPURE en a deux : `.` (Nuxt) et `backend` (Laravel) (E1) |
+| **Composant** | Partie d'un dépôt avec son propre manifeste, ses stacks, ses commandes et son environnement d'exécution. Un dépôt a au moins un composant (`.`). `fx-split-stack` en a deux : `.` (Nuxt) et `backend` (Laravel) (E1) |
 | **Environnement d'exécution** (`runtime`) | Où tournent les commandes d'un composant : `host` ou `docker:<service>` (E5) |
 | **Capacité** | Identifiant du vocabulaire fermé (`spec.authoring`, `nav.lsp.php`…). Une capacité `exclusive` ne peut être fournie que par un seul outil actif |
 | **Exigence** | Capacité requise pour le projet. **Dure** : non couverte = sélection en échec signalé. **Souple** : non couverte = information |
@@ -127,7 +127,7 @@ Règles de dépendance : aucun cycle ; `gate.py` et `context.py` n'importent que
 |---|---|---|
 | **H19 — Lire l'état des plugins par script** | **[FAIT]** `claude plugin list --json` renvoie un tableau d'objets avec `id`, `version`, `scope`, `enabled`, `installPath` toujours présents, et `projectPath`, `projectEnabled` (≥ 2.1.285), `errors`, `notes`, `mcpServers` quand ils s'appliquent. `install`, `uninstall`, `enable`, `disable`, `update` acceptent `--json` (≥ 2.1.268) : dernière ligne de stdout = un objet `{command, outcome, message, …}`, `failureCode: "already_in_goal_state"` à traiter comme succès. `--scope` accepte `user`, `project`, `local`. Source : [Plugin commands reference](https://code.claude.com/docs/en/plugins/cli-reference) | L'Inventory (F3) et l'adaptateur `claude-plugin` reposent sur une interface documentée et non sur des fichiers internes. Filtrer par `projectPath` : la liste contient les installations de portée projet de **tous** les projets |
 | **E3 — Conventions de branches de Spec Kit** | **[FAIT]** Extension git de Spec Kit (`extensions/git/README.md`, commit `40dd00f` du 2026-11-11) : `branch_numbering` (`sequential` ou `timestamp`), `branch_template` avec les jetons `{author}`, `{app}`, `{number}`, `{slug}`, et `branch_prefix` (raccourci pour `<prefix>/{number}-{slug}`). **Contrainte** : le dernier segment doit commencer par `{number}-`. L'extension peut être désactivée (`specify extension disable git`) : les dossiers `specs/` sont alors toujours créés, sans branche | Une convention `feat/<n>-<slug>` est exprimable (`branch_prefix: "feat"`). Une convention à identifiants non numériques (`feat/A1-slug`) ne l'est pas : il faut choisir (document 14, section 5.3) |
-| **E5 — LSP PHP sans PHP sur le poste** | **[FAIT]** Le plugin officiel `php-lsp` lance `intelephense --stdio` et demande seulement `npm install -g intelephense` (README du plugin, marketplace `claude-plugins-official`). Intelephense est écrit en JavaScript : **PHP n'est pas requis**. Dans ÉPURE, `docker-compose.yml` monte `./backend` dans le conteneur `api` ; `backend/vendor` était **absent** sur le poste lors de l'analyse | `php-lsp` reste sélectionnable. Deux prérequis : `intelephense` sur le `PATH` (action R3) et `backend/vendor` présent pour résoudre les symboles de Laravel (étape manuelle : `docker compose exec api composer install`) |
+| **E5 — LSP PHP sans PHP sur le poste** | **[FAIT]** Le plugin officiel `php-lsp` lance `intelephense --stdio` et demande seulement `npm install -g intelephense` (README du plugin, marketplace `claude-plugins-official`). Intelephense est écrit en JavaScript : **PHP n'est pas requis**. Dans le pilote n°1, `docker-compose.yml` monte `./backend` dans le conteneur `api` ; `backend/vendor` était **absent** sur le poste lors de l'analyse | `php-lsp` reste sélectionnable. Deux prérequis : `intelephense` sur le `PATH` (action R3) et `backend/vendor` présent pour résoudre les symboles de Laravel (étape manuelle : `docker compose exec api composer install`) |
 
 Restent à vérifier par un essai court :
 

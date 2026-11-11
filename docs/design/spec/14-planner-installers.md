@@ -123,7 +123,7 @@ Options de `q.branch_convention` :
 1. **Garder les préfixes, numéroter à la Spec Kit** (`feat/001-slug`) — recommandé : aucune interruption de l'outil.
 2. **Garder les identifiants du projet** : désactiver l'extension git de Spec Kit (`specify extension disable git`) ; `peo flow start feature <slug> --id A7` crée la branche `feat/A7-<slug>` ; Spec Kit crée seulement le dossier `specs/NNN-<slug>`, relié par `.specify/feature.json`. Coût : l'identifiant du dossier et celui de la branche diffèrent.
 
-Pour ÉPURE, le motif mesuré est `^(feat|fix)/[A-Za-z0-9-]+$` avec `id_style = "mixed"` (document 12, section 4.1) : deuxième ligne du tableau, `branch_prefix: "feat"`, **aucune question**.
+Pour `fx-split-stack`, le motif mesuré est `^(feat|fix)/[A-Za-z0-9-]+$` avec `id_style = "mixed"` (document 12, section 4.1) : deuxième ligne du tableau, `branch_prefix: "feat"`, **aucune question**.
 
 Branches de correction : la recette `bugfix` en piste S ne passe pas par `specify` ; `peo flow start bugfix <slug>` crée `fix/<slug>` (premier préfixe détecté contenant « fix », sinon `fix`).
 
@@ -187,7 +187,7 @@ Bloc géré `.gitignore` : `.peo/backups/`. Bloc géré `.gitattributes` : `.peo
 
 ### 6.6 Cible `verify` (réponse `q.verify_cmd = make-verify`)
 
-Bloc géré `verify` dans le `Makefile` racine (créé s'il n'existe pas) : une cible `verify` qui enchaîne, par composant, `typecheck`, `lint` et `test` connus, préfixés par le runtime. Une commande `test` d'un composant marqué `no-tests:<composant>` est omise et signalée. Pour ÉPURE : `npm run typecheck`, `npm test`, `docker compose exec -T api vendor/bin/pint --test` ; `php artisan test` est ajouté quand le premier test backend existera (`peo status` le rappelle). Les tests de bout en bout (`test:e2e`) n'en font pas partie : trop lents pour une porte locale.
+Bloc géré `verify` dans le `Makefile` racine (créé s'il n'existe pas) : une cible `verify` qui enchaîne, par composant, `typecheck`, `lint` et `test` connus, préfixés par le runtime. Une commande `test` d'un composant marqué `no-tests:<composant>` est omise et signalée. Pour `fx-split-stack` : `npm run typecheck`, `npm test`, `docker compose exec -T api vendor/bin/pint --test` ; `php artisan test` est ajouté quand le premier test backend existera (`peo status` le rappelle). Les tests de bout en bout (`test:e2e`) n'en font pas partie : trop lents pour une porte locale.
 
 ### 6.7 CI (`ci-check`, décision S-4)
 
@@ -225,9 +225,9 @@ Pour chaque outil du lock dont `versions.tested` du catalogue diffère : version
 
 Sections : Projet (mission, composants), Outils retenus (raison de chaque, tirée de `selection`), Outils écartés (raison), Processus (recettes, portes, commandes), Commandes du projet, Ce qui reste à faire à la main, Notes. La section **Notes** est délimitée et préservée à la régénération. Langue : `project.languages.artifacts`.
 
-## 10. Plan attendu pour ÉPURE
+## 10. Plan attendu pour `fx-split-stack`
 
-Exemple complet : [schemas/examples/plan.epure.json](schemas/examples/plan.epure.json). Rendu par la skill :
+Exemple complet : [schemas/examples/plan.split-stack.json](schemas/examples/plan.split-stack.json). Rendu par la skill :
 
 ```text
 Prérequis           + intelephense 1.x (npm -g)                                    R3  php-lsp a besoin du serveur

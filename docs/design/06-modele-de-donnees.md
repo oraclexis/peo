@@ -328,7 +328,7 @@ Niveaux de confiance : `fact` (lu dans un manifeste), `likely` (déduit d'un ind
 ```json
 {"ts":"2026-11-11T14:05:31+01:00","actor":"peo-cli","cmd":"apply","plan":"a41f…","action":"install","tool":"claude-plugin:egm","version":"0.1.1","result":"ok"}
 {"ts":"2026-11-11T14:05:38+01:00","actor":"peo-cli","cmd":"apply","plan":"a41f…","action":"write","file":"AGENTS.md","before":"sha256:…","after":"sha256:…","backup":".peo/backups/2026-11-11T14-05/AGENTS.md","result":"ok"}
-{"ts":"2026-12-02T09:12:00+01:00","actor":"amirouche","cmd":"tools disable","tool":"cli:semgrep","reason":"faux positifs","result":"ok"}
+{"ts":"2026-12-02T09:12:00+01:00","actor":"dev","cmd":"tools disable","tool":"cli:semgrep","reason":"faux positifs","result":"ok"}
 ```
 
 ## 10. Algorithme de sélection

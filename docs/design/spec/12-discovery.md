@@ -38,7 +38,7 @@ Une stack vient d'une dépendance déclarée : confiance `fact`, preuve `"<manif
 3. Un dossier qui contient au moins un manifeste de la table 2.1 est un **composant**. Plusieurs manifestes dans le même dossier : un seul composant multi-écosystème.
 4. Un manifeste sans dépendance ni script (ex. `package.json` réduit à un nom) n'ouvre pas de composant.
 5. Identifiant : `root` pour `.`, sinon le chemin avec `/` remplacé par `-` (`backend`, `apps-web`).
-6. `paths.code` du composant : motifs glob des extensions de code de son écosystème, sous son dossier ; les dossiers d'autres composants imbriqués sont exclus par un motif négatif préfixé de `!` (ex. racine d'ÉPURE : `**/*.vue`, `**/*.ts`, `**/*.css`, `!backend/**`).
+6. `paths.code` du composant : motifs glob des extensions de code de son écosystème, sous son dossier ; les dossiers d'autres composants imbriqués sont exclus par un motif négatif préfixé de `!` (ex. racine de `fx-split-stack` : `**/*.vue`, `**/*.ts`, `**/*.css`, `!backend/**`).
 7. `languages` : langages dont le composant a au moins 50 lignes de code (`typescript` inclut `.vue` et `.tsx`, `php`, `python`…).
 8. `kind` : `frontend` si une stack de rendu (`nuxt`, `next`, `vue`, `react`, `vite`) sans stack serveur ; `backend` si une stack serveur (`php-laravel`, `symfony`, `nestjs`, `express`, `django`, `fastapi`, `spring`, `rails`) ; `fullstack` si les deux ; sinon `library`.
 9. `monorepo = true` si au moins deux composants **et** un outil d'espace de travail (`workspaces`, pnpm, turbo, nx, lerna, uv workspace) ; deux composants sans outil d'espace de travail : `monorepo = false`, `multi_component = true`.
@@ -79,7 +79,7 @@ Un dossier de tests vide (aucun fichier de test) ajoute la lacune `no-tests:<com
 3. Préfixes = segment avant le premier `/`. Si au moins 80 % des branches ont un préfixe, et que les préfixes distincts sont au plus 5 : motif `^(<p1>|<p2>…)/<id_part>$`.
 4. Style d'identifiant du dernier segment, par part : `numeric` (`^[0-9]{3,}-`), `timestamp` (`^[0-9]{8}-[0-9]{6}-`), `alnum-id` (`^[A-Za-z]+[0-9]+-`), `free` (le reste). `id_style` = le style dont la part atteint 80 %, sinon `mixed` avec le détail des parts.
 5. Le motif généré n'impose que ce qui est respecté à 80 % : préfixes et alphabet du dernier segment.
-6. Sortie (valeurs réelles d'ÉPURE, relevées le 2026-11-11) :
+6. Sortie (valeurs mesurées sur le pilote n°1 le 2026-11-11, reprises par `fx-split-stack`) :
 
 ```json
 "branches": { "prefixes": ["feat", "fix"], "id_style": "mixed",
@@ -88,13 +88,13 @@ Un dossier de tests vide (aucun fichier de test) ajoute la lacune `no-tests:<com
               "share": 1.0, "confidence": "fact", "evidence": "46 of 46 branches outside main" }
 ```
 
-**Enseignement du pilote** : le document 09 décrivait la convention comme `feat/<id>-<slug>`. La mesure montre que seule la moitié des branches porte un identifiant de feuille de route (`A1`, `E3`…) ; l'autre moitié est `feat/<slug>`. Le motif réellement respecté est `^(feat|fix)/[A-Za-z0-9-]+$`, que le format de Spec Kit `feat/001-<slug>` **respecte**. Il n'y a donc pas de conflit à arbitrer pour ÉPURE (document 14, section 5.3).
+**Enseignement du pilote** : le document 09 décrivait la convention comme `feat/<id>-<slug>`. La mesure montre que seule la moitié des branches porte un identifiant de feuille de route (`A1`, `E3`…) ; l'autre moitié est `feat/<slug>`. Le motif réellement respecté est `^(feat|fix)/[A-Za-z0-9-]+$`, que le format de Spec Kit `feat/001-<slug>` **respecte**. Il n'y a donc pas de conflit à arbitrer pour le pilote n°1 (document 14, section 5.3).
 
 ### 4.2 Commits
 
 Sujets des 200 derniers commits, **hors commits de fusion** (sujets commençant par `merge`, `Merge`, ou commits à plusieurs parents). `style = "conventional"` si au moins 80 % des sujets restants respectent `^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: `. Langue : comptage de mots outils (`le, la, les, des, du, pour, avec, ajout` contre `the, for, with, add, update`) sur la partie après les deux-points ; écart d'au moins 2 contre 1, sinon `unknown`.
 
-**Enseignement du pilote** : ÉPURE fusionne avec des sujets `merge: …` (46 sur 93). Sans l'exclusion des fusions, la part conventionnelle tombe à 51 % et le style serait mal détecté ; avec, elle est de 47 sur 47.
+**Enseignement du pilote** : le pilote n°1 fusionne avec des sujets `merge: …` (46 sur 93). Sans l'exclusion des fusions, la part conventionnelle tombe à 51 % et le style serait mal détecté ; avec, elle est de 47 sur 47.
 
 ## 5. Documentation et agents
 
@@ -144,6 +144,6 @@ Mesures (`metrics`, toujours calculées, coût négligeable) : `commits`, `track
 
 Codes stables, utilisés par la doc générée et `status` : `no-ci`, `no-verify`, `no-tests:<composant>`, `no-lint:<composant>`, `no-remote`, `no-agents-md`, `no-adr`.
 
-## 10. Fichier attendu pour ÉPURE
+## 10. Fichier attendu pour `fx-split-stack`
 
-Le profil complet attendu est [schemas/examples/profile.epure.json](schemas/examples/profile.epure.json). Il remplace le profil simulé du document 09 (section 2) et le rend conforme au schéma. Écarts avec la simulation : `components[]` a maintenant ses commandes et ses chemins de code, `conventions.branches.id_style = "alnum-id"`, et la dérive est structurée par règle (D1, D4).
+Le profil complet attendu est [schemas/examples/profile.split-stack.json](schemas/examples/profile.split-stack.json). Il remplace le profil simulé du document 09 (section 2) et le rend conforme au schéma. Écarts avec la simulation : `components[]` a maintenant ses commandes et ses chemins de code, `conventions.branches.id_style = "alnum-id"`, et la dérive est structurée par règle (D1, D4).

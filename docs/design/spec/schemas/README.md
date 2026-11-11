@@ -14,13 +14,13 @@ JSON Schema 2020-12, limité au sous-ensemble que le validateur interne de PEO i
 
 ## Exemples
 
-`examples/` contient les sorties attendues pour ÉPURE, rédigées à partir des **valeurs réelles relevées le 2026-11-11** (composants, lignes de code, branches, commits, dérives). Elles servent de première version des fichiers attendus de `fx-epure` (document 16) et seront régénérées sur la fixture puis relues.
+`examples/` contient les sorties attendues pour la fixture synthétique `fx-split-stack` (document 16, section 2.1), dont les traits reprennent les mesures du pilote n°1 (document 09) sans aucun texte réel. Elles servent de première version des fichiers attendus de `fx-split-stack` et seront régénérées sur la fixture puis relues.
 
 Conventions des exemples :
 
 - `TBD` : valeur non vérifiée à ce stade (version d'Intelephense, licence du plugin `php-lsp`, commit du catalogue). Aucune valeur n'a été inventée.
 - Les empreintes `sha256` sont au bon format mais **factices** (dérivées d'un libellé), sauf `plan_id` qui est réellement calculé sur les actions de l'exemple selon la règle du document 14 (section 2.2).
-- `plan.epure.json` est un **extrait** de 13 actions représentatives (toutes les classes de risque, tous les groupes sauf `mcp`).
+- `plan.split-stack.json` est un **extrait** de 13 actions représentatives (toutes les classes de risque, tous les groupes sauf `mcp`).
 
 `invalid/` contient des contre-exemples qui doivent être rejetés : fiche sans `surface`, fiche sans `review_by`, `runtime` invalide, possession incomplète, autonomie `autonomous` (interdite au MVP, H12).
 
@@ -30,4 +30,4 @@ Conventions des exemples :
 python3 check_examples.py .     # nécessite jsonschema (dépendance de développement uniquement)
 ```
 
-Résultat au 2026-11-11 : 8 exemples valides, 5 contre-exemples rejetés pour la raison attendue. Contrôles croisés effectués en plus : chacune des 19 fiches apparaît exactement une fois dans la sélection d'ÉPURE ; chaque exigence est couverte par un outil retenu ou réutilisé ; `cost_total` égale la somme des coûts.
+Résultat au 2026-11-11 : 8 exemples valides, 5 contre-exemples rejetés pour la raison attendue. Contrôles croisés effectués en plus : chacune des 19 fiches apparaît exactement une fois dans la sélection de `fx-split-stack` ; chaque exigence est couverte par un outil retenu ou réutilisé ; `cost_total` égale la somme des coûts.
