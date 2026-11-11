@@ -52,7 +52,7 @@
 ## Phase 6: Polish
 
 - [X] T011 Exécuter `uv run pytest -q`, `uv run ruff check .` et `uv run python docs/design/spec/schemas/check_examples.py docs/design/spec/schemas` ; exécuter le scénario de `specs/001-schema-validator/quickstart.md`
-- [ ] T012 Pousser la branche `feat/p1-1-validate` et mettre à jour la description de la PR #3 (cocher la conformité de `.github/pull_request_template.md`)
+- [X] T012 Pousser la branche `feat/p1-1-validate` et mettre à jour la description de la PR #3 (cocher la conformité de `.github/pull_request_template.md`)
 
 ## Dépendances
 
