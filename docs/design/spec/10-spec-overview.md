@@ -110,6 +110,17 @@ Règles de dépendance : aucun cycle ; `gate.py` et `context.py` n'importent que
 | NF12 | Messages en anglais ; artefacts du projet dans la langue `project.languages.artifacts` | |
 | NF13 | Contrôle des caractères Unicode invisibles ou bidirectionnels dans toute fiche et tout fichier tiers copié (U+200B–U+200F, U+202A–U+202E, U+2066–U+2069, U+FEFF hors début de fichier) | Fiche de test piégée rejetée |
 
+**Contrat de `validate.py` (NF2, P1.1).**
+
+- `Schema` est le seul type de schéma accepté par `validate`. `Schema.from_dict(d)` contrôle que `d` reste dans le sous-ensemble et lève `UnsupportedSchema` sinon ; `load_schema(name)` lit `src/peo/schemas/<name>.schema.json` (`importlib.resources`) et passe par `Schema.from_dict`. Il n'existe pas d'autre chemin de contrôle.
+- `validate(instance, schema: Schema) -> list[ValidationError]` : fonction pure, liste vide = valide. `ValidationError` est un `NamedTuple(path, code, message)` ; `path` est un JSON Pointer (`/components/0/name`), `code` est le mot-clé violé (`type`, `required`, `enum`, `const`, `pattern`, `minimum`, `minItems`, `additionalProperties`, `oneOf`), `message` est en anglais. Seul le verdict est comparé à `jsonschema` ; ni le code ni le texte des messages ne le sont. Le `$ref` local (`#/$defs/<nom>`) se résout contre le schéma racine du `Schema` reçu.
+- Toutes les erreurs sont rapportées, triées par `(path, code, message)` (NF8).
+- Un mot-clé hors du sous-ensemble (`format`, `allOf`, `$ref` non local…) lève `UnsupportedSchema` **à la construction du `Schema`**, donc avant toute validation d'instance, y compris dans une branche que l'instance ne visite pas. Les annotations `$schema`, `$id`, `title` et `description` sont ignorées ; `$defs` n'est pas une annotation ignorée : ses sous-schémas sont contrôlés comme les autres.
+- Le contrôle porte aussi sur les **valeurs** des mots-clés, toujours à la construction : `type` ∈ {`string`, `number`, `integer`, `boolean`, `object`, `array`, `null`} ou liste non vide de ces noms ; `pattern` est une expression régulière qui compile ; `required` est une liste de chaînes ; `properties` et `$defs` sont des objets dont les valeurs sont des schémas ; `oneOf` est une liste non vide de schémas ; `enum` est une liste ; `minimum` est un nombre ; `minItems` est un entier ≥ 0 ; `$ref` est une chaîne `#/$defs/<nom>` qui se résout, sans cycle qui ne descend pas dans l'instance (une chaîne de `$ref` ou de `oneOf` qui revient sur elle-même est rejetée ; une récursion qui passe par `properties`, `items` ou `additionalProperties` est permise). Toute violation lève `UnsupportedSchema`.
+- `additionalProperties` accepte `true`, `false` ou un sous-schéma ; `type` accepte un nom ou une liste de noms.
+- `oneOf` a la sémantique générale « exactement une alternative valide » ; la restriction de NF2 décrit l'emploi qu'en font les schémas, elle n'est pas contrôlée.
+- Cas limites alignés sur `jsonschema` (Draft 2020-12) : `bool` n'est ni `integer` ni `number` ; `1.0` est un `integer` ; un mot-clé qui ne concerne pas le type de l'instance est ignoré ; `pattern` utilise `re.search` ; `enum` et `const` ne confondent pas `True` et `1`.
+
 ## 5. Points techniques levés le 2026-11-11
 
 | Point | Résultat | Conséquence |
