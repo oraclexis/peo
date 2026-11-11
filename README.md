@@ -23,7 +23,7 @@ PEO is deliberately thin: it is not a package manager, not a methodology and not
 | `catalog/` | Tool catalog snapshot (moves to its own repository in phase P7) |
 | `plugin/` | Claude Code plugin (thin skills calling the CLI), from phase P3 |
 | `tests/` | Tests, fixtures and golden files |
-| `tools/` | Maintenance scripts (fixture builders, anonymizer) |
+| `tools/` | Maintenance scripts (release) |
 | `docs/design/` | Design dossier and MVP specification |
 
 ## Development
@@ -41,7 +41,7 @@ Rules: the specification is the source of truth (change it first, then the code)
 
 | Workflow | When | What |
 |---|---|---|
-| `ci` | push to `main`, pull requests | lint, version consistency, tests and spec examples on Linux and macOS (Python 3.11, 3.13); anonymizer compiled with Python 3.9; wheel built and smoke-tested |
+| `ci` | push to `main`, pull requests | lint, version consistency, tests and spec examples on Linux and macOS (Python 3.11, 3.13); wheel built and smoke-tested |
 | `release` | tag `vX.Y.Z` | consistency check, tests, build, GitHub release with CHANGELOG notes; PyPI publication once enabled |
 | `codeql` | push, pull requests, weekly | static analysis of Python code and workflows |
 | Dependabot | weekly | GitHub Actions and Python dev dependencies |

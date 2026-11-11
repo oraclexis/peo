@@ -11,7 +11,7 @@ from peo.validate import Schema, UnsupportedSchema, ValidationError, load_schema
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "docs" / "design" / "spec" / "schemas"
-GOLDEN = ROOT / "tests" / "golden" / "fx-epure"
+GOLDEN = ROOT / "tests" / "golden" / "fx-split-stack"
 PREFIX_TO_SCHEMA = [("profile", "profile"), ("selection", "selection"), ("plan", "plan"),
                     ("lock", "lock"), ("history", "history-event"), ("peo.", "peo-config"),
                     ("tool.", "tool-entry")]

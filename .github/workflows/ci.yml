@@ -40,17 +40,6 @@ jobs:
       - name: Spec schema examples
         run: uv run python docs/design/spec/schemas/check_examples.py docs/design/spec/schemas
 
-  anonymizer-py39:
-    # tools/anonymize_epure.py runs on the system python3 of macOS: keep it 3.9-compatible.
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
-        with:
-          python-version: "3.9"
-      - run: uv run --no-project --python 3.9 python -m py_compile tools/anonymize_epure.py
-
   package:
     # Build the wheel exactly as the release does, then run it outside the project.
     runs-on: ubuntu-latest

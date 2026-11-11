@@ -51,7 +51,7 @@ def test_counter_examples_are_rejected(path):
 
 
 def test_golden_files_are_valid():
-    golden = ROOT / "tests" / "golden" / "fx-epure"
+    golden = ROOT / "tests" / "golden" / "fx-split-stack"
     for name, schema in (("profile.json", "profile"), ("selection.json", "selection")):
         validator = Draft202012Validator(json.loads((PKG / f"{schema}.schema.json").read_text()))
         assert list(validator.iter_errors(json.loads((golden / name).read_text()))) == []

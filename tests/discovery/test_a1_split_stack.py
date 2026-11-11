@@ -1,8 +1,8 @@
-"""F1 acceptance tests on the ÉPURE reference fixture (spec 16, A1.1 to A1.5).
+"""F1 acceptance tests on the fx-split-stack reference fixture (spec 16, A1.1 to A1.5).
 
 They are expected to fail until Discovery exists (xfail, strict): when one starts passing,
-pytest reports it and the marker must be removed. They are skipped until the fixture is built
-with tools/anonymize_epure.py and copied to tests/fixtures/fx-epure/.
+pytest reports it and the marker must be removed. They are skipped until the hand-written
+fixture exists in tests/fixtures/fx-split-stack/ (spec 16, section 2.1; step P1.2).
 """
 
 import json
@@ -13,27 +13,27 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-FIXTURE = ROOT / "tests" / "fixtures" / "fx-epure"
-GOLDEN = json.loads((ROOT / "tests" / "golden" / "fx-epure" / "profile.json").read_text())
+FIXTURE = ROOT / "tests" / "fixtures" / "fx-split-stack"
+GOLDEN = json.loads((ROOT / "tests" / "golden" / "fx-split-stack" / "profile.json").read_text())
 
 pytestmark = [
-    pytest.mark.skipif(not (FIXTURE / "build.sh").exists(), reason="fx-epure fixture not built yet"),
+    pytest.mark.skipif(not (FIXTURE / "build.sh").exists(), reason="fx-split-stack fixture not built yet"),
     pytest.mark.xfail(reason="Discovery not implemented (phase P1)", raises=(ImportError, AttributeError)),
 ]
 
 
 @pytest.fixture(scope="module")
-def epure_repo(tmp_path_factory):
-    target = tmp_path_factory.mktemp("fx") / "epure"
+def split_stack_repo(tmp_path_factory):
+    target = tmp_path_factory.mktemp("fx") / "split-stack"
     subprocess.run(["bash", str(FIXTURE / "build.sh"), str(target)], check=True, capture_output=True)
     yield target
     shutil.rmtree(target, ignore_errors=True)
 
 
 @pytest.fixture(scope="module")
-def profile(epure_repo):
+def profile(split_stack_repo):
     # Resolved at call time so that the xfail marker catches the missing module.
-    return lambda: __import__("peo.discovery", fromlist=["discover"]).discover(epure_repo)
+    return lambda: __import__("peo.discovery", fromlist=["discover"]).discover(split_stack_repo)
 
 
 def strip_volatile(p: dict) -> dict:
