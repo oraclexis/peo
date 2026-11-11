@@ -16,12 +16,12 @@ Un composant de PEO (catalogue, discovery, plan, verrou, journal) doit savoir si
 
 **Why this priority**: tous les fichiers écrits ou lus par PEO sont validés ; sans ce validateur, aucune fonctionnalité en aval ne peut garantir ses entrées (NF1, NF2).
 
-**Independent Test**: valider chaque fichier de `examples/` et `invalid/` et comparer le verdict à celui de `jsonschema` (A2.6).
+**Independent Test**: valider chaque fichier de `examples/` et `invalid/` et comparer le verdict à celui de l'oracle de référence (A2.6, SC-001).
 
 **Acceptance Scenarios**:
 
 1. **Given** un fichier de `docs/design/spec/schemas/examples`, **When** il est validé contre son schéma, **Then** aucune erreur n'est renvoyée.
-2. **Given** un fichier de `docs/design/spec/schemas/invalid`, **When** il est validé, **Then** au moins une erreur est renvoyée, avec le même verdict que `jsonschema`.
+2. **Given** un fichier de `docs/design/spec/schemas/invalid`, **When** il est validé, **Then** au moins une erreur est renvoyée, avec le même verdict que l'oracle de référence (SC-001).
 3. **Given** un document avec plusieurs défauts, **When** il est validé, **Then** toutes les erreurs sont renvoyées dans un ordre stable.
 
 ---
@@ -73,8 +73,8 @@ Un mainteneur qui ajoute un mot-clé non pris en charge à un schéma doit en ê
 - **FR-003**: Le système MUST signaler comme erreur de schéma, au chargement du schéma, tout mot-clé hors sous-ensemble et tout `$ref` non local ou non résolu. Les annotations `$schema`, `$id`, `title`, `description` sont ignorées.
 - **FR-004**: Le système MUST renvoyer toutes les erreurs de validation, chacune avec un chemin JSON (JSON Pointer) et un code stable, égal au mot-clé violé (`type`, `required`, `enum`, `const`, `pattern`, `minimum`, `minItems`, `additionalProperties`, `oneOf`).
 - **FR-005**: Le système MUST renvoyer les erreurs triées de façon déterministe (NF8).
-- **FR-006**: Le système MUST donner le même verdict que `jsonschema` (Draft 2020-12) sur tous les fichiers de `docs/design/spec/schemas/examples` et `invalid` et sur les fichiers golden de `fx-epure` (A2.6).
-- **FR-007**: Le système MUST appliquer à `oneOf` la sémantique générale « exactement une alternative valide » sans contrôler sa forme : la restriction de NF2 décrit l'emploi qu'en font les schémas de PEO, et la parité avec `jsonschema` (FR-006) la garde.
+- **FR-006**: Le système MUST donner le même verdict que l'oracle de référence de A2.6 (SC-001) sur tous les fichiers de `docs/design/spec/schemas/examples` et `invalid` et sur les fichiers golden de `fx-epure`.
+- **FR-007**: Le système MUST appliquer à `oneOf` la sémantique générale « exactement une alternative valide » sans contrôler sa forme : la restriction de NF2 décrit l'emploi qu'en font les schémas de PEO, et la parité avec l'oracle de référence (FR-006, SC-001) la garde.
 
 ### Key Entities
 
@@ -86,7 +86,7 @@ Un mainteneur qui ajoute un mot-clé non pris en charge à un schéma doit en ê
 
 ### Measurable Outcomes
 
-- **SC-001**: 100 % des fichiers de `examples` et `invalid` reçoivent le même verdict que `jsonschema`.
+- **SC-001**: 100 % des fichiers de `examples` et `invalid` (et les fichiers golden de `fx-epure`) reçoivent le même verdict que l'oracle de référence du test A2.6, la bibliothèque `jsonschema` (Draft 2020-12), utilisée en dépendance de développement uniquement.
 - **SC-002**: aucune dépendance d'exécution n'est ajoutée au paquet.
 - **SC-003**: la validation de deux exécutions successives du même document produit des listes d'erreurs identiques octet pour octet.
 - **SC-004**: 100 % des mots-clés du sous-ensemble ont au moins un cas valide et un cas invalide testés.
@@ -95,6 +95,6 @@ Un mainteneur qui ajoute un mot-clé non pris en charge à un schéma doit en ê
 
 - Le contrat déjà décrit dans la spec 10 (section 4, « Contrat de `validate.py` ») reste la référence ; cette fonctionnalité le précise et l'étend si les clarifications ci-dessus l'exigent.
 - `load_schema(name)` charge un schéma livré dans `src/peo/schemas/` ; `Schema.from_dict(d)` construit un schéma à partir d'un dictionnaire (cas de test). Les deux passent par le même contrôle du sous-ensemble, et `validate` n'accepte que `Schema`.
-- Les fichiers TOML sont validés après lecture par `tomllib`.
-- Les messages d'erreur sont en anglais (NF12) et ne font pas partie du verdict comparé à `jsonschema`.
+- Les fichiers TOML sont lus en amont ; le validateur ne reçoit que des documents déjà décodés.
+- Les messages d'erreur sont en anglais (NF12) et ne font pas partie du verdict comparé à l'oracle (SC-001).
 - L'implémentation existante (PR #3) valide actuellement le schéma à la traversée ; la présente spécification exige un contrôle complet au chargement.

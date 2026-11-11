@@ -18,6 +18,8 @@ du champ `code` et du contrôle préalable ; la logique de validation est conser
 
 **Primary Dependencies**: aucune à l'exécution (`re`, `json`, `importlib.resources`, `typing`). Dev : pytest, jsonschema (oracle de A2.6), ruff
 
+**Entrées**: documents déjà décodés ; les fichiers TOML sont lus par `tomllib` en amont (hors `validate.py`)
+
 **Storage**: les 7 schémas livrés dans `src/peo/schemas/*.schema.json` (lecture seule)
 
 **Testing**: pytest, `tests/test_validate.py`, tests nommés `test_a2_6_*`

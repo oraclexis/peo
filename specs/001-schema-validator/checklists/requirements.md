@@ -26,7 +26,8 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [ ] No implementation details leak into specification (module-level terms such as `jsonschema`, `tomllib`, JSON Pointer are inherent to this library feature)
+- [x] No implementation details leak into specification
+  - Note: `tomllib` a été déplacé dans plan.md et `jsonschema` dans les critères de succès (oracle de A2.6) ; JSON Pointer reste, car c'est le format d'interface des chemins d'erreur.
 
 ## Notes
 
