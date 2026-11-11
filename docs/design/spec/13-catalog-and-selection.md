@@ -268,7 +268,7 @@ Un outil qui fournit une capacité exclusive déjà couverte par un outil **pré
 
 ### 8.3 Codes de justification
 
-| Code | Sens | Exemple ÉPURE |
+| Code | Sens | Exemple `fx-split-stack` |
 |---|---|---|
 | `SELECTED` | Retenu ; liste des capacités couvertes et de la règle qui l'a rendu candidat | `claude-plugin:php-lsp` couvre `nav.lsp.php` (règle `lsp-per-language`, composant `backend`) |
 | `REUSED` | Outil présent qui couvre une capacité requise | `cli:playwright` (`@playwright/test` en dépendance de dev) couvre `browser.e2e` |
@@ -284,7 +284,7 @@ Un outil qui fournit une capacité exclusive déjà couverte par un outil **pré
 
 ### 8.4 Sortie
 
-Schéma : [schemas/selection.schema.json](schemas/selection.schema.json). Exemple attendu pour ÉPURE : [schemas/examples/selection.epure.json](schemas/examples/selection.epure.json).
+Schéma : [schemas/selection.schema.json](schemas/selection.schema.json). Exemple attendu pour `fx-split-stack` : [schemas/examples/selection.split-stack.json](schemas/examples/selection.split-stack.json).
 
 ### 8.5 Propriétés testées
 

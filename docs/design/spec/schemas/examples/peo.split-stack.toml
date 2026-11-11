@@ -2,8 +2,8 @@ schema      = 1
 peo_version = "0.1.0"
 
 [project]
-name      = "sample"
-mission   = "Studio website with a journal (Nuxt SSR) and a Laravel/Filament CMS."
+name      = "split-stack"
+mission   = "Website (Nuxt SSR) with a Laravel/Filament back office."
 kind      = "existing"
 category  = "website"
 languages = { artifacts = "fr", code = "en" }

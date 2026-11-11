@@ -1,6 +1,6 @@
-# 09 — Pilote n°1 : projet existant « ÉPURE »
+# 09 — Pilote n°1 : projet existant front + back
 
-> Projet `nuxt-app` (paquet `epure-studio`) sur ton poste, examiné le **2026-11-11** en **lecture seule** (aucun fichier modifié, aucune commande d'installation).
+> Projet existant de l'utilisateur, examiné le **2026-11-11** en **lecture seule** (aucun fichier modifié, aucune commande d'installation). Le projet n'est ni nommé ni copié ici.
 > Ce document joue **à la main** ce que `peo discover`, le questionnaire et `peo select` feraient, pour confronter la conception (documents 04 à 07) à un cas réel.
 > **[FAIT]** = lu dans le dépôt · **[SIMULÉ]** = sortie attendue de PEO · **[ÉCART]** = besoin que la conception ne couvrait pas.
 
@@ -10,29 +10,29 @@
 
 | Domaine | Constat | Source |
 |---|---|---|
-| Historique | 93 commits du 2026-07-23 au 2026-07-30, 47 branches (38 `feat/`, 8 `fix/`, `main`). **Aucun dépôt distant** | `git log`, `git branch`, `git remote -v` |
-| Conventions git | Branches `feat/A1-canvas-layout`, `fix/particles-hero`. Commits « Conventional Commits » en français (`feat(article): …`), fusions explicites `merge: …` | `git log` |
-| Front | Nuxt 4 (`^4.2.0`), Vue 3.5, Tailwind (`@nuxtjs/tailwindcss`), three `^0.171`, Lenis, SplitType, Atropos. SSR activé. TypeScript | `package.json`, `nuxt.config.ts` |
-| Back | **Sous-projet** `backend/` : Laravel 11, Filament 3, spatie/laravel-medialibrary, PHP ^8.2. PostgreSQL 16 | `backend/composer.json`, `docker-compose.yml` |
+| Historique | 93 commits sur une semaine, 47 branches (environ 80 % `feat/`, 17 % `fix/`, plus `main`). **Aucun dépôt distant** | `git log`, `git branch`, `git remote -v` |
+| Conventions git | Branches `feat/<lettre><n>-<slug>` et `(feat\|fix)/<slug>`. Commits « Conventional Commits » en français, fusions explicites `merge: …` | `git log` |
+| Front | Nuxt 4, Vue 3, Tailwind, bibliothèques d'animation et de rendu 3D. SSR activé. TypeScript | `package.json`, `nuxt.config.ts` |
+| Back | **Sous-projet** `backend/` : Laravel 11, Filament 3, PHP 8.2. PostgreSQL 16 | `backend/composer.json`, `docker-compose.yml` |
 | Exécution | PHP **uniquement dans Docker** (`docker compose exec api …`). Pas de PHP sur le poste, pas de `vendor/` local. Node présent sur le poste | `Makefile`, `which` |
-| Infra | Docker Compose dev et prod, nginx « edge » en prod | `docker-compose*.yml`, `docker/` |
-| Tests front | Vitest (1 fichier : `test/morph.spec.ts`), Playwright (1 fichier : `e2e/home.spec.ts`, SSR et scroll-spy en `reducedMotion`) | `test/`, `e2e/` |
+| Infra | Docker Compose dev et prod, proxy inverse en prod | `docker-compose*.yml` |
+| Tests front | Vitest (1 fichier), Playwright (1 fichier) | `test/`, `e2e/` |
 | Tests back | **Aucun** dossier `backend/tests/` alors que PHPUnit est déclaré | `backend/composer.json` |
 | Qualité | `nuxt typecheck`. **Pas d'ESLint ni de Prettier** côté front. Pint déclaré côté back, sans configuration ni script | `package.json`, absence de fichiers |
-| CI | **Aucune** | absence de `.gitlab-ci.yml`, `.github/` |
-| Taille | ≈ 4 800 lignes (Vue 2 242, TS 1 197, PHP 1 234, CSS 130), 99 fichiers suivis. Deux fichiers lourds : `pages/index.vue` (985 lignes), `useExperience.ts` (624) | `git ls-files` |
-| Instructions IA | `CLAUDE.md` riche (9 règles précises : SSR, imports client-only, moteur pur, bloom maison, zéro border-radius, tokens, `prefers-reduced-motion`, perf), `HANDOFF.md`, `README.md`. **Pas d'`AGENTS.md`, pas de `.claude/`** | racine |
-| Sécurité | Admin Filament authentifié. Keycloak (OIDC) **prévu** mais absent. Formulaire de contact prévu avec honeypot et limitation de débit | `README.md`, `HANDOFF.md`, `backend/app` |
-| Feuille de route | Le README prévoit Spec Kit (constitution, puis spécifications par module : Content, Personas, Engagement, Leads, Settings) et un monorepo GitLab `apps/nuxt`, `apps/laravel`, `infra/` | `README.md` |
+| CI | **Aucune** | absence de configuration CI |
+| Taille | ≈ 4 800 lignes (Vue ≈ 47 %, TS ≈ 25 %, PHP ≈ 25 %, CSS ≈ 3 %), une centaine de fichiers suivis. Deux fichiers lourds concentrent un tiers du code front | `git ls-files` |
+| Instructions IA | `CLAUDE.md` riche (9 règles précises, toutes front : rendu, performance, accessibilité, système de design), `HANDOFF.md`, `README.md`. **Pas d'`AGENTS.md`, pas de `.claude/`** | racine |
+| Sécurité | Admin authentifié. Connexion OIDC **prévue** mais absente. Formulaire public prévu | `README.md`, `HANDOFF.md` |
+| Feuille de route | Le README prévoit Spec Kit (constitution, puis une spécification par module) et un passage en monorepo | `README.md` |
 
 ### 1.2 Dérive documentation ↔ code, détectée sans LLM
 
 | Ce que dit la doc | Ce que montre le code |
 |---|---|
-| README : « `apps/laravel/` ← backend + Filament (**à venir**) » | `backend/` existe : Laravel 11 + Filament 3 + médiathèque, dockerisé |
-| README et HANDOFF : « TODO : `BlockRenderer.vue` » (tâche prioritaire) | `app/components/article/BlockRenderer.vue` existe (90 lignes), utilisé par `pages/articles/[slug].vue` |
-| `CLAUDE.md` : « Landing one-page » | Pages `articles/index.vue`, `articles/[slug].vue`, `error.vue` : le site n'est plus une page unique |
-| `CLAUDE.md` : commandes `dev`, `build`, `typecheck` | `test` et `test:e2e` existent mais ne sont pas cités |
+| README : backend « à venir » | `backend/` existe : Laravel + Filament, dockerisé |
+| README et HANDOFF : un composant à écrire (tâche prioritaire) | Le composant existe et il est utilisé |
+| `CLAUDE.md` : site d'une seule page | Plusieurs pages existent : le site n'est plus une page unique |
+| `CLAUDE.md` : commandes `dev`, `build`, `typecheck` | `test` et `test:e2e` existent mais ne sont pas citées |
 
 Ces écarts sont exactement le type d'information obsolète que le document 06 du dossier `ai-eng-workflow` cherchait à éviter. Un agent qui lit `HANDOFF.md` aujourd'hui recommencerait une tâche déjà faite.
 
@@ -60,11 +60,11 @@ Ces écarts sont exactement le type d'information obsolète que le document 06 d
   "ai": { "claude_md": "rich", "agents_md": false, "plugins_project": [], "handoff_doc": "HANDOFF.md" },
   "docs_drift": [
     "README annonce le backend « à venir » : backend/ existe",
-    "TODO BlockRenderer.vue : le fichier existe et il est utilisé"
+    "TODO sur un composant : le fichier existe et il est utilisé"
   ],
   "gaps": ["Pas de CI", "Pas de commande verify", "Aucun test backend", "Pas de lint front", "Pas de dépôt distant"],
-  "signals": { "frontend_heavy": true, "public_forms_planned": true, "admin_panel": true, "auth_planned": "keycloak-oidc" },
-  "intent_from_docs": ["spec-kit", "monorepo-gitlab", "keycloak"]
+  "signals": { "frontend_heavy": true, "public_forms_planned": true, "admin_panel": true, "auth_planned": "oidc" },
+  "intent_from_docs": ["spec-kit", "monorepo"]
 }
 ```
 
@@ -74,10 +74,10 @@ Ce qui est déjà su n'est pas demandé : stacks, commandes, conventions, intent
 
 | Tour | Question | Réponse recommandée | Pourquoi elle est posée |
 |---|---|---|---|
-| 1 | « J'ai compris : site vitrine + journal en Nuxt 4 SSR, CMS Laravel/Filament dans `backend/`, Spec Kit envisagé, passage prévu en monorepo GitLab. Juste ? » | Oui | Valide en une fois les faits `likely` |
-| 1 | « `README.md` et `HANDOFF.md` sont en retard sur le code (backend, BlockRenderer). Je les traite comment ? » | Archiver `HANDOFF.md`, corriger le README dans le même plan | Dérive détectée, la décision t'appartient |
+| 1 | « J'ai compris : site en Nuxt 4 SSR, CMS Laravel/Filament dans `backend/`, Spec Kit envisagé, passage prévu en monorepo. Juste ? » | Oui | Valide en une fois les faits `likely` |
+| 1 | « `README.md` et `HANDOFF.md` sont en retard sur le code (backend, composant déjà écrit). Je les traite comment ? » | Archiver `HANDOFF.md`, corriger le README dans le même plan | Dérive détectée, la décision t'appartient |
 | 2 | « Commande unique de vérification : je propose une cible `make verify` (typecheck + Vitest + Pint et PHPUnit dans le conteneur). D'accord ? » | Oui | `verify` inconnu, et les portes en dépendent |
-| 2 | « Le formulaire de contact et l'admin seront exposés publiquement : activer une analyse de sécurité statique en CI (Semgrep) ? » | Oui, en CI seulement | Signal `public_forms_planned`, coût nul en contexte |
+| 2 | « Le formulaire public et l'admin seront exposés : activer une analyse de sécurité statique en CI (Semgrep) ? » | Oui, en CI seulement | Signal `public_forms_planned`, coût nul en contexte |
 
 Questions **non posées** et pourquoi : catégorie (déduite : site + CMS), équipe (seul contributeur dans l'historique, hypothèse présentée au tour 1), langue (déduite des commits et de la doc : français), performance (aucune fiche du catalogue n'en dépend ; les contraintes de perf sont déjà dans `CLAUDE.md`).
 
@@ -97,10 +97,10 @@ Questions **non posées** et pourquoi : catégorie (déduite : site + CMS), équ
 
 | Candidat | Raison |
 |---|---|
-| Serena, Graphify | 4 800 lignes, bien documentées : la navigation native suffit |
-| UI UX Pro Max | Direction artistique **déjà fixée et stricte** dans `CLAUDE.md` (zéro border-radius, tokens, chanfrein du CTA). Un skill de design proposerait des choix contraires. Signal `frontend_heavy` vrai, mais l'outil serait nuisible ici |
+| Serena, Graphify | ≈ 4 800 lignes, bien documentées : la navigation native suffit |
+| UI UX Pro Max | Direction artistique **déjà fixée et stricte** dans `CLAUDE.md` (règles de système de design précises). Un skill de design proposerait des choix contraires. Signal `frontend_heavy` vrai, mais l'outil serait nuisible ici |
 | `laravel-boost` | Exige le paquet Composer dans le projet et un `php artisan` sur le poste : PHP n'est que dans Docker [ÉCART E5] |
-| `security-guidance` | Coût en tokens à chaque arrêt. Semgrep en CI couvre le besoin au stade actuel. À réévaluer avec Keycloak |
+| `security-guidance` | Coût en tokens à chaque arrêt. Semgrep en CI couvre le besoin au stade actuel. À réévaluer avec la connexion OIDC |
 | Ponytail | Simplicité déjà portée par des règles projet précises. Injection de hooks inutile |
 | REA | Aucun artefact sans code source |
 
@@ -114,7 +114,7 @@ Spec Kit                   + specify init --here --integration claude --no-model
 Fichiers                   + AGENTS.md          contenu de CLAUDE.md réorganisé en pointeurs, règles conservées mot pour mot
                            ~ CLAUDE.md          « @AGENTS.md » + bloc Agent skills — ancien sauvegardé
                            + .claude/rules/frontend.md   paths: app/**, *.vue — les 9 règles front de CLAUDE.md
-                           + .specify/memory/constitution.md   amorce depuis CLAUDE.md (SSR/SEO, reduced-motion, perf, tokens)
+                           + .specify/memory/constitution.md   amorce depuis les règles de CLAUDE.md
                            ~ Makefile           + cible verify (bloc géré # peo:begin verify)
                            ~ README.md          corrections de dérive proposées (diff affiché)
                            ~ HANDOFF.md         déplacé vers docs/archive/ (décision du tour 1)
@@ -154,6 +154,6 @@ Ce pilote sert de référence pour F1 (Discovery) : les traits E1 à E6 devienne
 **Décision du 2026-11-11 (copie anonymisée de ce dépôt dans les fixtures) : remplacée le 2026-11-12.** Aucune copie de ce projet, même anonymisée, n'entre dans le dépôt de PEO :
 
 - la référence publique est la fixture synthétique `fx-split-stack` (spec 16, section 2.1), écrite à la main, qui reproduit E1 à E6 sans texte réel ;
-- ÉPURE reste un test d'acceptation **local** (spec 16, section 2.2), activé par la variable `PEO_EPURE_PATH`, lu en lecture seule et jamais copié dans le dépôt.
+- le projet du pilote reste un test d'acceptation **local** (spec 16, section 2.2), activé par la variable `PEO_PILOT1_PATH`, lu en lecture seule et jamais copié dans le dépôt.
 
 Pour couvrir H11, il manque encore un dépôt existant **sans** front lourd (par exemple un service NestJS ou Python) afin de vérifier que la sélection ne pousse pas les mêmes outils partout.

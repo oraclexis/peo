@@ -87,7 +87,7 @@ Risques secondaires : jeunesse des outils du socle par défaut (EGM 0.1) ; ~~dis
 | H8 | Licence | **Apache-2.0** |
 | H9 | Gouvernance du catalogue | **Toi seul, revue mensuelle** au MVP ; contributions externes en P7 |
 | H10 | Langue | **Code et fiches en anglais**, documentation française plus tard |
-| H11 | Projets pilotes | **Un nouveau projet** + **ÉPURE** (existant, Nuxt 4 + Laravel/Filament, document 09). Reste à désigner : un dépôt existant sans front lourd. Copie anonymisée d'ÉPURE acceptée comme jeu de test de référence |
+| H11 | Projets pilotes | **Un nouveau projet** + **pilote n°1** (existant, Nuxt 4 + Laravel/Filament, document 09). Reste à désigner : un dépôt existant sans front lourd. Jeu de test de référence : fixture synthétique `fx-split-stack` (spec 16, section 2 ; décision du 2026-11-12, qui remplace la copie anonymisée acceptée le 2026-11-11) |
 | H12 | Autonomie maximale au MVP | **Guidé et semi-autonome** |
 
 **Point ouvert sur H11.** L'hypothèse de valeur du MVP porte sur les **projets existants** (document 07, section 1), là où la découverte automatique et la détection de conflits apportent le plus. Un nouveau projet seul ne permet pas de la valider. Il faut au moins un, idéalement deux dépôts existants de stacks différentes pour le jalon MVP.
