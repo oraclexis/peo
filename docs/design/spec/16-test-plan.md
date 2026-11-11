@@ -33,9 +33,9 @@ Fixture écrite à la main (`tree/` + `build.sh`, section 1). Elle reproduit les
 | Trait | Contenu de la fixture |
 |---|---|
 | E1 | Front Nuxt à la racine, back Laravel dans `backend/` |
-| E2 | `README.md` annonçant `backend/` « à venir » alors qu'il existe ; TODO citant un composant présent ; commandes `test` et `test:e2e` du `package.json` absentes de `CLAUDE.md` ; `HANDOFF.md` (dérives D1 et D4) |
+| E2 | `README.md` annonçant « à venir » un chemin `apps/api/` qui n'existe pas, le back étant dans `backend/` (D3) ; TODO citant un composant présent (D1) ; commandes `test` et `test:e2e` du `package.json` absentes de `CLAUDE.md` ; `HANDOFF.md` (dérives D1 et D4) |
 | E3 | `build.sh` recrée 93 commits (dont 46 fusions `merge: …`) et 46 branches hors `main` : 24 au format `feat/<A-Z><n>-<slug>`, 22 au format `(feat\|fix)/<slug>` ; sujets conventionnels en français |
-| E4 | `CLAUDE.md` de 9 règles front, rédigées pour la fixture |
+| E4 | `CLAUDE.md` de 27 lignes non vides et 9 règles front, rédigées pour la fixture (classe `rich`, spec 12, section 5) |
 | E5 | `docker-compose.yml` avec un service `api` ; `Makefile` qui exécute PHP par `docker compose exec api` ; pas de `backend/vendor` |
 | E6 | Playwright en dépendance de développement |
 | Taille | Fichiers de code au contenu `// line n`, en nombre suffisant pour tenir les seuils de sélection (environ 4 800 lignes, deux fichiers lourds) |
@@ -53,6 +53,7 @@ Fichiers attendus : `tests/golden/fx-split-stack/`. La fixture n'est produite pa
 
 | F | Tests | Fixtures |
 |---|---|---|
+| **F0** Fixtures | A0.1 `build.sh` recrée les comptages attendus : commits, fusions, branches, fichiers suivis, lignes non vides par langage · A0.2 deux constructions donnent le même `HEAD` | `fx-split-stack` |
 | **F1** Discovery | A1.1 profil égal au fichier attendu (6 fixtures) · A1.2 chaque champ a `confidence` et `evidence` · A1.3 `fx-split-stack` : 2 composants, `backend` en `docker:api` (E1, E5) · A1.4 `fx-split-stack` : branches `mixed`, motif `^(feat\|fix)/[A-Za-z0-9-]+$`, commits conventionnels malgré les fusions (E3) · A1.5 `fx-split-stack` : dérive D1 (README « backend à venir », TODO citant un composant présent) et D4 (`HANDOFF.md`) (E2) · A1.6 aucun accès réseau · A1.7 `fx-large` < 5 s | toutes |
 | **F2** Catalogue | A2.1 19 fiches valides · A2.2 fiche sans `surface` ou sans `review_by` rejetée · A2.3 expression `when` invalide rejetée au chargement · A2.4 question dont `feeds` n'est consommé nulle part rejetée (S-5) · A2.5 Unicode bidirectionnel rejeté · A2.6 `validate.py` et `jsonschema` donnent le même verdict sur tous les exemples et contre-exemples | catalogue de test |
 | **F3** Inventory | A3.1 plugin activé à la main détecté (sortie enregistrée de `claude plugin list --json`) · A3.2 installation de portée projet d'un **autre** projet ignorée (`projectPath`) · A3.3 hooks listés par événement avec propriétaire · A3.4 Playwright reconnu par `[detect].npm` (E6) · A3.5 mode dégradé sans `claude` | `fx-split-stack`, `fx-conflict` |

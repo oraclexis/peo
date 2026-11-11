@@ -100,7 +100,7 @@ Sujets des 200 derniers commits, **hors commits de fusion** (sujets commençant 
 
 | Champ | Règle |
 |---|---|
-| `docs.claude_md` | `absent`, `pointer` (au plus 20 lignes non vides **et** au moins un import `@`), `thin` (au plus 20 lignes), `rich` (sinon). Plus `lines` et `rules_count` (éléments de liste de premier niveau) |
+| `docs.claude_md` | `absent` si le fichier n'existe pas ; sinon `rich` dès que `rules_count` ≥ 5, quelle que soit la longueur ; sinon `pointer` (au plus 20 lignes non vides **et** au moins un import `@`), `thin` (au plus 20 lignes non vides), `rich` (au-delà). Tous les seuils se comptent en lignes non vides. Plus `lines` (lignes non vides) et `rules_count` (éléments de liste de premier niveau) |
 | `docs.agents_md` | booléen |
 | `docs.handoff` | chemin d'un `HANDOFF*.md` s'il existe |
 | `docs.adr` | premier de `docs/adr/`, `docs/decisions/`, `adr/` qui existe |
@@ -146,4 +146,4 @@ Codes stables, utilisés par la doc générée et `status` : `no-ci`, `no-verify
 
 ## 10. Fichier attendu pour `fx-split-stack`
 
-Le profil complet attendu est [schemas/examples/profile.split-stack.json](schemas/examples/profile.split-stack.json). Il remplace le profil simulé du document 09 (section 2) et le rend conforme au schéma. Écarts avec la simulation : `components[]` a maintenant ses commandes et ses chemins de code, `conventions.branches.id_style = "alnum-id"`, et la dérive est structurée par règle (D1, D4).
+Le profil complet attendu est [schemas/examples/profile.split-stack.json](schemas/examples/profile.split-stack.json). Il remplace le profil simulé du document 09 (section 2) et le rend conforme au schéma. Écarts avec la simulation : `components[]` a maintenant ses commandes et ses chemins de code, `conventions.branches.id_style = "mixed"` (section 4.1), et la dérive est structurée par règle (D1, D4).
