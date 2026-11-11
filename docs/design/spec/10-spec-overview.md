@@ -112,9 +112,10 @@ Règles de dépendance : aucun cycle ; `gate.py` et `context.py` n'importent que
 
 **Contrat de `validate.py` (NF2, P1.1).**
 
-- `validate(instance, schema) -> list[ValidationError]` : fonction pure, liste vide = valide. `ValidationError` est un `NamedTuple(path, message)` ; `path` est un JSON Pointer (`/components/0/name`), `message` est en anglais. Seul le verdict est comparé à `jsonschema` ; le texte des messages ne l'est pas. Le `$ref` local (`#/$defs/<nom>`) se résout contre le `schema` racine reçu ; le chargement des schémas incombe à l'appelant.
-- Toutes les erreurs sont rapportées, triées par `(path, message)` (NF8).
-- Un mot-clé hors du sous-ensemble (`format`, `allOf`, `$ref` non local…) lève `UnsupportedSchema`. Les annotations `$schema`, `$id`, `title` et `description` sont ignorées.
+- `Schema` est le seul type de schéma accepté par `validate`. `Schema.from_dict(d)` contrôle que `d` reste dans le sous-ensemble et lève `UnsupportedSchema` sinon ; `load_schema(name)` lit `src/peo/schemas/<name>.schema.json` (`importlib.resources`) et passe par `Schema.from_dict`. Il n'existe pas d'autre chemin de contrôle.
+- `validate(instance, schema: Schema) -> list[ValidationError]` : fonction pure, liste vide = valide. `ValidationError` est un `NamedTuple(path, code, message)` ; `path` est un JSON Pointer (`/components/0/name`), `code` est le mot-clé violé (`type`, `required`, `enum`, `const`, `pattern`, `minimum`, `minItems`, `additionalProperties`, `oneOf`), `message` est en anglais. Seul le verdict est comparé à `jsonschema` ; ni le code ni le texte des messages ne le sont. Le `$ref` local (`#/$defs/<nom>`) se résout contre le schéma racine du `Schema` reçu.
+- Toutes les erreurs sont rapportées, triées par `(path, code, message)` (NF8).
+- Un mot-clé hors du sous-ensemble (`format`, `allOf`, `$ref` non local…) lève `UnsupportedSchema` **à la construction du `Schema`**, donc avant toute validation d'instance, y compris dans une branche que l'instance ne visite pas. Les annotations `$schema`, `$id`, `title` et `description` sont ignorées.
 - `additionalProperties` accepte `false` ou un sous-schéma.
 - `oneOf` a la sémantique générale « exactement une alternative valide » ; la restriction de NF2 décrit l'emploi qu'en font les schémas, elle n'est pas contrôlée.
 - Cas limites alignés sur `jsonschema` (Draft 2020-12) : `bool` n'est ni `integer` ni `number` ; `1.0` est un `integer` ; un mot-clé qui ne concerne pas le type de l'instance est ignoré ; `pattern` utilise `re.search` ; `enum` et `const` ne confondent pas `True` et `1`.
