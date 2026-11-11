@@ -149,16 +149,11 @@ Un septième point est une **confirmation** plutôt qu'un écart : la règle « 
 
 ## 8. Prochaine étape proposée pour ce pilote
 
-Quand la spécification détaillée sera validée, ce dépôt servira de **jeu de test de référence** pour F1 (Discovery) : le profil de la section 2 devient le fichier attendu (« golden file »), à partir d'une copie anonymisée de sa structure placée dans les fixtures de PEO.
+Ce pilote sert de référence pour F1 (Discovery) : les traits E1 à E6 deviennent des tests d'acceptation.
 
-**Décision prise le 2026-11-11 : acceptée.** Conditions retenues pour la copie :
+**Décision du 2026-11-11 (copie anonymisée de ce dépôt dans les fixtures) : remplacée le 2026-11-12.** Aucune copie de ce projet, même anonymisée, n'entre dans le dépôt de PEO :
 
-- arborescence et manifestes seulement (`package.json`, `composer.json`, `Makefile`, `docker-compose*.yml`, `nuxt.config.ts`, configs de test), **aucun fichier de code source** : les fichiers `.vue`, `.ts`, `.php` sont remplacés par des fichiers vides de même nom ;
-- noms anonymisés (`epure` → `sample`, domaine `epure.studio` → `example.test`) ;
-- valeurs par défaut de mots de passe et identifiants retirées (`DB_PASSWORD:-secret`, compte admin du `Makefile`) ;
-- `CLAUDE.md`, `README.md`, `HANDOFF.md` conservés **en texte**, car ils servent aux tests de dérive documentaire (E2) et de migration des règles (E4) ;
-- historique git **non** copié : remplacé par un script qui recrée 93 commits et 47 branches factices avec les mêmes motifs de nommage (E3).
-
-La copie sera faite au début de la phase F1, pas avant.
+- la référence publique est la fixture synthétique `fx-split-stack` (spec 16, section 2.1), écrite à la main, qui reproduit E1 à E6 sans texte réel ;
+- ÉPURE reste un test d'acceptation **local** (spec 16, section 2.2), activé par la variable `PEO_EPURE_PATH`, lu en lecture seule et jamais copié dans le dépôt.
 
 Pour couvrir H11, il manque encore un dépôt existant **sans** front lourd (par exemple un service NestJS ou Python) afin de vérifier que la sélection ne pousse pas les mêmes outils partout.
