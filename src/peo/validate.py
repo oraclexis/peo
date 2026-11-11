@@ -1,11 +1,15 @@
 """Validator for the JSON Schema subset PEO's schemas use (spec 10, NF2). Standard library only."""
 
+import json
 import re
+from dataclasses import dataclass
+from importlib.resources import files
 from typing import Any, NamedTuple
 
 
 class ValidationError(NamedTuple):
     path: str  # JSON Pointer to the offending value; "" is the root
+    code: str  # the violated keyword
     message: str
 
 
@@ -18,10 +22,48 @@ _SUPPORTED = {"type", "required", "properties", "additionalProperties", "items",
               "pattern", "minimum", "minItems", "$ref", "oneOf"}
 
 
-def validate(instance: Any, schema: dict) -> list[ValidationError]:
+@dataclass(frozen=True)
+class Schema:
+    """A schema known to stay inside the supported subset."""
+
+    root: dict
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Schema":
+        _verify(d, d)
+        return cls(d)
+
+
+def _verify(schema: Any, root: dict) -> None:
+    """Reject, before any validation, whatever falls outside the supported subset."""
+    if not isinstance(schema, dict):
+        raise UnsupportedSchema("a schema must be an object")
+    unknown = set(schema) - _SUPPORTED - _ANNOTATIONS
+    if unknown:
+        raise UnsupportedSchema(f"unsupported keyword(s): {', '.join(sorted(unknown))}")
+    if "$ref" in schema:
+        _resolve(schema["$ref"], root)
+    subschemas = [*schema.get("properties", {}).values(), *schema.get("$defs", {}).values(),
+                  *schema.get("oneOf", [])]
+    for key in ("items", "additionalProperties"):
+        if key in schema and not isinstance(schema[key], bool):
+            subschemas.append(schema[key])
+    for sub in subschemas:
+        _verify(sub, root)
+
+
+def load_schema(name: str) -> Schema:
+    """Load a shipped schema from src/peo/schemas/<name>.schema.json."""
+    text = (files("peo") / "schemas" / f"{name}.schema.json").read_text()
+    return Schema.from_dict(json.loads(text))
+
+
+def validate(instance: Any, schema: Schema) -> list[ValidationError]:
     """Return all errors, sorted; an empty list means the instance is valid."""
+    if not isinstance(schema, Schema):
+        raise TypeError("schema must be a Schema; use Schema.from_dict or load_schema")
     errors: list[ValidationError] = []
-    _check(instance, schema, schema, "", errors)
+    _check(instance, schema.root, schema.root, "", errors)
     return sorted(errors)
 
 
@@ -61,31 +103,26 @@ def _child(path: str, key: Any) -> str:
 
 
 def _check(inst: Any, schema: Any, root: dict, path: str, errors: list) -> None:
-    if not isinstance(schema, dict):
-        raise UnsupportedSchema("a schema must be an object")
-    unknown = set(schema) - _SUPPORTED - _ANNOTATIONS
-    if unknown:
-        raise UnsupportedSchema(f"unsupported keyword(s): {', '.join(sorted(unknown))}")
 
-    def err(msg: str, p: str = path) -> None:
-        errors.append(ValidationError(p, msg))
+    def err(code: str, msg: str, p: str = path) -> None:
+        errors.append(ValidationError(p, code, msg))
 
     if "$ref" in schema:
         _check(inst, _resolve(schema["$ref"], root), root, path, errors)
     if "type" in schema:
         names = schema["type"] if isinstance(schema["type"], list) else [schema["type"]]
         if not any(_type_ok(inst, n) for n in names):
-            err(f"expected type {' or '.join(names)}")
+            err("type", f"expected type {' or '.join(names)}")
     if "enum" in schema and not any(_eq(inst, v) for v in schema["enum"]):
-        err(f"not one of {schema['enum']!r}")
+        err("enum", f"not one of {schema['enum']!r}")
     if "const" in schema and not _eq(inst, schema["const"]):
-        err(f"expected {schema['const']!r}")
+        err("const", f"expected {schema['const']!r}")
     if "pattern" in schema and isinstance(inst, str) and not re.search(schema["pattern"], inst):
-        err(f"does not match {schema['pattern']!r}")
+        err("pattern", f"does not match {schema['pattern']!r}")
     if "minimum" in schema and _is_number(inst) and inst < schema["minimum"]:
-        err(f"less than minimum {schema['minimum']}")
+        err("minimum", f"less than minimum {schema['minimum']}")
     if "minItems" in schema and isinstance(inst, list) and len(inst) < schema["minItems"]:
-        err(f"fewer than {schema['minItems']} items")
+        err("minItems", f"fewer than {schema['minItems']} items")
     if "oneOf" in schema:
         matches = 0
         for alt in schema["oneOf"]:
@@ -93,19 +130,20 @@ def _check(inst: Any, schema: Any, root: dict, path: str, errors: list) -> None:
             _check(inst, alt, root, path, sub)
             matches += not sub
         if matches != 1:
-            err(f"matches {matches} oneOf alternatives, expected exactly 1")
+            err("oneOf", f"matches {matches} oneOf alternatives, expected exactly 1")
     if isinstance(inst, dict):
         props = schema.get("properties", {})
         for key in schema.get("required", []):
             if key not in inst:
-                err(f"missing required property {key!r}")
+                err("required", f"missing required property {key!r}")
         for key, value in inst.items():
             if key in props:
                 _check(value, props[key], root, _child(path, key), errors)
             elif "additionalProperties" in schema:
                 extra = schema["additionalProperties"]
                 if extra is False:
-                    err(f"additional property {key!r} not allowed", _child(path, key))
+                    err("additionalProperties", f"additional property {key!r} not allowed",
+                        _child(path, key))
                 elif extra is not True:
                     _check(value, extra, root, _child(path, key), errors)
     if isinstance(inst, list) and "items" in schema:

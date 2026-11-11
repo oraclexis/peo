@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator
 
-from peo.validate import UnsupportedSchema, ValidationError, validate
+from peo.validate import Schema, UnsupportedSchema, ValidationError, load_schema, validate
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "docs" / "design" / "spec" / "schemas"
@@ -20,7 +20,7 @@ PREFIX_TO_SCHEMA = [("profile", "profile"), ("selection", "selection"), ("plan",
 def schema_for(name):
     for prefix, key in PREFIX_TO_SCHEMA:
         if name.startswith(prefix):
-            return json.loads((SPEC / f"{key}.schema.json").read_text())
+            return key
     raise AssertionError(name)
 
 
@@ -39,9 +39,9 @@ FILES = ([(p, True) for p in sorted((SPEC / "examples").iterdir())]
 
 @pytest.mark.parametrize("path,valid", FILES, ids=lambda x: x.name if hasattr(x, "name") else "")
 def test_a2_6_same_verdict_as_jsonschema_on_spec_files(path, valid):
-    schema = schema_for(path.name)
+    schema = load_schema(schema_for(path.name))
     for doc in documents(path):
-        expected = not list(Draft202012Validator(schema).iter_errors(doc))
+        expected = not list(Draft202012Validator(schema.root).iter_errors(doc))
         assert (validate(doc, schema) == []) == expected
     assert all(validate(d, schema) == [] for d in documents(path)) == valid
 
@@ -76,22 +76,94 @@ CASES = [
 @pytest.mark.parametrize("schema,instance", CASES)
 def test_a2_6_same_verdict_as_jsonschema_per_keyword(schema, instance):
     expected = not list(Draft202012Validator(schema).iter_errors(instance))
-    assert (validate(instance, schema) == []) == expected
+    assert (validate(instance, Schema.from_dict(schema)) == []) == expected
 
 
-def test_errors_are_json_pointers_sorted_and_complete():
+def test_a2_6_errors_are_json_pointers_sorted_and_complete():
     schema = {"type": "object", "properties": {"b": {"type": "string"}, "a": {"type": "array", "items": {"type": "integer"}}}}
-    errors = validate({"b": 1, "a": [1, "x"]}, schema)
+    errors = validate({"b": 1, "a": [1, "x"]}, Schema.from_dict(schema))
     assert [e.path for e in errors] == ["/a/1", "/b"]
     assert all(isinstance(e, ValidationError) and e.message for e in errors)
 
 
-def test_root_error_path_is_empty():
-    assert validate(1, {"type": "string"})[0].path == ""
+def test_a2_6_root_error_path_is_empty():
+    assert validate(1, Schema.from_dict({"type": "string"}))[0].path == ""
 
 
-@pytest.mark.parametrize("schema", [{"format": "date"}, {"allOf": []}, {"$ref": "http://x/y"},
-                                    {"$ref": "#/$defs/missing"}])
-def test_unsupported_schema_raises(schema):
+def test_a2_6_schema_is_immutable_and_built_from_dict():
+    schema = Schema.from_dict({"type": "null"})
+    assert isinstance(schema, Schema)
+    with pytest.raises(AttributeError):
+        schema.root = {}
+
+
+def test_a2_6_load_schema_returns_schema_and_rejects_unknown_name():
+    assert isinstance(load_schema("profile"), Schema)
+    with pytest.raises(FileNotFoundError):
+        load_schema("nope")
+
+
+def test_a2_6_validate_accepts_only_schema():
+    with pytest.raises(TypeError):
+        validate("x", {"type": "string"})
+
+
+@pytest.mark.parametrize("schema,instance,code", [
+    ({"type": "string"}, 1, "type"),
+    ({"required": ["a"]}, {}, "required"),
+    ({"enum": ["a"]}, "b", "enum"),
+    ({"const": 1}, 2, "const"),
+    ({"pattern": "^a$"}, "b", "pattern"),
+    ({"minimum": 1}, 0, "minimum"),
+    ({"minItems": 1}, [], "minItems"),
+    ({"additionalProperties": False}, {"x": 1}, "additionalProperties"),
+    ({"oneOf": [{"type": "string"}, {"type": "string"}]}, "a", "oneOf"),
+])
+def test_a2_6_errors_have_keyword_codes(schema, instance, code):
+    errors = validate(instance, Schema.from_dict(schema))
+    assert [e.code for e in errors] == [code]
+
+
+def test_a2_6_error_paths_escape_tilde_and_slash():
+    schema = Schema.from_dict({"properties": {"a/b~c": {"type": "string"}}})
+    assert validate({"a/b~c": 1}, schema)[0].path == "/a~1b~0c"
+
+
+def test_a2_6_validation_is_deterministic():
+    schema = load_schema("profile")
+    doc = {"schema": "x", "components": [1, {"a": 1}], "zzz": 1, "aaa": [None]}
+    first = validate(doc, schema)
+    assert first and validate(doc, schema) == first
+    assert first == sorted(first)
+
+
+def test_a2_6_every_shipped_schema_loads():
+    names = sorted(p.name.removesuffix(".schema.json") for p in (ROOT / "src" / "peo" / "schemas").glob("*.schema.json"))
+    assert len(names) == 7
+    for name in names:
+        assert isinstance(load_schema(name), Schema)
+
+
+BAD = {"format": "date"}
+UNSUPPORTED = [
+    BAD, {"allOf": []}, {"$ref": "http://x/y"}, {"$ref": "#/$defs/missing"}, {"$ref": "#/properties/a"},
+    {"properties": {"a": BAD}}, {"items": BAD}, {"oneOf": [{"type": "null"}, BAD]},
+    {"additionalProperties": BAD}, {"items": []}, {"additionalProperties": "x"}, {"$defs": {"d": BAD}}, {"properties": {"a": {"items": {"oneOf": [BAD]}}}},
+]
+
+
+@pytest.mark.parametrize("schema", UNSUPPORTED, ids=lambda s: json.dumps(s)[:50])
+def test_a2_6_unsupported_at_construction(schema):
     with pytest.raises(UnsupportedSchema):
-        validate("x", schema)
+        Schema.from_dict(schema)
+
+
+@pytest.mark.parametrize("schema", [[], "x", None, {"properties": {"a": []}}])
+def test_a2_6_unsupported_non_object_schema(schema):
+    with pytest.raises(UnsupportedSchema):
+        Schema.from_dict(schema)
+
+
+def test_a2_6_annotations_and_resolvable_ref_are_accepted():
+    Schema.from_dict({"$schema": "s", "$id": "i", "title": "t", "description": "d",
+                      "$defs": {"d": {"type": "null"}}, "properties": {"a": {"$ref": "#/$defs/d"}}})
