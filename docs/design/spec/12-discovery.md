@@ -181,7 +181,18 @@ Décision S-5 : un signal n'est calculé que si une fiche, une recette ou une qu
 | `frontend_heavy` | Au moins une bibliothèque de rendu riche (`three`, `gsap`, `pixi.js`, `@react-three/fiber`) ou plus de 40 % des lignes en `.vue`, `.tsx`, `.jsx` | `vendored-skill:ui-ux-pro-max` |
 | `design_rules_in_instructions` | `CLAUDE.md` ou `AGENTS.md` contient au moins 3 règles citant `border-radius`, `couleur`, `color`, `token`, `font`, `typographie`, `spacing` | `vendored-skill:ui-ux-pro-max` (`when.not`) |
 
-Mesures (`metrics`, toujours calculées, coût négligeable) : `commits`, `tracked_files`, `loc` par langage et `loc_total` (lignes non vides des fichiers de code suivis), `contributors` (auteurs distincts). `loc_total` est lu par `mcp:serena` et `cli:graphify`.
+Précisions du 2026-11-12 (P1.6) :
+
+- **Sources des mentions** : `README*` puis `docs/**/*.md` (mêmes fichiers et limites que `intent_from_docs`), lus dans l'ordre ; la première ligne qui contient un terme du signal (sans casse, mot entier) est citée, avec le terme tel qu'il est écrit dans la ligne. Termes : `auth` → `Keycloak`, `OIDC`, `SSO` ; `public_surface` → `formulaire`, `contact`, `API publique`, `public API`, `contact form`.
+- **Indice dans le code de `public_surface`** : `<form`, `FormRequest`, `@Post(` dans un fichier de code suivi → `fact`, preuve `"<fichier>:<ligne> contains <motif>"` (premier fichier trié).
+- **Confiance et preuves** : dépendance → `fact`, `"<manifeste>: <paquet>[, <paquet>…]"` (comme les stacks) ; mention dans la doc → `likely`, `"<fichier>:<ligne> mentions <terme>"` ; part des lignes de rendu → `fact`, `"<n>% of code lines in .vue/.tsx/.jsx"` (entier arrondi) ; règles de design → `fact`, `"<fichier>: <n> design rules"` (éléments de liste de premier niveau, comme `rules_count`). Ordre de priorité : dépendance ou code, puis mention.
+- **Aucun indice** : `value = false`, `fact`, preuve `"no <signal> indicator"` (ex. `no auth indicator`).
+
+Mesures (`metrics`, toujours calculées, coût négligeable) : `commits` (`git rev-list --count HEAD`), `tracked_files`, `loc` **par extension** (clé = extension sans point, lignes non vides des fichiers de code suivis dont l'extension est dans la table des langages ; précisé le 2026-11-12 : le fichier attendu et A0.1 comptent par extension) et `loc_total`, `contributors` (adresses d'auteur distinctes, `git log --format=%ae`). Hors git : `commits` et `contributors` valent 0. `loc_total` est lu par `mcp:serena` et `cli:graphify`.
+
+## 7 ter. Outils présents (`present_tools`, ajout du 2026-11-12)
+
+Outils du catalogue déjà présents dans le projet sous une autre forme (E6). Jusqu'à R3, les règles de détection viennent de la table provisoire `discovery/detect.toml` (règles `[detect]` des fiches du catalogue initial, spec 13 §5) ; elle sera remplacée par les fiches. Discovery ne détecte que ce qui se lit dans le dépôt : dépendances déclarées (`npm`, `composer`, `pip`) → `via = "dev-dependency"`, preuve `"<manifeste> <section>: <paquet>"` (ex. `package.json devDependencies: @playwright/test`), et fichiers (`files`) → `via = "file"`, preuve = chemin. Les binaires, plugins et serveurs MCP relèvent de l'Inventory (R2). Une entrée par outil et par composant, triée par `ref` puis `component`.
 
 ## 7 bis. Surfaces sensibles (`sensitive`, ajout du 2026-11-12)
 
