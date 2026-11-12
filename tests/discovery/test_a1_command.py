@@ -370,6 +370,78 @@ def test_cli_import_does_not_load_discovery():
     assert done.stdout.strip() == "False"
 
 
+def test_symlink_loop_is_ignored(tmp_path, monkeypatch, capsys):
+    # Python 3.11 and 3.12 raise RuntimeError from resolve() on a loop; 3.13 does not.
+    (tmp_path / "package.json").write_text('{"name": "x"}\n')
+    (tmp_path / "a").write_text("x\n")
+    real = Path.resolve
+
+    def loop(self, *args, **kwargs):
+        if self.name == "a":
+            raise RuntimeError(f"Symlink loop from {str(self)!r}")
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "resolve", loop)
+    code, env, _, _ = run_discover(capsys, "--json", "discover", "--project", str(tmp_path))
+    assert code == 0
+    assert env["data"]["metrics"]["tracked_files"] == 1
+
+
+@pytest.mark.parametrize("target", ["docs", ".peo"])
+def test_write_peo_symlink_refused(target, repo_copy, capsys):
+    (repo_copy / "docs").mkdir(exist_ok=True)
+    (repo_copy / ".peo").symlink_to(target)
+    code, env, _, _ = run_discover(capsys, "--json", "discover", "--write", "--project", str(repo_copy))
+    assert code == 1
+    assert env["errors"][0]["code"] == "E_WRITE_FAILED"
+    assert not (repo_copy / "docs" / "profile.json").exists()
+
+
+def test_write_ignores_a_stale_temp_file(repo_copy, capsys):
+    stale = repo_copy / ".peo" / f".profile.{os.getpid()}.tmp"
+    stale.parent.mkdir()
+    stale.write_text("other run\n")
+    code, _, _, _ = run_discover(capsys, "--json", "discover", "--write", "--project", str(repo_copy))
+    assert code == 0
+    assert stale.read_text() == "other run\n"
+    assert written(repo_copy).exists()
+
+
+def test_write_directory_sync_is_best_effort(repo_copy, monkeypatch, capsys):
+    calls = []
+    fsync = os.fsync
+
+    def flaky(fd):
+        calls.append(fd)
+        if len(calls) == 2:   # the .peo directory
+            raise OSError(22, "Invalid argument")
+        fsync(fd)
+
+    monkeypatch.setattr(os, "fsync", flaky)
+    code, _, _, _ = run_discover(capsys, "--json", "discover", "--write", "--project", str(repo_copy))
+    assert code == 0
+    assert len(calls) == 2
+    assert json.loads(written(repo_copy).read_text())["kind"]
+
+
+def test_stderr_escapes_control_characters(tmp_path, monkeypatch, capsys):
+    warning = {"code": "W_MANIFEST_UNREADABLE", "path": "pkg\nE_FAKE: ok\x1b[31m/package.json",
+               "message": "bad\nline"}
+    monkeypatch.setattr(peo.discovery, "discover", fake_discover(MINIMAL, [warning]))
+    assert cli.main(["--json", "discover", "--project", str(tmp_path)]) == 0
+    err = capsys.readouterr().err
+    assert err.count("\n") == 1
+    assert "\x1b" not in err
+    assert err.startswith("W_MANIFEST_UNREADABLE pkg\\nE_FAKE: ok\\u001b[31m/package.json: bad\\nline")
+
+
+def test_warning_without_path_or_ref(tmp_path, monkeypatch, capsys):
+    warning = {"code": "W_X", "message": "m"}
+    monkeypatch.setattr(peo.discovery, "discover", fake_discover(MINIMAL, [warning]))
+    assert cli.main(["--json", "discover", "--project", str(tmp_path)]) == 0
+    assert "None" not in capsys.readouterr().err
+
+
 def test_git_root_not_utf8(monkeypatch):
     raw = b"/tmp/caf\xe9"
     monkeypatch.setattr(peo.runner, "run", lambda args, cwd: Result(0, raw + b"\n", b""))
