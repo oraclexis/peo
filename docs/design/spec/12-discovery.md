@@ -74,7 +74,7 @@ Format des preuves :
 - aucun service, node seul : `"no compose service builds '<chemin>'; node [not ]on PATH"` ;
 - aucun service, autres cas : `"no compose service builds or mounts '<chemin>'; <bin> [not ]on PATH"`.
 
-Le `runtime` préfixe les commandes : `docker compose exec <service> <commande>`.
+Le `runtime` préfixe les commandes : `docker compose exec -T <service> <commande>` (`-T` : sans pseudo-terminal, pour que la commande marche depuis un hook ou en CI ; précisé le 2026-11-12, P1.4). Un environnement `host` ou `unknown` ne préfixe rien.
 
 ## 3. Commandes
 
@@ -84,9 +84,18 @@ Sources, par priorité, pour chaque composant :
 |---|---|---|
 | `typecheck`, `test`, `lint`, `build`, `e2e`, `format` | Scripts de `package.json` (`test`, `test:e2e`, `typecheck`, `lint`…) ; scripts de `composer.json` ; `[tool.*.scripts]` ou `Makefile` | `fact` si le script existe |
 | `test` sans script | `php artisan test` si `artisan` et PHPUnit ou Pest ; `pytest` si pytest déclaré | `likely`, preuve « framework déclaré, pas de script » |
+| `lint` sans script (ajout du 2026-11-12) | Linter déclaré, dans l'ordre : `pint` → `vendor/bin/pint --test` ; `phpstan` → `vendor/bin/phpstan analyse` ; `eslint` → `npx eslint .` ; `ruff` → `ruff check .` | `likely`, preuve `"<stack> declared"` |
 | `verify` (agrégée) | Cible `verify` ou `check` d'un `Makefile` racine ; script `verify` racine | `fact` ; sinon `unknown` |
 
-Un dossier de tests vide (aucun fichier de test) ajoute la lacune `no-tests:<composant>` sans changer la commande.
+Précisions du 2026-11-12 (P1.4) :
+
+- **Ordre des sources** : script du manifeste, puis cible du `Makefile` du composant (`make <cible>`), puis repli (`test` ou `lint` sans script).
+- **Noms reconnus** : `typecheck` (scripts `typecheck`, `type-check`), `test` (`test`), `e2e` (`test:e2e`, `e2e`), `lint` (`lint`), `build` (`build`), `format` (`format`). Un script `test` vide ou égal au gabarit de npm (`echo "Error: no test specified" && exit 1`) est ignoré.
+- **Forme des commandes** : node selon le fichier de verrouillage du dépôt (`pnpm-lock.yaml` → `pnpm`, `yarn.lock` → `yarn`, sinon `npm`) : `<pm> test` pour `test`, `<pm> run <script>` pour les autres ; `composer.json` : `composer <script>` ; `Makefile` : `make <cible>`. Préfixe de l'environnement d'exécution (section 2.3), jamais pour `verify` ni pour les commandes du `Makefile` racine.
+- **Rôles sans source** : `test` et `lint` sont **toujours** présents (`value: null`, `unknown`) ; les autres rôles n'apparaissent que s'ils ont une source.
+- **Preuves** : script → `"<manifeste> scripts.<nom>"` ; cible → `"<Makefile> target <cible>"` ; `test` de repli → `"<stack> declared, artisan present, no test script"` ou `"pytest declared, no test script"` ; `lint` de repli → `"<stack> declared"` ; `test` absent → `"no test script, no test framework declared"` ; `lint` absent → `"no <linters de l'écosystème, séparés par '/'>, no lint script"` (ex. `no eslint, no lint script`) ; `verify` absent → `"no verify/check target in Makefile"` si un `Makefile` racine existe, sinon `"no Makefile, no verify script"`.
+
+La lacune `no-tests:<composant>` est ajoutée quand le composant n'a **aucun fichier de test** (`*.spec.*`, `*.test.*`, `test_*.py`, `*_test.py`, `*_test.go`, `*Test.php`, ou tout fichier sous un dossier `tests/`, `test/`, `__tests__/`, `spec/`), sans changer la commande. La lacune `no-lint:<composant>` est ajoutée quand `lint` vaut `null`.
 
 ## 4. Conventions (E3)
 
@@ -113,6 +122,15 @@ Un dossier de tests vide (aucun fichier de test) ajoute la lacune `no-tests:<com
 Sujets des 200 derniers commits, **hors commits de fusion** (sujets commençant par `merge`, `Merge`, ou commits à plusieurs parents). `style = "conventional"` si au moins 80 % des sujets restants respectent `^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: `. Langue : comptage de mots outils (`le, la, les, des, du, pour, avec, ajout` contre `the, for, with, add, update`) sur la partie après les deux-points ; écart d'au moins 2 contre 1, sinon `unknown`.
 
 **Enseignement du pilote** : le pilote n°1 fusionne avec des sujets `merge: …` (46 sur 93). Sans l'exclusion des fusions, la part conventionnelle tombe à 51 % et le style serait mal détecté ; avec, elle est de 47 sur 47.
+
+### 4.3 Dépôt (`kind`, `git`, `ci` ; ajout du 2026-11-12, P1.4)
+
+| Champ | Règle | Confiance, preuve |
+|---|---|---|
+| `kind` | `new` si le dépôt a au plus 1 commit (`git rev-list --count HEAD`), sinon `existing` ; hors git : `new` | `fact`, `"<n> commits"` ; hors git : `likely`, `"not a git repository"` |
+| `git.remote` | Au moins un dépôt distant (`git remote`) | — |
+| `git.default_branch` | Cible de `refs/remotes/origin/HEAD` si elle existe, sinon branche courante (`git symbolic-ref --short HEAD`) ; hors git : `null` | — |
+| `ci.kind`, `ci.file` | `.gitlab-ci.yml` → `gitlab` ; sinon premier fichier trié de `.github/workflows/*.yml` ou `*.yaml` → `github` ; sinon `none` et `null` | — |
 
 ## 5. Documentation et agents
 
@@ -186,6 +204,8 @@ Valeur attendue pour `fx-split-stack` :
 ## 9. Lacunes (`gaps`)
 
 Codes stables, utilisés par la doc générée et `status` : `no-ci`, `no-verify`, `no-tests:<composant>`, `no-lint:<composant>`, `no-remote`, `no-agents-md`, `no-adr`.
+
+Ordre de sortie (précisé le 2026-11-12) : `no-ci`, `no-verify`, `no-remote`, `no-agents-md`, `no-adr`, puis les `no-tests:<composant>`, puis les `no-lint:<composant>`, chacun dans l'ordre des composants. Conditions : `no-ci` si `ci.kind = none` ; `no-verify` si `commands.verify` vaut `null` ; `no-remote` si `git.remote` est faux ; `no-tests` et `no-lint` : section 3 ; `no-agents-md` et `no-adr` : section 5.
 
 ## 10. Fichier attendu pour `fx-split-stack`
 

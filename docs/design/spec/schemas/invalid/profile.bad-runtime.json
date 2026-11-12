@@ -83,7 +83,7 @@
         "test": {
           "value": "npm test",
           "confidence": "fact",
-          "evidence": "package.json scripts.test = vitest run"
+          "evidence": "package.json scripts.test"
         },
         "e2e": {
           "value": "npm run test:e2e",
@@ -158,7 +158,7 @@
         "lint": {
           "value": "docker compose exec -T api vendor/bin/pint --test",
           "confidence": "likely",
-          "evidence": "laravel/pint declared"
+          "evidence": "pint declared"
         }
       },
       "paths": {
