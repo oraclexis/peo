@@ -454,6 +454,21 @@ def test_write_human_output_names_path(repo_copy, capsys):
     assert str(Path(".peo") / "profile.json") in out
 
 
+def test_write_on_new_repo_is_valid(tmp_path, capsys):
+    # fx-new (spec 16 §2): empty repository, one commit; spec 12 rule 11 gives one bare root.
+    env = {"GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1", "PATH": os.environ["PATH"],
+           "GIT_AUTHOR_NAME": "A", "GIT_AUTHOR_EMAIL": "a@example.test",
+           "GIT_COMMITTER_NAME": "A", "GIT_COMMITTER_EMAIL": "a@example.test"}
+    git = ["git", "-C", str(tmp_path), "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
+    for args in (["init", "-q"], ["commit", "-q", "--allow-empty", "-m", "init"]):
+        subprocess.run(git + args, check=True, capture_output=True, env=env)
+    code, out, _, _ = run_discover(capsys, "--json", "discover", "--write", "--project", str(tmp_path))
+    assert code == 0
+    root = out["data"]["components"]
+    assert [(c["id"], c["ecosystems"], c["paths"]["code"]) for c in root] == [("root", [], [])]
+    assert validate(json.loads(written(tmp_path).read_text()), load_schema("profile")) == []
+
+
 def test_nf14_no_secret_in_written_file(repo_copy, capsys):
     run_discover(capsys, "--json", "discover", "--write", "--project", str(repo_copy))
     assert FIXTURE_SECRET not in written(repo_copy).read_text()
