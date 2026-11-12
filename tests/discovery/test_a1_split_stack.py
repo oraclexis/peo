@@ -44,7 +44,7 @@ def without(component: dict, *keys: str) -> dict:
     return {k: v for k, v in component.items() if k not in keys}
 
 
-@pytest.mark.xfail(strict=True, reason="full profile: docs, signals, sensitive, metrics (P1.5 to P1.7)")
+@pytest.mark.xfail(strict=True, reason="full profile: signals, sensitive, metrics, present_tools (P1.6, P1.7)")
 def test_a1_1_profile_matches_golden(profile):
     assert strip_volatile(profile) == strip_volatile(GOLDEN)
 
@@ -86,11 +86,21 @@ def test_a1_repository_match_golden(profile):
 
 
 def test_a1_gaps(profile):
-    later = {"no-agents-md", "no-adr"}   # P1.5
-    assert profile["gaps"] == [g for g in GOLDEN["gaps"] if g not in later]
+    assert profile["gaps"] == GOLDEN["gaps"]
 
 
-@pytest.mark.xfail(strict=True, reason="documentation drift (P1.5)")
+def test_a1_docs_match_golden(profile):
+    assert profile["docs"] == GOLDEN["docs"]
+
+
+def test_a1_intent_match_golden(profile):
+    assert profile["intent_from_docs"] == GOLDEN["intent_from_docs"]
+
+
+def test_a1_5_drift_matches_golden(profile):
+    assert profile["docs_drift"] == GOLDEN["docs_drift"]
+
+
 def test_a1_5_documentation_drift(profile):
     rules = sorted((d["rule"], d["file"]) for d in profile["docs_drift"])
     assert ("D4", "HANDOFF.md") in rules
