@@ -89,6 +89,20 @@ class Adapter(Protocol):
 
 `ctx` donne la racine du projet, le profil, la configuration, un exécuteur de commandes **injectable** (faux exécuteur en test) et le journal. Un adaptateur n'appelle jamais `subprocess` directement.
 
+Contrat de l'exécuteur (`peo.runner`, précisé le 2026-11-12 pour P1.3) :
+
+```python
+class Result(NamedTuple):
+    returncode: int
+    stdout: bytes
+    stderr: bytes
+
+Runner = Callable[[Sequence[str], Path], Result]
+def run(args: Sequence[str], cwd: Path, timeout: float = 30) -> Result
+```
+
+Arguments en liste, jamais de shell. Commande absente ou délai dépassé : `Result(127, b"", <raison>)`, sans exception. `peo.runner` est le seul module de `src/peo/` qui importe `subprocess` ; Discovery, Inventory et les adaptateurs reçoivent un `Runner`.
+
 ### 4.2 Par type
 
 | Type | `detect` | `apply` | Possède | Vérifie |

@@ -40,15 +40,16 @@ Ordre des stacks : celui de `discovery/stacks.toml`, qui suit l'ordre de la tabl
 
 ### 2.2 Algorithme
 
-1. Collecter les manifestes jusqu'à une profondeur de 3, hors exclusions.
-2. Ajouter les espaces de travail déclarés (`workspaces` de `package.json`, `packages:` de `pnpm-workspace.yaml`, `[tool.uv.workspace]`) : chaque membre est un composant.
+1. Collecter les manifestes jusqu'à une profondeur de 3, hors exclusions. Profondeur = nombre de dossiers dans le chemin du manifeste : `package.json` 0, `backend/composer.json` 1, `apps/web/package.json` 2.
+2. Ajouter les espaces de travail déclarés (`workspaces` de `package.json`, `packages:` de `pnpm-workspace.yaml`, `[tool.uv.workspace]`) : chaque membre qui contient un manifeste de la table 2.1 est un composant. Le manifeste qui **déclare** les espaces de travail (ou qui est à côté de `pnpm-workspace.yaml`) n'ouvre pas de composant à lui seul.
 3. Un dossier qui contient au moins un manifeste de la table 2.1 est un **composant**. Plusieurs manifestes dans le même dossier : un seul composant multi-écosystème.
-4. Un manifeste sans dépendance ni script (ex. `package.json` réduit à un nom) n'ouvre pas de composant.
+4. Un `package.json`, un `composer.json` ou un `pyproject.toml` sans dépendance ni script (ex. `package.json` réduit à un nom) n'ouvre pas de composant. Pour `go.mod`, `Cargo.toml`, `pom.xml`, `build.gradle*`, `Gemfile` et `requirements*.txt`, la présence du manifeste suffit.
 5. Identifiant : `root` pour `.`, sinon le chemin avec `/` remplacé par `-` (`backend`, `apps-web`).
-6. `paths.code` du composant : motifs glob des extensions de code de son écosystème, sous son dossier ; les dossiers d'autres composants imbriqués sont exclus par un motif négatif préfixé de `!` (ex. racine de `fx-split-stack` : `**/*.vue`, `**/*.ts`, `**/*.css`, `!backend/**`).
-7. `languages` : langages dont le composant a au moins 50 lignes de code (`typescript` inclut `.vue` et `.tsx`, `php`, `python`…).
+6. `paths.code` du composant : un motif par extension de code **présente** dans ses fichiers (hors composants imbriqués), dans l'ordre de la table des langages (règle 7) : `**/*.<ext>` pour `root`, `<chemin>/**/*.<ext>` sinon ; puis, triés, les motifs négatifs `!<dossier>/**` des composants imbriqués (ex. racine de `fx-split-stack` : `**/*.vue`, `**/*.ts`, `**/*.css`, `!backend/**`).
+7. `languages` : langages dont le composant a au moins 50 lignes non vides, dans l'ordre de la table des langages : `typescript` (`.vue`, `.ts`, `.tsx`), `javascript` (`.js`, `.jsx`, `.mjs`, `.cjs`), `css` (`.css`, `.scss`), `php` (`.php`), `python` (`.py`), `go` (`.go`), `rust` (`.rs`), `java` (`.java`), `kotlin` (`.kt`, `.kts`), `ruby` (`.rb`). Les `ecosystems` suivent l'ordre de la table 2.1.
 8. `kind` : `frontend` si une stack de rendu (`nuxt`, `next`, `vue`, `react`, `vite`) sans stack serveur ; `backend` si une stack serveur (`php-laravel`, `symfony`, `nestjs`, `express`, `django`, `fastapi`, `spring`, `rails`) ; `fullstack` si les deux ; sinon `library`.
-9. `monorepo = true` si au moins deux composants **et** un outil d'espace de travail (`workspaces`, pnpm, turbo, nx, lerna, uv workspace) ; deux composants sans outil d'espace de travail : `monorepo = false`, `multi_component = true`.
+9. `multi_component = true` dès deux composants ; `monorepo = true` si, en plus, un outil d'espace de travail est présent (`workspaces`, pnpm, turbo, nx, lerna, uv workspace). Un seul composant : les deux valent `false`.
+10. Ordre de sortie : `root` en premier, puis composants triés par identifiant.
 
 ### 2.3 Environnement d'exécution (E5)
 
@@ -59,9 +60,16 @@ Pour chaque composant :
 | Un service compose a `build.context` ou un volume `./<chemin>:` égal au dossier du composant, **et** le binaire principal de l'écosystème (`php`, `python3`, `go`, `cargo`, `java`, `ruby`) est absent du `PATH` | `docker:<service>` | `fact` |
 | Même service compose, binaire présent sur le poste | `docker:<service>` | `likely` (question si une fiche en dépend) |
 | Pas de service compose correspondant | `host` | `fact` si le binaire est présent, sinon `unknown` |
-| Écosystème node | `host` sauf si un service compose le construit **et** `node` est absent | |
+| Écosystème node **seul** : un service compose construit le dossier et `node` est absent | `docker:<service>` | `fact` |
+| Écosystème node seul : sinon | `host` | `fact` si `node` est présent, sinon `unknown` |
 
-Le binaire est cherché avec `shutil.which`, sans l'exécuter.
+Le binaire est cherché sans l'exécuter (`shutil.which`, injectable pour les tests). Pour un composant multi-écosystème, le binaire principal est celui du premier écosystème dans l'ordre de la table 2.1, et c'est la règle générale (construction **ou** montage) qui s'applique, pas la ligne node. Plusieurs services correspondants : le premier dans l'ordre du fichier. Fichiers lus : `docker-compose*.yml`, `docker-compose*.yaml`, `compose*.yml`, `compose*.yaml` à la racine, triés.
+
+Format des preuves :
+
+- service correspondant : `"<fichier>: <service> build.context <ctx>, volume <hôte>:<cible>; <bin> on PATH"` (les parties `build.context` et `volume` n'apparaissent que si elles correspondent ; plusieurs volumes séparés par `, `) ; `not on PATH` si le binaire est absent ;
+- aucun service, node seul : `"no compose service builds '<chemin>'; node [not ]on PATH"` ;
+- aucun service, autres cas : `"no compose service builds or mounts '<chemin>'; <bin> [not ]on PATH"`.
 
 Le `runtime` préfixe les commandes : `docker compose exec <service> <commande>`.
 
