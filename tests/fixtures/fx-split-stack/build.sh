@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Rebuild the fx-split-stack fixture repository in TARGET (spec 16, section 2.1).
 #
-# History: one initial commit with every file of tree/ not listed in history.tsv, then for each
+# History: one initial commit with every file of tree/ not listed in history.tsv or untracked.txt,
+# then for each
 # line of history.tsv a branch, one commit adding the listed files, and a --no-ff merge
 # "merge: <branch>" into main. Deterministic: the machine's git configuration is ignored and
 # identity, dates and file modes are fixed. Compatible with bash 3.2 (macOS).
@@ -54,7 +55,7 @@ put() {
 
 git init -q --template= -b main "$target"
 
-listed=$(cut -f3 "$here/history.tsv" | tr ' ' '\n' | sed '/^$/d' | sort)
+listed=$( (cut -f3 "$here/history.tsv" | tr ' ' '\n'; cat "$here/untracked.txt") | sed '/^$/d' | sort)
 initial=$(cd "$tree" && find . -type f | sed 's|^\./||' | sort | comm -23 - <(printf '%s\n' "$listed"))
 initial_paths=()
 while IFS= read -r f; do
@@ -74,3 +75,11 @@ while IFS=$'\t' read -r branch subject files; do
   stamp
   g merge -q --no-ff --no-verify -m "merge: $branch" "$branch"
 done < "$here/history.tsv"
+
+# Untracked files (spec 16, section 1): copied after the history, never added.
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  case "$f" in */*) mkdir -p "$target/${f%/*}" ;; esac
+  cp "$tree/$f" "$target/$f"
+  chmod 644 "$target/$f"
+done < "$here/untracked.txt"

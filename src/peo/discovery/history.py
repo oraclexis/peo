@@ -104,7 +104,7 @@ def read_history(root: Path, run: runner.Runner, is_git: bool) -> dict:
     """kind, git and conventions; outside git, no git call at all."""
     if not is_git:
         kind = {"value": "new", "confidence": "likely", "evidence": "not a git repository"}
-        return {"kind": kind,
+        return {"kind": kind, "counts": {"commits": 0, "contributors": 0},
                 "git": {"remote": False},
                 "conventions": {"branches": None, "commits": dict(UNKNOWN_COMMITS)}}
 
@@ -125,9 +125,10 @@ def read_history(root: Path, run: runner.Runner, is_git: bool) -> dict:
         default = origin_head.strip().split("/", 1)[-1]
     else:
         default = (out("git", "symbolic-ref", "--short", "HEAD") or "").strip() or None
+    authors = (out("git", "log", "--format=%ae") or "").split()
     git: dict = {"remote": bool(remotes)}
     if default:
         git["default_branch"] = default
-    return {"kind": kind, "git": git,
+    return {"kind": kind, "git": git, "counts": {"commits": n, "contributors": len(set(authors))},
             "conventions": {"branches": branches(branch_names(refs, remotes)),
                             "commits": commits(log)}}

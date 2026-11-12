@@ -18,6 +18,7 @@ class Service(NamedTuple):
     name: str
     build_context: str | None
     volumes: list[str]
+    image: str | None = None
 
 
 def unquote(value: str) -> str:
@@ -42,11 +43,12 @@ def _services(file: str, text: str) -> list[Service]:
     svc_indent = key_indent = None
     key = None
     build = None
+    image = None
     volumes: list[str] = []
 
     def close():
         if name is not None:
-            services.append(Service(file, name, build, volumes))
+            services.append(Service(file, name, build, volumes, image))
 
     for raw in text.splitlines():
         if raw.lstrip().startswith("#"):
@@ -68,7 +70,7 @@ def _services(file: str, text: str) -> list[Service]:
         if indent == svc_indent:
             close()
             name = unquote(item[:-1]) if item.endswith(":") else None
-            key_indent, key, build, volumes = None, None, None, []
+            key_indent, key, build, image, volumes = None, None, None, None, []
             continue
         if name is None or indent < svc_indent:
             continue
@@ -79,6 +81,8 @@ def _services(file: str, text: str) -> list[Service]:
             key, value = key.strip(), value.strip()
             if key == "build" and value:
                 build = unquote(value)
+            elif key == "image" and value:
+                image = unquote(value)
             continue
         if key == "build" and item.startswith("context:"):
             build = unquote(item.partition(":")[2])

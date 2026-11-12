@@ -44,7 +44,6 @@ def without(component: dict, *keys: str) -> dict:
     return {k: v for k, v in component.items() if k not in keys}
 
 
-@pytest.mark.xfail(strict=True, reason="generated is added by peo discover --write (P1.7)")
 def test_a1_1_profile_matches_golden(profile):
     assert strip_volatile(profile) == strip_volatile(GOLDEN)
 
