@@ -1,0 +1,79 @@
+# Tools of the initial catalog (spec 13 §5) and the names that cite them in a project's docs.
+# spec 12 §5: replaced by the names carried by catalog fiches in R3. peo:gates and
+# peo:native-controls have no cited name.
+
+[[tool]]
+id = "spec-kit"
+names = ["Spec Kit", "speckit"]
+
+[[tool]]
+id = "specify-cli"
+names = ["specify-cli"]
+
+[[tool]]
+id = "egm"
+names = ["Elephant-Goldfish", "EGM"]
+
+[[tool]]
+id = "mattpocock-skills"
+names = ["Matt Pocock"]
+
+[[tool]]
+id = "typescript-lsp"
+names = ["typescript-lsp"]
+
+[[tool]]
+id = "php-lsp"
+names = ["php-lsp"]
+
+[[tool]]
+id = "pyright-lsp"
+names = ["pyright-lsp"]
+
+[[tool]]
+id = "intelephense"
+names = ["Intelephense"]
+
+[[tool]]
+id = "serena"
+names = ["Serena"]
+
+[[tool]]
+id = "graphify"
+names = ["Graphify"]
+
+[[tool]]
+id = "semgrep"
+names = ["Semgrep"]
+
+[[tool]]
+id = "gitleaks"
+names = ["Gitleaks"]
+
+[[tool]]
+id = "security-guidance"
+names = ["security-guidance"]
+
+[[tool]]
+id = "ui-ux-pro-max"
+names = ["UI UX Pro Max"]
+
+[[tool]]
+id = "playwright"
+names = ["Playwright"]
+
+[[tool]]
+id = "context7"
+names = ["Context7"]
+
+[[tool]]
+id = "superpowers"
+names = ["Superpowers"]
+
+[[tool]]
+id = "compound-engineering"
+names = ["Compound Engineering"]
+
+[[tool]]
+id = "everything-claude-code"
+names = ["Everything Claude Code", "ECC"]
