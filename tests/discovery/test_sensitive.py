@@ -153,6 +153,7 @@ def test_a14_2_discover_no_value(tmp_path):
     profile = discover(tmp_path, run=no_git, which=lambda name: None, warnings=warnings)
     dumped = json.dumps(profile) + json.dumps(warnings)
     assert not [d for d in decoys if d in dumped]
+    assert profile["sensitive"]["secret_files"][0]["variables"] == ["APP_KEY", "DB_PASSWORD"]
 
 
 def test_a1_8_compose_environment_never_read(tmp_path):
