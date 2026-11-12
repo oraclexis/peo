@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 
 import pytest
-from peo.discovery.history import branch_names, branches, commits, read_history
 
 from peo.discovery import discover
+from peo.discovery.history import branch_names, branches, commits, read_history
 from peo.runner import Result
 
 

@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 
 import pytest
-from peo.discovery.commands import is_test_file, makefile_targets
 
 from peo.discovery import discover
+from peo.discovery.commands import is_test_file, makefile_targets
 from peo.runner import Result
 
 
