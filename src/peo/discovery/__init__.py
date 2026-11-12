@@ -20,6 +20,8 @@ from typing import NamedTuple
 from peo import SCHEMA_VERSION, runner
 from peo.discovery.commands import component_commands, is_test_file, package_manager, verify_command
 from peo.discovery.compose import read_services
+from peo.discovery.docs import doc_files, docs_section, intents
+from peo.discovery.drift import find_drift
 from peo.discovery.history import read_history
 from peo.discovery.runtime import component_runtime
 
@@ -397,15 +399,21 @@ def discover(root: Path, *, run: runner.Runner = runner.run,
     root_manifests = [m for m in manifests if _dir(m.path) == "."]
     commands = {"verify": verify_command(files, root_manifests, read, pm)}
     ci = _ci(files)
+    docs = docs_section(files, read)
+    drift = find_drift(root, files, doc_files(files), read, [c["path"] for c in components],
+                       root_manifests, docs["handoff"], run, is_git)
     gaps = [g for g, missing in (("no-ci", ci["kind"] == "none"),
                                  ("no-verify", commands["verify"]["value"] is None),
-                                 ("no-remote", not history["git"]["remote"])) if missing]
+                                 ("no-remote", not history["git"]["remote"]),
+                                 ("no-agents-md", not docs["agents_md"]),
+                                 ("no-adr", docs["adr"] is None)) if missing]
     gaps += [f"no-tests:{c['id']}" for c, has_tests in built if not has_tests]
     gaps += [f"no-lint:{c['id']}" for c in components if c["commands"]["lint"]["value"] is None]
     multi = len(components) >= 2
     return {"schema": SCHEMA_VERSION, "kind": history["kind"], "components": components,
             "monorepo": multi and workspace_tool, "multi_component": multi, "commands": commands,
-            "conventions": history["conventions"], "git": history["git"], "ci": ci,
+            "conventions": history["conventions"], "git": history["git"], "ci": ci, "docs": docs,
+            "intent_from_docs": intents(files, read), "docs_drift": drift,
             "gaps": sorted(gaps, key=_gap_rank)}
 
 

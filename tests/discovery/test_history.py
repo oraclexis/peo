@@ -186,7 +186,8 @@ def test_repo_gaps_order(tmp_path):
     write(tmp_path, {"package.json": {"dependencies": {"vue": "^3.5.0"}},
                      "backend/composer.json": {"require-dev": {"laravel/pint": "^1.13"}}})
     p = discover(tmp_path, run=git_fake({}), which=lambda n: None)
-    assert p["gaps"] == ["no-ci", "no-verify", "no-remote", "no-tests:root", "no-tests:backend", "no-lint:root"]
+    assert p["gaps"] == ["no-ci", "no-verify", "no-remote", "no-agents-md", "no-adr",
+                         "no-tests:root", "no-tests:backend", "no-lint:root"]
 
 
 def test_repo_no_ci_gap_with_ci(tmp_path):

@@ -93,7 +93,7 @@ def test_drift_d2_make_target(tmp_path):
 
 
 def test_drift_d2_builtins_ignored(tmp_path):
-    write(tmp_path, {"README.md": "yarn install\ncomposer require x/y\nphp artisan migrate\n",
+    write(tmp_path, {"README.md": "`yarn install`\n`composer require monolog`\n`php artisan migrate`\n",
                      "package.json": {"scripts": {}}, "composer.json": {"require": {}}})
     assert drift(tmp_path) == []
 
