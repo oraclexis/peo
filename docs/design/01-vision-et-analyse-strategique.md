@@ -1,6 +1,7 @@
 # 01 — Vision et analyse stratégique
 
 > Phase P0, conception uniquement. Vérifications faites le **2026-11-11**.
+> **Révisé le 2026-11-12** : l'audit d'abord, et un volet sécurité et confidentialité. Voir la section 9.
 > Légende utilisée dans tout le dossier :
 > **[FAIT]** vérifié dans le code ou la doc officielle, avec source ·
 > **[HYPOTHÈSE]** plausible, non vérifié ·
@@ -108,3 +109,37 @@ Le plugin `forge` conçu dans `ai-eng-workflow/09-init-plugin.md` est **un cas p
 | Faut-il tout construire ? | Non. Gestion des paquets, synchronisation multi-agents et exécution de workflows sont déjà disponibles |
 | Principal risque | La maintenance du catalogue, pas la technique (document 08) |
 | Forme recommandée | Cœur CLI Python déterministe + plugin Claude Code comme interface + catalogue curé dans un dépôt versionné |
+
+## 9. Révision du 2026-11-12 : l'audit d'abord
+
+Décisions H20 à H26 (document 08, section 6 quater). Benchmark : document 18. Sécurité et confidentialité : document 17.
+
+### 9.1 Ce qui ne tenait pas
+
+| # | Constat | Éléments |
+|---|---|---|
+| 1 | La neutralité entre méthodologies, présentée comme différenciante, **n'existe pas dans le MVP** : un seul socle y est supporté | Document 07, section 1 ; H3 |
+| 2 | La valeur dépend d'un catalogue maintenu par une seule personne (H9), dans un écosystème qui change chaque jour (deux dépôts du benchmark ont changé d'adresse entre le 11 et le 12 novembre) | Document 18, section 2 |
+| 3 | Les portes de processus deviennent courantes : Orka, Citadel, set-core, Probity en proposent | Document 18, section 3 |
+| 4 | Aucune valeur pour l'utilisateur avant la fin de P3 (environ 7 semaines) | Document 07, section 4 |
+| 5 | La confidentialité des données que voit l'agent n'était pas traitée : le modèle de menace couvrait seulement les risques que PEO fait courir | Document 04, section 7.1 |
+
+### 9.2 Positionnement révisé
+
+PEO est d'abord **l'auditeur déterministe de l'environnement d'agents d'un projet** : ce qui est installé, ce qui s'exécute à chaque événement, ce qui entre en conflit, et **ce que l'agent peut voir et envoyer**. Il en tire ensuite des recommandations justifiées, puis les applique en déléguant, comme prévu aux sections 1 à 8.
+
+| Ordre | Ce que PEO apporte | Dépend du catalogue ? |
+|---|---|---|
+| 1. Auditer (lecture seule) | Constats : hooks par événement et propriétaire, conflits, surfaces sensibles, contrôles manquants | Peu : quelques fiches suffisent |
+| 2. Recommander | Ensemble minimal justifié, dont les contrôles de confidentialité | Oui |
+| 3. Appliquer | Plan, accord, délégation | Oui |
+
+L'ordre change, pas la cible : les principes de la section 1 (couche fine, délégation, cœur déterministe) restent valables.
+
+### 9.3 Sécurité et confidentialité : une opportunité, avec un périmètre strict
+
+PEO **détecte, configure et vérifie** ; il ne masque rien et ne se place jamais sur le chemin des données (H21). L'application à l'exécution appartient aux contrôles natifs de Claude Code d'abord, puis à des outils délégués (Cloakroom, Gitleaks, Semgrep). Chaque mesure est présentée avec sa garantie réelle (document 17, section 4).
+
+### 9.4 Ce que la révision écarte
+
+Devenir une couche d'exécution multi-agents (six projets plus avancés l'occupent, document 18), masquer ou détecter des PII dans PEO, et le scénario « plateforme de gouvernance ».

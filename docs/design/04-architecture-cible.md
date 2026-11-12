@@ -3,6 +3,8 @@
 > Tout ce document est **[RECO]** sauf mention **[FAIT]**.
 >
 > **Mise à jour du 2026-11-11** : la spécification détaillée ([spec/](spec/10-spec-overview.md)) précise ce document. Points qui le modifient : la porte et le hook de contexte sont écrits dans le `.claude/settings.json` **du projet** et non dans le plugin, parce que leur `matcher` dépend des outils retenus (décision S-2) ; un dépôt a des **composants** (E1) et la porte protège les chemins de code de tous ; l'agent ne peut pas s'approuver une porte (spec 15, section 4.1 bis).
+>
+> **Révision du 2026-11-12** (section 9) : aucun nouveau composant. La sécurité et la confidentialité deviennent des détecteurs de Discovery, des contrôles de l'Inventory et de `peo status`, et des capacités du catalogue (document 17).
 
 ## 1. Challenge des dix composants proposés
 
@@ -250,6 +252,8 @@ Quatre commandes visibles, toutes `disable-model-invocation: true` (aucune ne se
 | Opération destructive | Désinstallation qui supprime des fichiers modifiés | Suppression limitée aux artefacts possédés **et** non modifiés (empreinte), sauvegarde avant |
 | Contournement des portes | Serena édite sans `Edit` | Chaque fiche déclare ses **outils d'écriture**, ajoutés automatiquement au matcher de la porte |
 | Mise à jour silencieuse incompatible | Renommage de fichiers par un outil | Pas d'auto-mise à jour au MVP. Lock + plan + accord |
+| Exposition des données du projet à l'agent (ajout du 2026-11-12) | `.env` lu, dump de base dans le dépôt, MCP sur une base réelle, sortie de commande en échec non masquable | Hors du chemin des données : détection des surfaces, contrôles natifs, outils délégués, garantie affichée par surface. Document 17 |
+| Fuite par PEO lui-même (ajout du 2026-11-12) | Une valeur de `.env` recopiée dans `profile.json`, qui est versionné | Règle « aucune valeur » : chemins et noms de variables seulement, test par fixture leurre (document 17, section 6.1) |
 
 ### 7.2 Niveaux d'autonomie
 
@@ -271,5 +275,43 @@ Chaque action du Planner porte une **classe de risque** (`safe`, `install`, `mod
 | E4 | Découverte profonde (Graphify, ast-grep, workflow Claude de fan-out) | Projets de modernisation et reconstruction (U7) |
 | E5 | Catalogue d'organisation (dépôt privé, surcharge du catalogue public) | Plusieurs équipes |
 | E6 | Serveur MCP PEO | Agent cible sans skills |
+| E7 | Inventory Codex en lecture seule (`~/.codex/hooks.json`, `config.toml`), puis Gemini CLI (ajout du 2026-11-12, H23) | Un projet pilote utilise Codex |
+| E8 | Capacité exclusive `orchestration.harness` (ajout du 2026-11-12, H25) | Première fiche de harnais d'exécution (Citadel, Orka…) |
 
 Aucune de ces évolutions ne modifie le format de `peo.toml` de façon incompatible : chacune ajoute une section.
+
+## 9. Révision du 2026-11-12
+
+### 9.1 Composants demandés lors de la révision
+
+Quinze composants ont été proposés pour l'architecture cible. Aucun n'est ajouté : chacun correspond à un élément existant, ou à une extension d'un élément existant.
+
+| Composant proposé | Devient | Raison |
+|---|---|---|
+| PEO Core | CLI `peo` | Inchangé |
+| Project Discovery, Technology Detection, Capability Detection | **Discovery**, avec des détecteurs de surfaces sensibles | Trois noms pour une même lecture du dépôt |
+| Plugin Registry | Catalog | Inchangé |
+| Tool Selection Engine | Selector | Inchangé |
+| Dependency and Compatibility Manager | Contraintes du Selector + Inventory | Pas de résolveur (document 08, section 3) |
+| Plugin Lifecycle Manager | Planner + Installers | Délégation |
+| Workflow Manager | Composer + `peo gate` | Pas de moteur d'exécution |
+| Project Context | `peo.toml` | Inchangé |
+| Knowledge Management | Index de pointeurs | Pas de seconde mémoire |
+| **Security & Privacy Manager** | **Aucun composant** : détecteurs de Discovery, contrôles de l'Inventory et de `peo status --exposure`, capacités `exposure.native`, `secrets.scan.*`, `privacy.masking` | L'application à l'exécution appartient à Claude Code (permissions, sandbox) et aux outils délégués |
+| Agent Adapters | Adaptateur Claude en écriture ; autres agents en lecture seule d'abord (E7) | L'audit multi-agents coûte peu |
+| Policy Engine | `[policy]` de `peo.toml` + classes de risque du Planner | Probity plus tard si besoin (E3) |
+| Audit and Reporting | `peo status` + journal | Inchangé |
+
+### 9.2 Extensions des composants existants
+
+| Composant | Extension | Référence |
+|---|---|---|
+| Discovery | Signaux `secret_files` (chemins, noms de variables), `data_stores`, `data_dumps`, `log_dirs`, `agent_configs`. **Aucune valeur** lue n'est conservée | Document 17, section 6.1 |
+| Inventory | Règles de permissions, état et options du sandbox, hooks par événement avec `onFailure`, serveurs MCP (commande, transport), forme des valeurs dans les configs d'agent (littéral ou `${VAR}`) | Document 17, section 6.2 |
+| `peo status` | Option `--exposure` (constats gradués) et `--canary` (vérification active des détecteurs installés, jamais par défaut) | Document 17, sections 6.2 et 6.4 |
+| Catalog | Capacités `exposure.native` (fournie par PEO, comme `process.gates`), `secrets.scan.ci`, `secrets.scan.commit`, `privacy.masking` (exclusive) ; champs de fiche `data_path` et `fail_mode` | Document 05, section 8 |
+| Composer | Bloc possédé de `.claude/settings.json` pour `permissions.deny` et les options du sandbox | Document 17, section 5, couche 1 |
+
+### 9.3 Ordre de construction
+
+L'ordre change (document 07, section 7) : Discovery et Inventory, puis `peo status --exposure`, **avant** le Selector et le Planner. Les composants ne changent pas.

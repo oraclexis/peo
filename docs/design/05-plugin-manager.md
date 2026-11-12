@@ -69,6 +69,7 @@ remove(entry, keep_cfg)  → retrait limité aux artefacts possédés et non mod
 | Redondances | Deux outils actifs couvrant la même capacité « exclusive » |
 | Hooks actifs | Lecture des `hooks.json` des plugins activés et des settings, groupés par événement et par propriétaire |
 | Coût de contexte | Somme des estimations des fiches des outils actifs |
+| Contrôles d'exposition (ajout du 2026-11-12) | Règles `permissions.deny`, état et options du sandbox, `onFailure` des hooks, forme des valeurs dans les configs d'agent. Document 17, section 6.2 |
 
 Un outil présent mais **inconnu du catalogue** est signalé comme « non évalué », jamais supprimé.
 
@@ -140,6 +141,8 @@ Trois natures de conflit, trois traitements :
 | **Exclusivité de socle** | Superpowers + Spec Kit/EGM/Matt | Le Selector n'en garde qu'un. Si les deux sont déjà actifs : `!` dans le plan, choix demandé, **rien n'est désinstallé d'office** |
 | **Capacité exclusive en double** | Deux outils `ui.design` | Le Selector garde celui de meilleur score, l'autre apparaît dans les « alternatives écartées » |
 | **Collision technique** | Deux plugins en `SessionStart` qui injectent un processus, deux rédacteurs de `CLAUDE.md`, un outil qui contourne la porte | Règles déclarées dans les fiches (`hooks.events`, `writes`, `write_tools`). Refus ou adaptation (ex. matcher étendu) |
+| **Réécriture des entrées ou sorties d'outils** (ajout du 2026-11-12) | Deux masqueurs actifs : doubles placeholders, `updatedInput` concurrents [HYPOTHÈSE : comportement de deux `updatedInput` non vérifié, spike S5] | Capacité exclusive `privacy.masking` ; champ `data_path = "rewrites-io"` |
+| **Harnais d'exécution** (ajout du 2026-11-12) | Deux orchestrateurs qui fixent l'agent par défaut ou posent leurs hooks de fusion | Capacité exclusive `orchestration.harness`, ajoutée avec la première fiche (H25) |
 
 ## 6. Validation
 
@@ -167,3 +170,33 @@ Hybride concrètement :
 4. **Sources externes en lecture seule** : `peo catalog suggest` peut lister des candidats depuis les marketplaces connues, **jamais** les installer sans fiche.
 
 Automatisation du dépôt de catalogue (CI hebdomadaire) : pour chaque fiche, vérifier que la source existe, détecter les nouvelles versions, **recalculer la surface** (hooks, MCP, `bin/`) de la dernière version et ouvrir une issue si elle diffère de la fiche. C'est ce qui rend le catalogue tenable à plusieurs.
+
+## 8. Révision du 2026-11-12 : outils de sécurité et autres agents
+
+### 8.1 Nouveaux champs de fiche
+
+| Champ | Valeurs | Usage |
+|---|---|---|
+| `data_path` | `rewrites-io` (réécrit entrées ou sorties d'outils), `reads-sensitive` (lit des données du projet hors du dépôt de code : base, navigateur, e-mails), `none` | Exclusivité, affichage du plan, contrôles d'exposition |
+| `fail_mode` | `open`, `closed` | Afficher ce qui se passe quand l'outil est absent ou en panne. Un outil `closed` peut bloquer le travail ; un outil `open` laisse passer |
+
+Les fiches d'outils `data_path = "rewrites-io"` ont un `review_by` court (30 jours, point ouvert O3 du document 17) : elles sont sur le chemin de toutes les données.
+
+### 8.2 Premières fiches de sécurité
+
+| Fiche | Capacité | Condition | État |
+|---|---|---|---|
+| `ci-check:gitleaks` | `secrets.scan.ci` | Toujours proposée ; exigence dure si `secret_files` présent | Premier lot |
+| `ci-check:semgrep` | `review.security.sast` | Inchangée (spec 13) | Premier lot |
+| `claude-plugin:cloakroom` | `privacy.masking` | Signal `secret_files` ou `data_stores` ; jamais par défaut (H22) | **Après le spike S5** |
+| Réglages natifs (`permissions.deny`, sandbox) | `exposure.native` | Fournis par PEO lui-même via le Composer | Premier lot |
+
+### 8.3 Autres agents (H23)
+
+| Agent | Lecture (Inventory) | Écriture (adaptateur) |
+|---|---|---|
+| Claude Code | Jalon A′ | MVP |
+| Codex | Dès qu'un projet pilote l'utilise (E7) | P8 (via rulesync ou APM, inchangé) |
+| Gemini CLI | Plus tard : son format de session change d'une version à l'autre | Plus tard |
+
+La lecture seule d'abord : un audit multi-agents est utile sans qu'aucun adaptateur d'écriture n'existe.
