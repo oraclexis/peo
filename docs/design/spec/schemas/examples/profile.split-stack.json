@@ -279,30 +279,30 @@
     {
       "tool": "spec-kit",
       "confidence": "likely",
-      "evidence": "README.md mentions Spec Kit"
+      "evidence": "README.md:68 mentions Spec Kit"
     }
   ],
   "docs_drift": [
     {
       "rule": "D1",
-      "file": "README.md",
-      "line": 82,
-      "confidence": "likely",
-      "message": "Unchecked TODO cites ContentBlock.vue, which exists (app/components/ContentBlock.vue)"
-    },
-    {
-      "rule": "D1",
       "file": "CLAUDE.md",
       "line": 27,
       "confidence": "likely",
-      "message": "Priority TODO cites ContentBlock.vue, which exists"
+      "message": "Line marked 'TODO' cites ContentBlock.vue, which exists (app/components/ContentBlock.vue)"
+    },
+    {
+      "rule": "D1",
+      "file": "README.md",
+      "line": 82,
+      "confidence": "likely",
+      "message": "Line marked '- [ ]' cites ContentBlock.vue, which exists (app/components/ContentBlock.vue)"
     },
     {
       "rule": "D3",
       "file": "README.md",
       "line": 72,
       "confidence": "likely",
-      "message": "Path apps/api/ announced as upcoming does not exist; backend code lives in backend/"
+      "message": "Path apps/api/ does not exist"
     },
     {
       "rule": "D4",

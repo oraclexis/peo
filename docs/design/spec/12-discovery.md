@@ -138,11 +138,12 @@ Précisions du 2026-11-12 (P1.4) : `style = free` sous 80 %, `unknown` sans aucu
 
 | Champ | Règle |
 |---|---|
+| `docs.readme` | `true` si un `README*` existe à la racine (ajout du 2026-11-12) |
 | `docs.claude_md` | `absent` si le fichier n'existe pas ; sinon `rich` dès que `rules_count` ≥ 5, quelle que soit la longueur ; sinon `pointer` (au plus 20 lignes non vides **et** au moins un import `@`), `thin` (au plus 20 lignes non vides), `rich` (au-delà). Tous les seuils se comptent en lignes non vides. Plus `lines` (lignes non vides) et `rules_count` (éléments de liste de premier niveau) |
 | `docs.agents_md` | booléen |
 | `docs.handoff` | chemin d'un `HANDOFF*.md` s'il existe |
 | `docs.adr` | premier de `docs/adr/`, `docs/decisions/`, `adr/` qui existe |
-| `intent_from_docs` | Identifiants ou noms d'outils du catalogue cités dans `README*` ou `docs/` (ex. « Spec Kit ») : confiance `likely`, preuve = fichier et ligne |
+| `intent_from_docs` | Outils dont un nom de `discovery/intents.toml` est cité dans `README*` ou `docs/**/*.md` (comparaison sans casse, mot entier) : `tool` = identifiant de fiche, confiance `likely`, preuve `"<fichier>:<ligne> mentions <nom>"` à la première citation ; un outil une seule fois ; liste triée par `tool`. La table est limitée aux outils du catalogue initial (spec 13 §5) et sera remplacée par les noms des fiches en R3 (précisé le 2026-11-12, P1.5) |
 
 ## 6. Dérive documentaire (E2)
 
@@ -156,6 +157,16 @@ Détection **déterministe, présentée comme hypothèse** (confiance `likely`),
 | **D4 — Document de passation daté** | `HANDOFF*.md` dont la dernière modification git précède de plus de 20 commits le dernier commit touchant un fichier qu'il cite | `git log -1 --format=%H -- <fichier>` et comptage |
 
 Faux positifs attendus : un « TODO » qui parle d'une amélioration future d'un fichier existant. C'est pour cela que la dérive est une hypothèse posée à l'humain et non un fait.
+
+Précisions du 2026-11-12 (P1.5) :
+
+- **Marqueurs D1**, dans cet ordre (le premier trouvé sur la ligne, ou dans le titre de sa section, est cité) : `- [ ]`, `TODO`, `WIP`, `à venir`, `pas encore`, `coming soon`, `not yet` ; comparaison sans casse. Une ligne donne au plus un constat D1.
+- **Résolution d'un nom seul** (`ContentBlock.vue`) : premier fichier suivi, par ordre trié, dont le nom est égal.
+- **Messages** (gabarits fixes) : D1 `"Line marked '<marqueur>' cites <jeton>, which exists (<chemin>)"` ; D2 `"Command '<commande>' is documented but not defined in <manifeste>"` ; D3 `"Path <jeton> does not exist"` ; D4 `"Last changed <n> commits before HEAD while files it cites changed since"`, où `<n>` est le nombre de commits depuis la dernière modification du document. Aucun indice supplémentaire.
+- **D2** : commandes `npm run X`, `pnpm run X`, `yarn X`, `make X`, `composer X` ; `X` cherché dans les scripts du manifeste racine ou les cibles du `Makefile` racine.
+- **D3** : jetons relatifs contenant un `/`, hors URL (`://`) et hors chemins absolus.
+- **Ordre** : constats triés par règle, puis fichier, puis ligne (D4 sans ligne).
+- **Hors git** : pas de D4.
 
 ## 7. Signaux
 
