@@ -1,5 +1,6 @@
 """Validator for the JSON Schema subset PEO's schemas use (spec 10, NF2). Standard library only."""
 
+import copy
 import json
 import re
 from dataclasses import dataclass
@@ -30,6 +31,7 @@ class Schema:
 
     @classmethod
     def from_dict(cls, d: dict) -> "Schema":
+        d = copy.deepcopy(d)   # spec 10: changing the caller's dict afterwards has no effect
         _verify(d, d)
         return cls(d)
 

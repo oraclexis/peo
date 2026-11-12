@@ -97,6 +97,15 @@ def test_a2_6_schema_is_immutable_and_built_from_dict():
         schema.root = {}
 
 
+def test_a2_6_schema_keeps_a_deep_copy():
+    source = {"type": "object", "properties": {"a": {"type": "integer"}}}
+    schema = Schema.from_dict(source)
+    source["properties"]["a"]["type"] = "string"
+    source["format"] = "date"                       # outside the subset, added after the check
+    assert validate({"a": 1}, schema) == []
+    assert "format" not in schema.root
+
+
 def test_a2_6_load_schema_returns_schema_and_rejects_unknown_name():
     assert isinstance(load_schema("profile"), Schema)
     with pytest.raises(FileNotFoundError):
