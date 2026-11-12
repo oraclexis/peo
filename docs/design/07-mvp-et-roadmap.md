@@ -3,6 +3,8 @@
 > **[RECO]** dans tout le document.
 >
 > **Mise à jour du 2026-11-11** : les critères d'acceptation détaillés sont dans [spec/16-test-plan.md](spec/16-test-plan.md). Changements : F1 couvre aussi la dérive documentaire (E2), les conventions git (E3) et l'environnement d'exécution par composant (E5) ; F3 lit les dépendances de dev (E6) ; un cinquième type d'installeur, `ci-check`, entre au MVP (S-4) ; la question « équipe » est retirée faute de consommateur (spec 13, section 7.2).
+>
+> **Révision du 2026-11-12** : la feuille de route est réordonnée, l'audit d'abord (section 7, décision H20). Les sections 1 à 6 restent la référence pour le contenu des fonctionnalités F1 à F13.
 
 ## 1. Ce que le MVP doit prouver
 
@@ -106,3 +108,39 @@ Durées pour une personne à temps partiel significatif ; elles servent à ordon
 | Conflits non détectés découverts à l'usage | 0 |
 | Contexte permanent ajouté par PEO lui-même | < 500 tokens |
 | Fonctionnalité menée avec les portes sans contournement involontaire | 3 sur 3 |
+
+## 7. Feuille de route révisée du 2026-11-12 : l'audit d'abord
+
+Raison (document 01, section 9) : Discovery et Inventory sont à construire de toute façon ; en faire un premier livrable en lecture seule donne une valeur mesurable vers 3 à 4 semaines au lieu d'environ 7, sans travail perdu.
+
+| Étape | Contenu | Fonctionnalités | Dépend de | Critère de validation |
+|---|---|---|---|---|
+| **R0** | Décisions H20 à H26 consignées ; spec modifiée (spec 10, 12, 13, 15, schémas) dans une PR séparée | — | — | Spec relue et acceptée |
+| **R1** | Discovery (P1 en cours) + signaux de surfaces sensibles **sans valeurs** | F1 | R0 | Fichier attendu de `fx-split-stack` enrichi ; test « aucune valeur » au vert |
+| **R2** | Inventory Claude Code : hooks par événement avec propriétaire et `onFailure`, permissions, sandbox, MCP | F3 | R1 | Détecte un hook non déclaré, une valeur littérale dans `.mcp.json`, un sandbox absent |
+| **R3** | `peo status --exposure [--ci] [--canary]` + catalogue initial réduit aux fiches qu'il consomme (Gitleaks, Semgrep, réglages natifs) | F2 (partiel), F11 | R2 | **Jalon A′** (mesures ci-dessous) |
+| **R4** | Selector + questionnaire, avec les capacités `privacy.*`, `secrets.*`, `exposure.native` | F4, F5 | R3 | Déterministe ; refuse deux outils `privacy.masking` |
+| **R5** | Planner, installeurs, adaptateur Claude (dont le bloc `permissions` et sandbox), lock, journal, doc générée | F6 à F9 | R4 | Idempotent ; tout affaiblissement d'un contrôle marqué dans le plan |
+| **R6** | Porte + recette `feature`, `peo status --ci` complet | F10, F11 | R5 | Ancien jalon MVP (section 6) |
+| Ensuite | `peo tools` complet, fiche Cloakroom (après spike S5), Inventory Codex (E7), recettes supplémentaires, catalogue partagé, portabilité, socles alternatifs | F12, F13, ex-P6 à P10 | R6 | Selon la demande |
+
+Correspondance avec l'ancienne feuille de route (section 4) : R1 à R3 = P1 élargi ; R4 = P2 ; R5 = P3 ; R6 = P4.
+
+### 7.1 Mesures du jalon A′
+
+| Mesure | Seuil de succès |
+|---|---|
+| Dépôts réels audités | 3, de stacks différentes |
+| Constats actionnables par dépôt | ≥ 1 |
+| Constat « protégé » ou équivalent affiché à tort | 0 |
+| Valeur sensible présente dans une sortie de PEO | 0 (test par fixture leurre) |
+| Durée de `peo status --exposure` sans `--canary` | < 5 s |
+| Accès réseau sans `--canary` | 0 (test NF5) |
+
+### 7.2 Hors périmètre ajouté
+
+| Fonctionnalité | Pourquoi jamais dans PEO |
+|---|---|
+| Masquage, pseudonymisation, détection de PII dans un flux | Chemin des données : latence, NF1, responsabilité. Délégué (document 17) |
+| Approbation d'une action retenue par un outil de sécurité | Décision humaine seulement (document 17, section 7) |
+| Orchestration d'exécution multi-agents | Six projets l'occupent (document 18, section 3) |

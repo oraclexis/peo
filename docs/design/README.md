@@ -10,6 +10,8 @@ Analyse, challenge et conception du **Project Engineering Orchestrator**. Aucune
 4. `.peo/` passe de **30 éléments à 5** : configuration, profil, lock, journal, doc générée. La connaissance reste à ses emplacements natifs.
 5. Principal risque : la **maintenance du catalogue**, pas la technique.
 
+**Révision du 2026-11-12** : PEO commence par **auditer** l'environnement d'agents du projet (outils, hooks, conflits, et ce que l'agent peut voir et envoyer), avant de recommander et d'appliquer. Il **détecte, configure et vérifie** les contrôles de confidentialité, mais ne masque jamais rien lui-même. Décisions H20 à H26 (document 08, section 6 quater).
+
 ## Décisions
 
 Les décisions H1 à H12 ont été prises le 2026-11-11 (document 08, section 6 bis). Pilote existant n°1 : document 09. Reste à désigner : un dépôt existant sans front lourd.
@@ -28,7 +30,9 @@ Les décisions H1 à H12 ont été prises le 2026-11-11 (document 08, section 6 
 | [06-modele-de-donnees.md](06-modele-de-donnees.md) | Capacités, fiche d'outil, socle, recette, `peo.toml`, `profile.json`, lock, journal, algorithme de sélection |
 | [07-mvp-et-roadmap.md](07-mvp-et-roadmap.md) | MVP (13 fonctionnalités avec critères d'acceptation), hors périmètre, feuille de route révisée, stratégie de tests, mesures |
 | [09-pilote-1.md](09-pilote-1.md) | Découverte, questionnaire et sélection joués à la main sur un projet réel ; 6 écarts de conception révélés |
-| [08-risques-et-decisions.md](08-risques-et-decisions.md) | 5 risques, 5 décisions, ce qu'il ne faut pas construire, choix techniques, alternatives, 12 décisions humaines |
+| [08-risques-et-decisions.md](08-risques-et-decisions.md) | 6 risques, 5 décisions, ce qu'il ne faut pas construire, choix techniques, alternatives, décisions humaines H1 à H12 et H20 à H26 |
+| [17-securite-et-confidentialite.md](17-securite-et-confidentialite.md) | Périmètre, mécanismes (masquage, redaction, pseudonymisation, anonymisation, chiffrement), Cloakroom, BlackBar, Agent Privacy, surfaces d'exposition et garanties, scénario base de données, contrôles, gouvernance |
+| [18-benchmark-2026-11-12.md](18-benchmark-2026-11-12.md) | Annexe : orchestrateurs, frameworks, outils de sécurité, matrice des capacités |
 | [spec/10-spec-overview.md](spec/10-spec-overview.md) | Spécification : périmètre, glossaire, architecture du code, exigences non fonctionnelles, points techniques levés, décisions S-1 à S-7 |
 | [spec/11-cli-and-commands.md](spec/11-cli-and-commands.md) | CLI, sorties JSON, codes de sortie, skills, hooks |
 | [spec/12-discovery.md](spec/12-discovery.md) | Détection : composants, runtime, commandes, conventions, dérive documentaire, signaux |
@@ -38,7 +42,7 @@ Les décisions H1 à H12 ont été prises le 2026-11-11 (document 08, section 6 
 | [spec/16-test-plan.md](spec/16-test-plan.md) | Fixtures, référence synthétique `fx-split-stack`, test local du pilote n°1, tests d'acceptation F1 à F13 |
 | [spec/schemas/](spec/schemas/README.md) | 7 schémas JSON, exemples `fx-split-stack`, contre-exemples, script de vérification |
 
-Ordre de lecture conseillé : 01 → 08 → 04 → 03 → 02 → 06 → 05 → 07 → 09, puis la spécification 10 → 16.
+Ordre de lecture conseillé : 01 → 08 → 04 → 03 → 02 → 06 → 05 → 07 → 09, puis la spécification 10 → 16. Révision du 2026-11-12 : 01 (section 9) → 17 → 18 → 08 (section 6 quater) → 07 (section 7).
 
 ## Légende
 

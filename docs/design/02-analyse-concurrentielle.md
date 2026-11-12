@@ -175,6 +175,37 @@ Ces outils ne sont pas des concurrents de PEO : ce sont des **options entre lesq
 
 Ma recommandation : **C**.
 
+## 9. Mise à jour du 2026-11-12
+
+Détail, méthode et matrice des capacités : document 18. Sécurité et confidentialité : document 17.
+
+### 9.1 Orchestrateurs : une couche d'exécution, pas un concurrent direct
+
+Orka, Hivemind, set-core, Citadel, OpenRig, Cezar, Kansei et CCPM lancent, parallélisent et fusionnent le travail des agents (worktrees, revues séparées, portes, budgets). PEO ne va pas sur ce terrain. Ce sont des **entrées de catalogue potentielles** qui posent des hooks, des réglages et parfois un agent par défaut : l'Inventory doit les voir, et le Selector refuser d'en cumuler deux (capacité exclusive `orchestration.harness`, ajoutée avec la première fiche, H25).
+
+| Concept | Origine | Usage dans PEO |
+|---|---|---|
+| L'auteur ne revoit jamais son propre travail ; revue sécurité comme porte distincte | Orka | Recette (étape de revue sécurité sans contexte, principe Goldfish d'EGM) |
+| Configuration du dépôt dans un petit fichier, règles dans `CLAUDE.md`/`AGENTS.md` | Orka | Déjà le cas (`peo.toml` + `AGENTS.md`) |
+| Installation épinglée sur un tag, en portée locale ; résultats négatifs publiés | Citadel | Règle de fiche ; ton du rapport `peo status` |
+| Porte anti-fuite au commit et avant les outils | set-core (`set-leakscan`) | Délégué à Gitleaks et à Cloakroom |
+
+### 9.2 Confidentialité : des outils spécialisés existent
+
+Cloakroom (pseudonymisation réversible, multi-agents), Agent Privacy (redaction, expérimental), BlackBar (captures Chrome), Presidio (SDK de PII), Gitleaks (secrets). PEO les **détecte, les recommande et vérifie leur présence** ; il ne refait aucun de leurs mécanismes (H21).
+
+### 9.3 Changements d'adresse
+
+ECC → `affaan-m/ECC` ; Presidio → `data-privacy-stack/presidio`. `openrig/openrig` n'existe pas (projet : `mvschwarz/openrig`) ; `Kaportaci31/openrig` est un leurre probable.
+
+### 9.4 Positionnement (complément de la section 7)
+
+| | APM | ECC | Orchestrateurs | Cloakroom | **PEO** |
+|---|---|---|---|---|---|
+| Inventaire des hooks par événement et propriétaire | Non | Non | Non | Partiel (`cloakroom scan`) | **Oui** |
+| Audit des surfaces exposées à l'agent | Non | Non | Non | Partiel (`cloakroom exposure`) | **Oui** |
+| Sur le chemin des données | Non | Hooks | Non | **Oui** | **Non, par construction** |
+
 ## Sources
 
 - [microsoft/apm](https://github.com/microsoft/apm) · [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) · [davila7/claude-code-templates](https://github.com/davila7/claude-code-templates) · [docs aitmpl](https://docs.aitmpl.com/cli/overview)
@@ -182,3 +213,4 @@ Ma recommandation : **C**.
 - [bmad-code-org/BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD) · [nizos/probity](https://github.com/nizos/probity) · [github/spec-kit](https://github.com/github/spec-kit)
 - Claude Code : [workflows](https://code.claude.com/docs/en/workflows.md), [manifeste de plugin](https://code.claude.com/docs/en/plugins/manifest-reference.md), [dépendances](https://code.claude.com/docs/en/plugins/dependencies.md), [plugins d'organisation](https://code.claude.com/docs/en/plugins/org.md)
 - [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp) (recommandation CLI + skills)
+- Mise à jour du 2026-11-12 : sources des documents 17 et 18
