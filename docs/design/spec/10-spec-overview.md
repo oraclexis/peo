@@ -2,6 +2,8 @@
 
 > Statut : **proposition à valider**. Rien n'est construit. Cette spécification découle des décisions H1 à H12 (document 08, section 6 bis) et des écarts E1 à E6 révélés par le pilote n°1 (document 09).
 >
+> **Révision du 2026-11-12** : décisions H20 à H26 (document 08, section 6 quater ; document 17). Ajouts : surfaces sensibles dans Discovery (spec 12, section 7 bis), fonctionnalité **F14 — audit d'exposition** (spec 15, section 7), exigence NF14 « aucune valeur », spike S5, décisions S-8 à S-10.
+>
 > Légende reprise du dossier : **[FAIT]** vérifié (source et date), **[HYPOTHÈSE]**, **[RECO]**, **[DÉCISION]** (arbitrage qui t'appartient), **[SPIKE]** point à vérifier par un essai court au début de la phase concernée.
 
 ## 1. Objet et périmètre
@@ -11,14 +13,16 @@ La spécification décrit **ce que le MVP fait, avec quelles entrées et quelles
 | Document | Contenu | Fonctionnalités |
 |---|---|---|
 | [11-cli-and-commands.md](11-cli-and-commands.md) | CLI `peo`, sorties JSON, codes de sortie, skills du plugin, hooks | toutes |
-| [12-discovery.md](12-discovery.md) | Détecteurs, composants, environnement d'exécution, conventions, dérive documentaire, confiance | F1 (E1, E2, E3, E5) |
+| [12-discovery.md](12-discovery.md) | Détecteurs, composants, environnement d'exécution, conventions, dérive documentaire, surfaces sensibles, confiance | F1 (E1, E2, E3, E5) |
 | [13-catalog-and-selection.md](13-catalog-and-selection.md) | Catalogue, vocabulaire de capacités, langage `when`, banque de questions, Selector | F2, F4, F5 (E5, E6) |
 | [14-planner-installers.md](14-planner-installers.md) | Modèle d'action, risques, adaptateurs par type, fusion des fichiers, migration de `CLAUDE.md`, lock, journal | F3, F6, F7, F8, F9, F12, F13 (E3, E4, E5, E6) |
-| [15-flow-and-gates.md](15-flow-and-gates.md) | Recettes `feature` et `bugfix`, portes, `peo gate`, `peo context`, `peo status` | F10, F11 |
+| [15-flow-and-gates.md](15-flow-and-gates.md) | Recettes `feature` et `bugfix`, portes, `peo gate`, `peo context`, `peo status`, audit d'exposition | F10, F11, F14 |
 | [16-test-plan.md](16-test-plan.md) | Fixtures, fichiers attendus, tests d'acceptation par fonctionnalité, pilote n°1 | toutes |
 | [schemas/](schemas/) | Schémas JSON (2020-12) et exemples validés | F1, F2, F5, F6, F8 |
 
-Ce que la spécification **ne couvre pas** : tout ce qui figure dans « Hors MVP » (document 07, section 3), et l'implémentation interne au-delà des contrats.
+Ce que la spécification **ne couvre pas** : tout ce qui figure dans « Hors MVP » (document 07, sections 3 et 7.2), et l'implémentation interne au-delà des contrats.
+
+**F14 — Audit d'exposition** (ajout du 2026-11-12, H20, H21) : `peo status --exposure` signale ce que l'agent peut lire ou envoyer et les contrôles qui manquent ; `--canary` vérifie que les détecteurs installés répondent. PEO détecte, configure et vérifie ; il ne masque rien et ne se place jamais sur le chemin des données. Ordre de construction : R1 à R3 (document 07, section 7), avant le Selector.
 
 ## 2. Glossaire
 
@@ -39,6 +43,9 @@ Ce que la spécification **ne couvre pas** : tout ce qui figure dans « Hors MVP
 | **Bloc géré** | Région d'un fichier délimitée par des marqueurs `peo:begin` / `peo:end`. PEO ne touche rien en dehors |
 | **Confiance** | `fact` (lu dans un fichier faisant autorité), `likely` (déduit d'un indice), `unknown` |
 | **Réutilisation** | Capacité déjà couverte par un outil présent dans le projet (ex. Playwright en dépendance de dev) (E6) |
+| **Surface sensible** | Fichier ou service par lequel l'agent peut voir des données à protéger : fichier de secrets, base de données, dump, dossier de logs (section `sensitive` du profil, spec 12, section 7 bis). Décrite par son chemin et ses noms, jamais par une valeur |
+| **Contrôle d'exposition** | Constat `X-*` de `peo status --exposure` (spec 15, section 7) |
+| **Canari** | Faux secret généré hors du dépôt pour vérifier qu'un détecteur installé le détecte (`--canary`) |
 
 ## 3. Architecture du code de PEO
 
@@ -66,6 +73,7 @@ peo/
 │   ├── gate.py, context.py         # F10 : hooks (imports minimaux)
 │   ├── flow.py                     # F10 : état des recettes et approbations
 │   ├── status.py                   # F11
+│   ├── exposure.py                 # F14 : contrôles d'exposition et canari
 │   └── schemas/*.schema.json       # copie des schémas de cette spécification
 ├── catalog/                        # instantané du catalogue pour les tests (le catalogue vit dans son dépôt)
 ├── plugin/                         # plugin Claude Code « peo »
@@ -84,7 +92,8 @@ flowchart LR
     planner --> selector & adapters & composer
     adapters --> journal & lock
     composer --> journal & lock
-    status --> inventory & lock & catalog & flow
+    status --> inventory & lock & catalog & flow & exposure
+    exposure --> discovery & inventory & catalog
     gate --> flow
     context --> flow
     discovery --> expr
@@ -100,7 +109,7 @@ Règles de dépendance : aucun cycle ; `gate.py` et `context.py` n'importent que
 | NF2 | **Validation sans dépendance** : `validate.py` implémente le sous-ensemble JSON Schema employé par les schémas de PEO (`type`, `required`, `properties`, `additionalProperties`, `items`, `enum`, `const`, `pattern`, `minimum`, `minItems`, `$ref` local, `$defs`, `oneOf` limité aux discriminants `const` et aux alternatives « valeur ou `null` ») | Un test compare ses verdicts à ceux de `jsonschema` sur tous les exemples et contre-exemples |
 | NF3 | `peo discover` < 5 s sur 100 000 lignes suivies par git | Fixture synthétique générée |
 | NF4 | `peo gate` < 100 ms au 95e centile, `peo context` < 150 ms | Mesure sur 200 appels |
-| NF5 | **Aucune exécution réseau hors adaptateurs**, et adaptateurs seulement après accord | Test : `discover`, `select`, `plan`, `status`, `gate` sous un environnement sans réseau |
+| NF5 | **Aucune exécution réseau hors adaptateurs**, et adaptateurs seulement après accord. `status --exposure --canary` exécute des outils tiers déjà installés (commande `[canary]` de leur fiche) : option explicite, jamais implicite, et seulement pour les fiches dont `surface.network` vaut `none` ou `install-only` | Test : `discover`, `select`, `plan`, `status`, `status --exposure`, `gate` sous un environnement sans réseau |
 | NF6 | **Aucun `shell=True`**, arguments en liste, chemins normalisés et confinés au dépôt (refus de `..` et des liens symboliques sortants) | Revue + tests de chemins hostiles |
 | NF7 | **Aucune installation système** : jamais `sudo`, `apt`, `brew`, `winget`. Les installations au niveau utilisateur (`uv tool`, `npm -g` avec préfixe utilisateur, `claude plugin`) sont des actions R3 soumises à accord | Test : les adaptateurs refusent une commande qui exige des droits élevés |
 | NF8 | **Déterminisme** : mêmes entrées, mêmes sorties octet pour octet (tri des clés, ordre stable, pas d'horodatage dans le plan) | Tests de propriétés |
@@ -109,6 +118,7 @@ Règles de dépendance : aucun cycle ; `gate.py` et `context.py` n'importent que
 | NF11 | Chaque fichier écrit par PEO porte `schema` (entier). Une version de PEO lit la version de schéma courante et la précédente | |
 | NF12 | Messages en anglais ; artefacts du projet dans la langue `project.languages.artifacts` | |
 | NF13 | Contrôle des caractères Unicode invisibles ou bidirectionnels dans toute fiche et tout fichier tiers copié (U+200B–U+200F, U+202A–U+202E, U+2066–U+2069, U+FEFF hors début de fichier) | Fiche de test piégée rejetée |
+| NF14 | **Aucune valeur** (H24) : aucune valeur lue dans un fichier de secrets, une config d'agent ou un canari n'apparaît dans une sortie de PEO (`profile.json`, plan, lock, journal, `.peo/README.md`, stdout, stderr, enveloppe JSON). Seuls les chemins, les noms de variables et la **forme** d'une valeur (littérale ou référence `${VAR}`) sont lus et conservés. Un message ne dit jamais « protégé » | Test : valeurs leurres générées à l'exécution dans une copie de fixture ; aucune n'apparaît dans les sorties de `discover`, `select`, `plan`, `status --exposure --canary` (A14.2) |
 
 **Contrat de `validate.py` (NF2, P1.1).**
 
@@ -137,6 +147,7 @@ Restent à vérifier par un essai court :
 | **S2** | Peut-on épingler la version d'un plugin par la référence git de sa marketplace dans `extraKnownMarketplaces` ? | P3 | Version non épinglée, mais **vérifiée** après installation (`version` dans `plugin list --json`) et écart signalé par `peo status` |
 | **S3** | `claude mcp list` ou `claude mcp get` offrent-ils une sortie exploitable par script ? | P1 | Lecture de `.mcp.json` (portée projet) seulement ; portée utilisateur signalée « non inspectée » |
 | **S4** | Noms exacts des skills Spec Kit générés par `--integration claude` (ex. `speckit-specify`) dans la version épinglée | P4 | Lecture du dossier `.claude/skills/` après `specify init` ; la table de commandes du socle est générée, pas écrite à la main |
+| **S5** | Cloakroom (document 17, section 8) : version installée par le plugin au premier démarrage épinglée ou non ; cohabitation avec `peo gate` (deux `PreToolUse`, `updatedInput` concurrents) ; restauration dans les écritures par MCP ; commande de canari sans réseau (mode `rules`) | Avant la fiche `claude-plugin:cloakroom` | Pas de fiche : `privacy.masking` reste sans fournisseur dans le catalogue, l'outil installé à la main est signalé `S-HOOK-FOREIGN` |
 
 ## 6. Décisions de spécification
 
@@ -148,6 +159,9 @@ Ces choix affinent la conception ; chacun est réversible.
 | **S-2** | La porte est un hook écrit dans le `.claude/settings.json` **du projet** (bloc possédé), pas dans le plugin PEO | Son `matcher` dépend des outils retenus (outils d'écriture de Serena, par exemple). Un hook de plugin est statique |
 | **S-3** | `CLAUDE.md` existant : **conservé par défaut** (ajout d'un import `@AGENTS.md` et d'un bloc géré). La **migration** règle par règle est une option proposée quand `CLAUDE.md` dépasse 200 lignes ou mélange des règles à portée de chemin | Ne pas modifier sans besoin un fichier que l'humain maîtrise. Révise le plan du pilote (document 09, section 5), qui migrait d'office |
 | **S-4** | Cinquième type d'installeur au MVP : `ci-check` (GitLab CI et GitHub Actions seulement), par bloc géré | `peo status --ci` (F11) et Semgrep en CI (pilote) en dépendent. Le document 07 en prévoyait quatre |
-| **S-5** | Les signaux de Discovery et les questions n'existent que si une fiche, une recette ou le socle les référence | Même règle que pour les questions (document 07) : rien n'est calculé ni demandé pour rien |
+| **S-5** | Les signaux de Discovery et les questions n'existent que si une fiche, une recette, le socle **ou un contrôle d'exposition** (spec 15, section 7 ; ajout du 2026-11-12) les référence | Même règle que pour les questions (document 07) : rien n'est calculé ni demandé pour rien |
 | **S-6** | Les capacités de navigation sont **par langage** (`nav.lsp.php`, `nav.lsp.typescript`, `nav.lsp.python`) et **souples** | Un dépôt multi-composants (E1) a besoin de plusieurs serveurs de langage ; leur absence n'empêche pas de travailler |
 | **S-7** | Les approbations de portes sont des événements du journal, liées à l'empreinte de l'artefact approuvé. Modifier `spec.md` après G1 rend G1 caduque | Une approbation porte sur un contenu, pas sur un nom de fichier |
+| **S-8** | Les constats d'exposition ont une **gravité fixe** (`error`, `warning`, `info`) ; `--ci` échoue sur `error` comme les autres constats. Pas de seuil configurable dans `peo.toml` au MVP | Une configuration de plus sans demande réelle. Révisé le 2026-11-12 par rapport au document 17, section 6.2 |
+| **S-9** | PEO écrit les règles `permissions.deny` (R2, bloc possédé) mais **n'écrit jamais les réglages du sandbox** au MVP : il les recommande en action `manual`, ou le signale en `info` quand un composant tourne en `docker:<service>` | [FAIT] doc sandbox : `docker` ne fonctionne pas dans le sandbox ; l'activer d'office casserait les commandes du projet |
+| **S-10** | Les bases de données (`data_stores`) sont détectées par les **images** des services compose seulement | Déterministe et sans lecture de valeur. Limite : une base hors compose n'est pas vue |

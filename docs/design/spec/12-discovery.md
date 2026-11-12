@@ -12,6 +12,7 @@ Discovery lit le dépôt **sans LLM, sans réseau, sans rien écrire** (sauf `--
 | Docker | `docker-compose*.yml`, `compose*.yaml` | Seuls `services.<nom>.build.context` et `volumes` (forme courte) sont lus |
 | Documentation | `README*`, `CLAUDE.md`, `AGENTS.md`, `HANDOFF*`, `docs/**/*.md` (200 fichiers au plus, 1 Mo au plus chacun) | |
 | Inventaire | Résultat de l'Inventory (document 14, section 3) | Lu, pas recalculé |
+| Surfaces sensibles (ajout du 2026-11-12) | Parcours de l'arbre de travail jusqu'à la profondeur 3, hors exclusions fixes, **fichiers suivis ou non** (un `.env` est presque toujours ignoré par git) ; motifs de la section 7 bis | Noms de fichiers ; contenu lu seulement pour les noms de variables des `.env*` (NF14) |
 
 Taille des fichiers lus : 1 Mo au plus ; au-delà, fichier compté mais non analysé. Fichiers binaires (octet nul dans les 8 premiers ko) ignorés.
 
@@ -132,6 +133,31 @@ Décision S-5 : un signal n'est calculé que si une fiche, une recette ou une qu
 
 Mesures (`metrics`, toujours calculées, coût négligeable) : `commits`, `tracked_files`, `loc` par langage et `loc_total` (lignes non vides des fichiers de code suivis), `contributors` (auteurs distincts). `loc_total` est lu par `mcp:serena` et `cli:graphify`.
 
+## 7 bis. Surfaces sensibles (`sensitive`, ajout du 2026-11-12)
+
+Section toujours calculée : `peo status --exposure` (F14) la consomme (S-5 élargie). Elle décrit **où** sont les données à protéger, jamais **ce qu'elles contiennent** (NF14, H24). Toutes les listes sont triées par `path`, puis par `service`. Motifs et correspondances d'images dans `discovery/sensitive.toml`.
+
+| Champ | Motifs | Ce qui est lu | Champs produits |
+|---|---|---|---|
+| `secret_files` | `.env`, `.env.*` **sauf** `.env.example`, `.env.sample`, `.env.template`, `.env.dist` ; `*.pem`, `*.key`, `*.p12`, `*.pfx`, `credentials*.json`, `id_rsa*`, `id_ed25519*` | `.env*` : pour chaque ligne `[export ]NOM=…`, le seul `NOM` s'il respecte `^[A-Za-z_][A-Za-z0-9_]*$` ; le reste de la ligne est ignoré dès la lecture. Autres motifs : rien (nom de fichier seulement) ; au plus 200 noms par fichier | `path`, `tracked` (`git ls-files --error-unmatch`), `variables` (triés, uniques ; liste vide hors `.env*`) |
+| `data_stores` | Services de `docker-compose*.yml`, `compose*.yaml` dont `image` commence par `postgres`, `postgis/postgis` (→ `postgres`), `mysql`, `mariadb`, `mongo` (→ `mongodb`), `redis`, `valkey/valkey` (→ `redis`), `mcr.microsoft.com/mssql/server` (→ `sqlserver`), `elasticsearch`, `docker.elastic.co/elasticsearch` (→ `elasticsearch`) | La clé `image` seulement. **`environment` n'est jamais lu** (décision S-10) | `kind`, `source` (fichier compose), `service` |
+| `data_dumps` | `*.sql`, `*.dump`, `*.bak`, `*.sqlite`, `*.sqlite3`, `*.db` hors dossiers de migrations (`migrations/`, `database/migrations/`) | Taille seulement | `path`, `tracked`, `bytes` |
+| `log_dirs` | Dossiers nommés `logs` ou `log`, et `storage/logs` ; fichiers `*.log` à la racine d'un composant (le dossier parent est retenu) | Existence seulement | `path`, `tracked` (au moins un fichier suivi dedans) |
+
+Confiance : ces informations sont des `fact` (existence d'un fichier, clé d'un compose) ; elles ne portent pas de champ `confidence` ni d'`evidence` : le chemin est la preuve.
+
+Valeur attendue pour `fx-split-stack` :
+
+```json
+"sensitive": {
+  "secret_files": [ { "path": "backend/.env", "tracked": false,
+                      "variables": ["APP_KEY", "DB_DATABASE", "DB_HOST", "DB_PASSWORD", "DB_USERNAME"] } ],
+  "data_stores": [ { "kind": "postgres", "source": "docker-compose.yml", "service": "db" } ],
+  "data_dumps": [],
+  "log_dirs": []
+}
+```
+
 ## 8. Confiance
 
 | Niveau | Quand | Effet sur le questionnaire |
@@ -146,4 +172,4 @@ Codes stables, utilisés par la doc générée et `status` : `no-ci`, `no-verify
 
 ## 10. Fichier attendu pour `fx-split-stack`
 
-Le profil complet attendu est [schemas/examples/profile.split-stack.json](schemas/examples/profile.split-stack.json). Il remplace le profil simulé du document 09 (section 2) et le rend conforme au schéma. Écarts avec la simulation : `components[]` a maintenant ses commandes et ses chemins de code, `conventions.branches.id_style = "mixed"` (section 4.1), et la dérive est structurée par règle (D1, D4).
+Le profil complet attendu est [schemas/examples/profile.split-stack.json](schemas/examples/profile.split-stack.json). Il remplace le profil simulé du document 09 (section 2) et le rend conforme au schéma. Écarts avec la simulation : `components[]` a maintenant ses commandes et ses chemins de code, `conventions.branches.id_style = "mixed"` (section 4.1), et la dérive est structurée par règle (D1, D4). Ajout du 2026-11-12 : section `sensitive` (7 bis).

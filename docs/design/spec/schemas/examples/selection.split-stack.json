@@ -87,6 +87,18 @@
       "strength": "soft",
       "source": "e2e-for-frontends",
       "covered_by": "cli:playwright"
+    },
+    {
+      "capability": "exposure.native",
+      "strength": "hard",
+      "source": "native-controls-for-secrets",
+      "covered_by": "peo:native-controls"
+    },
+    {
+      "capability": "secrets.scan.ci",
+      "strength": "soft",
+      "source": "secret-scan-ci",
+      "covered_by": "ci-check:gitleaks"
     }
   ],
   "selected": [
@@ -184,6 +196,24 @@
       "rule": "sast-when-exposed",
       "reason": "Contact form and admin planned (likely, confirmed in round 1); runs in CI only, zero context cost",
       "cost": 1
+    },
+    {
+      "ref": "peo:native-controls",
+      "covers": [
+        "exposure.native"
+      ],
+      "rule": "native-controls-for-secrets",
+      "reason": "backend/.env exists; deny Read rules keep it out of the agent's file reads",
+      "cost": 1
+    },
+    {
+      "ref": "ci-check:gitleaks",
+      "covers": [
+        "secrets.scan.ci"
+      ],
+      "rule": "secret-scan-ci",
+      "reason": "Secret scanning in CI; runs in CI only, zero context cost",
+      "cost": 1
     }
   ],
   "reused": [
@@ -243,5 +273,5 @@
     }
   ],
   "uncovered": [],
-  "cost_total": 21
+  "cost_total": 23
 }

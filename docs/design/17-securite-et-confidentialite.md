@@ -205,14 +205,14 @@ Liste indicative, contractualisée dans la spec :
 | Serveur MCP d'accès base ou navigateur | Information + recommandation (lecture seule, données de test) |
 | Hook d'un outil de sécurité sans `onFailure: "block"` | Information |
 
-`--ci` échoue au-delà d'un seuil de gravité configuré dans `peo.toml` (détail dans la spec).
+`--ci` échoue sur les constats de gravité `error`, comme les autres constats ; pas de seuil configurable au MVP (spec 10, décision S-8). Liste contractuelle : spec 15, section 7.
 
 ### 6.3 Capacités et fiches
 
 | Capacité | Exclusive | Fournie par | Exigence |
 |---|---|---|---|
 | `exposure.native` | non | PEO lui-même (réglages natifs), comme `process.gates` | Souple ; dure si `secret_files` présent |
-| `secrets.scan.ci` | non | `ci-check:gitleaks` | Souple ; dure si `secret_files` présent |
+| `secrets.scan.ci` | non | `ci-check:gitleaks` | Souple, toujours |
 | `secrets.scan.commit` | non | Gitleaks en pre-commit (ultérieur) | Souple |
 | `privacy.masking` | **oui** | `claude-plugin:cloakroom` (après spike S5) | Souple, proposée sur signal `secret_files` ou `data_stores` |
 

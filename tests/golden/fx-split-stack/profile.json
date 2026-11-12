@@ -257,6 +257,30 @@
       "evidence": "CLAUDE.md: design-system rules"
     }
   },
+  "sensitive": {
+    "secret_files": [
+      {
+        "path": "backend/.env",
+        "tracked": false,
+        "variables": [
+          "APP_KEY",
+          "DB_DATABASE",
+          "DB_HOST",
+          "DB_PASSWORD",
+          "DB_USERNAME"
+        ]
+      }
+    ],
+    "data_stores": [
+      {
+        "kind": "postgres",
+        "source": "docker-compose.yml",
+        "service": "db"
+      }
+    ],
+    "data_dumps": [],
+    "log_dirs": []
+  },
   "intent_from_docs": [
     {
       "tool": "spec-kit",

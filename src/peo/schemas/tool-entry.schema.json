@@ -319,11 +319,26 @@
         },
         "runs_target": {
           "type": "boolean"
+        },
+        "data_path": {
+          "enum": [
+            "none",
+            "reads-sensitive",
+            "rewrites-io"
+          ]
+        },
+        "fail_mode": {
+          "enum": [
+            "open",
+            "closed"
+          ]
         }
       },
       "required": [
         "hooks",
-        "network"
+        "network",
+        "data_path",
+        "fail_mode"
       ],
       "additionalProperties": false
     },
@@ -409,6 +424,27 @@
         }
       },
       "required": [],
+      "additionalProperties": false
+    },
+    "canary": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "detected_exit": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "command",
+        "detected_exit"
+      ],
       "additionalProperties": false
     },
     "notes": {

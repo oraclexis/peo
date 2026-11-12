@@ -12,6 +12,7 @@
     "conventions",
     "docs",
     "signals",
+    "sensitive",
     "docs_drift",
     "gaps"
   ],
@@ -339,6 +340,119 @@
         ],
         "additionalProperties": false
       }
+    },
+    "sensitive": {
+      "type": "object",
+      "properties": {
+        "secret_files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "tracked": {
+                "type": "boolean"
+              },
+              "variables": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                }
+              }
+            },
+            "required": [
+              "path",
+              "tracked",
+              "variables"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "data_stores": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "postgres",
+                  "mysql",
+                  "mariadb",
+                  "mongodb",
+                  "redis",
+                  "sqlserver",
+                  "elasticsearch"
+                ]
+              },
+              "source": {
+                "type": "string"
+              },
+              "service": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "source",
+              "service"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "data_dumps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "tracked": {
+                "type": "boolean"
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "path",
+              "tracked",
+              "bytes"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "log_dirs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "tracked": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path",
+              "tracked"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "secret_files",
+        "data_stores",
+        "data_dumps",
+        "log_dirs"
+      ],
+      "additionalProperties": false
     },
     "intent_from_docs": {
       "type": "array",

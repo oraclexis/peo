@@ -186,7 +186,7 @@ Les fiches d'outils `data_path = "rewrites-io"` ont un `review_by` court (30 jou
 
 | Fiche | Capacité | Condition | État |
 |---|---|---|---|
-| `ci-check:gitleaks` | `secrets.scan.ci` | Toujours proposée ; exigence dure si `secret_files` présent | Premier lot |
+| `ci-check:gitleaks` | `secrets.scan.ci` | Toujours proposée (exigence souple) | Premier lot |
 | `ci-check:semgrep` | `review.security.sast` | Inchangée (spec 13) | Premier lot |
 | `claude-plugin:cloakroom` | `privacy.masking` | Signal `secret_files` ou `data_stores` ; jamais par défaut (H22) | **Après le spike S5** |
 | Réglages natifs (`permissions.deny`, sandbox) | `exposure.native` | Fournis par PEO lui-même via le Composer | Premier lot |

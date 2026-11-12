@@ -29,8 +29,10 @@ hint     = "Install PHP dependencies so Intelephense can index the framework: {r
 blocking = false
 
 [surface]
-hooks   = []
-network = "none"
+hooks     = []
+network   = "none"
+data_path = "none"
+fail_mode = "open"
 
 [cost]
 context_static_tokens = 0

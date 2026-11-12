@@ -38,8 +38,13 @@ Versionné par tags `vAAAA.MM[.n]`. Une fiche modifiée par un commit doit mettr
 | `docs.libraries` | non | réponse explicite seulement (souple) |
 | `knowledge.lessons` | oui | fourni par les socles alternatifs seulement |
 | `re.artifact` | non | réponse explicite seulement (souple) |
+| `exposure.native` | non | fichier de secrets présent (dure) ; dump ou dossier de logs présent (souple). Fournie par PEO lui-même. Ajout du 2026-11-12 |
+| `secrets.scan.ci` | non | toujours (souple). Ajout du 2026-11-12 |
+| `privacy.masking` | **oui** | aucune règle tant qu'aucune fiche ne la fournit (spike S5, H22). Ajout du 2026-11-12 |
 
 Ajouter une capacité est un changement du catalogue relu comme une fiche.
+
+`orchestration.harness` (exclusive, H25) et `secrets.scan.commit` seront ajoutées avec leur première fiche.
 
 ## 3. Langage `when`
 
@@ -71,6 +76,7 @@ Exemples :
 profile.metrics.loc_total > 50000 or answers['q.refactoring'] == true
 any(profile.components, 'php' in it.languages)
 not profile.signals.design_rules_in_instructions.value
+profile.sensitive.secret_files != []
 ```
 
 ## 4. Fiche d'outil
@@ -83,6 +89,8 @@ Schéma : [schemas/tool-entry.schema.json](schemas/tool-entry.schema.json). Le d
 | `[[prerequisites]]` | `check`, `fix`, `hint`, `blocking` | Ce qui doit être vrai pour que l'outil fonctionne : `bin:<nom>` (sur le poste), `path:<chemin>` (avec `{component:<id>}`), `runtime:host` (le composant visé tourne sur le poste). `fix` : référence d'une autre fiche du catalogue qui satisfait le prérequis (ex. `cli:intelephense`) ; `hint` : étape manuelle affichée | **E5** |
 | `[detect]` | `npm`, `composer`, `pip`, `bin`, `plugin`, `mcp`, `files` | Reconnaître l'outil **déjà présent** sous une autre forme (dépendance de dev, binaire, plugin installé à la main) | **E6** |
 | `[conventions]` | `branch.final_segment`, `branch.configurable`, `specs_dir` | Conventions imposées par un framework et ce qui en est configurable | **E3** |
+| `[surface]` (ajout du 2026-11-12) | `data_path` (`none`, `reads-sensitive`, `rewrites-io`), `fail_mode` (`open`, `closed`), **obligatoires** | `reads-sensitive` : lit des données hors du code (base, navigateur, e-mails). `rewrites-io` : réécrit les entrées ou sorties d'outils de l'agent. `fail_mode` : comportement de la session quand l'outil est absent ou en panne (`closed` bloque, `open` laisse passer ; `open` pour un outil sans hook) | Document 05, section 8.1 |
+| `[canary]` (ajout du 2026-11-12) | `command` (liste d'arguments, `{dir}` remplacé par le dossier du canari), `detected_exit` | Commande qui doit détecter le canari (spec 15, section 7.2). Optionnelle | Document 17, section 6.4 |
 
 Exemple de prérequis (`tools/claude-plugin/php-lsp.toml`, extrait) :
 
@@ -111,7 +119,7 @@ bin = ["playwright"]
 reuse_only = true    # PEO reconnaît et réutilise, n'installe jamais cet outil au MVP
 ```
 
-## 5. Catalogue initial (19 fiches)
+## 5. Catalogue initial (21 fiches)
 
 | Référence | Statut | Fournit | Condition résumée | Installé par PEO au MVP |
 |---|---|---|---|---|
@@ -120,6 +128,8 @@ reuse_only = true    # PEO reconnaît et réutilise, n'installe jamais cet outil
 | `claude-plugin:egm` | core | `spec.review.independent`, `drift.docs` | socle par défaut | oui |
 | `claude-plugin:mattpocock-skills` | core | `clarify.interview`, `tdd.discipline`, `review.code`, `debug.diagnosis` | socle par défaut | oui |
 | `peo:gates` | core | `process.gates` | toujours | oui (hooks du projet) |
+| `peo:native-controls` | core | `exposure.native` | exigence présente (fichier de secrets, dump ou logs) | oui : règles `permissions.deny` ; sandbox recommandé seulement (S-9). Ajout du 2026-11-12 |
+| `ci-check:gitleaks` | conditional | `secrets.scan.ci` | toujours candidat | oui (bloc CI, valeurs masquées dans les journaux de CI avec `--redact`). `[canary]` : `gitleaks dir {dir}`, détecté = code 1 [À VÉRIFIER sur la version épinglée à l'écriture de la fiche]. Ajout du 2026-11-12 |
 | `claude-plugin:typescript-lsp` | conditional | `nav.lsp.typescript` | composant TypeScript ou Vue | oui |
 | `claude-plugin:php-lsp` | conditional | `nav.lsp.php` | composant PHP | oui, avec prérequis |
 | `cli:intelephense` | conditional | — (prérequis de `php-lsp`) | requis par `php-lsp` | oui (`npm install -g`, R3) |
@@ -161,9 +171,26 @@ require = { capability = "browser.e2e", strength = "soft" }
 id = "symbols-for-large-code"
 when = "profile.metrics.loc_total > 50000 or answers['q.refactoring'] == true"
 require = { capability = "nav.symbols", strength = "soft" }
+
+# Ajouts du 2026-11-12 (H21)
+[[rules]]
+id = "native-controls-for-secrets"
+when = "profile.sensitive.secret_files != []"
+require = { capability = "exposure.native", strength = "hard" }
+
+[[rules]]
+id = "native-controls-for-data"
+when = "profile.sensitive.data_dumps != [] or profile.sensitive.log_dirs != []"
+require = { capability = "exposure.native", strength = "soft" }
+
+[[rules]]
+id = "secret-scan-ci"
+require = { capability = "secrets.scan.ci", strength = "soft" }
 ```
 
-Exigences **dures** : celles du socle et `process.gates`. Toutes les autres sont souples.
+Une règle sans `when` s'applique toujours. Deux règles qui exigent la même capacité donnent une seule exigence, de la force la plus élevée.
+
+Exigences **dures** : celles du socle, `process.gates` et `exposure.native` quand un fichier de secrets existe. Toutes les autres sont souples.
 
 ## 7. Questionnaire (F4)
 

@@ -35,7 +35,7 @@ Le cœur est le CLI `peo`. Le plugin Claude Code n'est qu'une interface : ses sk
 | 0 | Succès |
 | 1 | Erreur d'exécution (fichier illisible, adaptateur en échec) |
 | 2 | Erreur d'utilisation (argument invalide) |
-| 3 | `status --ci` : au moins un constat de sévérité `error` |
+| 3 | `status --ci` : au moins un constat de sévérité `error`, y compris un constat d'exposition `X-*` avec `--exposure` |
 | 4 | Accord requis ou plan périmé : `apply` sans `--expect-plan` correspondant, ou état du dépôt changé depuis le plan |
 | 5 | Prérequis non satisfait (ex. `claude` absent pour un adaptateur `claude-plugin`) |
 | 6 | Sélection impossible : exigence dure non couverte, ou deux socles en conflit sans arbitrage |
@@ -86,6 +86,7 @@ sequenceDiagram
 | Commande | Rôle |
 |---|---|
 | `peo status [--ci] [--json]` | Constats de santé (document 15, section 6). `--ci` : code 3 si un constat `error` |
+| `peo status --exposure [--canary] [--ci] [--json]` | Ajoute l'audit d'exposition (document 15, section 7) ; `--canary` vérifie les détecteurs installés. Ajout du 2026-11-12 |
 | `peo tools list` | Outils du lock, de la sélection et du catalogue applicable, avec état |
 | `peo tools add REF [--reason TEXT]` | Ajoute un outil : calcule un plan limité (mêmes règles de conflit), puis demande l'accord comme `apply` |
 | `peo tools remove REF` | Plan de retrait limité aux possessions inchangées ; recettes impactées listées |

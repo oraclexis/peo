@@ -6,7 +6,7 @@ license = "MIT"
 source = { repo = "https://example.test/bad", checked = "2026-11-11" }
 versions = { tested = "1.0.0" }
 capabilities = { provides = ["nav.graph"] }
-surface = { hooks = [], network = "none" }
+surface = { hooks = [], network = "none", data_path = "none", fail_mode = "open" }
 install = { manager = "uv", package = "bad" }
 uninstall = { cli = "uv tool uninstall bad" }
 notes = { evaluated = "2026-11-11" }
