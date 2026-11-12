@@ -96,7 +96,7 @@ def _project_root(project: str | None) -> Path | None:
     if project is not None:
         return Path(project) if Path(project).is_dir() else None
     done = runner.run(["git", "rev-parse", "--show-toplevel"], Path.cwd())
-    return Path(done.stdout.decode().strip()) if done.returncode == 0 else Path.cwd()
+    return Path(os.fsdecode(done.stdout.strip())) if done.returncode == 0 else Path.cwd()
 
 
 def _write_profile(root: Path, profile: dict) -> Path:
@@ -109,18 +109,22 @@ def _write_profile(root: Path, profile: dict) -> Path:
     text = json.dumps(profile | {"generated": generated}, sort_keys=True, indent=2,
                       ensure_ascii=False) + "\n"
     target = peo_dir / "profile.json"
+    umask = os.umask(0)
+    os.umask(umask)
     tmp: Path | None = None
     try:
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=peo_dir, prefix=".profile.",
                                          delete=False) as f:
             tmp = Path(f.name)
             f.write(text)
-        os.chmod(tmp, 0o644)
+            f.flush()
+            os.fsync(f.fileno())
+        os.chmod(tmp, 0o666 & ~umask)
         os.replace(tmp, target)
-    except OSError:
+    finally:
+        # Gone after a successful replace; removed on any failure, Ctrl-C included.
         if tmp is not None:
             tmp.unlink(missing_ok=True)
-        raise
     return target
 
 
@@ -169,10 +173,7 @@ def main(argv: list[str] | None = None) -> int:
     phase = COMMANDS[args.command]
     message = f"'peo {args.command}' is specified but not implemented yet (phase {phase})"
     error = {"code": "E_NOT_IMPLEMENTED", "message": message}
-    if args.json:
-        print(json.dumps(envelope(args.command, False, errors=[error]), sort_keys=True))
-    else:
-        print(f"peo: {error['message']}", file=sys.stderr)
+    _emit(args, envelope(args.command, False, errors=[error]), None)
     return EXIT_ERROR
 
 

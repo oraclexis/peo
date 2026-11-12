@@ -13,7 +13,7 @@ from pathlib import Path, PurePosixPath
 
 from peo.discovery.compose import Service
 
-EXCLUDED = {".git", "node_modules", "vendor", "dist", "build", ".nuxt", ".output", ".venv",
+EXCLUDED = {".git", ".peo", "node_modules", "vendor", "dist", "build", ".nuxt", ".output", ".venv",
             "target", "coverage"}
 MAX_DEPTH = 3
 MAX_BYTES = 1024 * 1024

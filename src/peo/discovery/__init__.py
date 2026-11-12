@@ -28,7 +28,7 @@ from peo.discovery.runtime import component_runtime
 from peo.discovery.sensitive import sensitive
 from peo.discovery.signals import code_files, signals
 
-EXCLUDED = {".git", "node_modules", "vendor", "dist", "build", ".nuxt", ".output", ".venv",
+EXCLUDED = {".git", ".peo", "node_modules", "vendor", "dist", "build", ".nuxt", ".output", ".venv",
             "target", "coverage"}
 MAX_BYTES = 1024 * 1024
 MAX_DEPTH = 3
