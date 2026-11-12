@@ -38,6 +38,8 @@ Les stacks d'un composant viennent **seulement** de ses manifestes. Une base de 
 
 Ordre des stacks : celui de `discovery/stacks.toml`, qui suit l'ordre de la table ci-dessus.
 
+Stacks de manifeste (`go`, `rust`, `java`) : présentes dès que le manifeste existe, sans version ; preuve = chemin du manifeste (ex. `go.mod`). Les noms de dépendances sont comparés en minuscules ; pour Python, `_` et `.` valent `-`. Dans `composer.json`, `php` et `ext-*` ne sont pas des dépendances.
+
 ### 2.2 Algorithme
 
 1. Collecter les manifestes jusqu'à une profondeur de 3, hors exclusions. Profondeur = nombre de dossiers dans le chemin du manifeste : `package.json` 0, `backend/composer.json` 1, `apps/web/package.json` 2.
@@ -50,6 +52,7 @@ Ordre des stacks : celui de `discovery/stacks.toml`, qui suit l'ordre de la tabl
 8. `kind` : `frontend` si une stack de rendu (`nuxt`, `next`, `vue`, `react`, `vite`) sans stack serveur ; `backend` si une stack serveur (`php-laravel`, `symfony`, `nestjs`, `express`, `django`, `fastapi`, `spring`, `rails`) ; `fullstack` si les deux ; sinon `library`.
 9. `multi_component = true` dès deux composants ; `monorepo = true` si, en plus, un outil d'espace de travail est présent (`workspaces`, pnpm, turbo, nx, lerna, uv workspace). Un seul composant : les deux valent `false`.
 10. Ordre de sortie : `root` en premier, puis composants triés par identifiant.
+11. Aucun composant trouvé (dépôt neuf, manifestes illisibles ou vides) : un seul composant `root` (`.`), sans écosystème ni stack, `kind = library` ; ses `languages` et `paths.code` suivent les règles 6 et 7 ; `runtime = host`, confiance `unknown`, preuve `"no manifest"`. Un dépôt a toujours au moins un composant (spec 10, glossaire).
 
 ### 2.3 Environnement d'exécution (E5)
 
