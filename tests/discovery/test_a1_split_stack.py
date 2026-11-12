@@ -78,3 +78,11 @@ def test_a1_5_documentation_drift(profile):
     rules = sorted((d["rule"], d["file"]) for d in profile["docs_drift"])
     assert ("D4", "HANDOFF.md") in rules
     assert ("D1", "README.md") in rules
+
+
+def test_a1_3_duration(split_stack_repo):
+    # SC-005: < 1 s measured by hand; 3 s here for slow CI machines.
+    import time
+    start = time.perf_counter()
+    discover(split_stack_repo, which=fake_which)
+    assert time.perf_counter() - start < 3

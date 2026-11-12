@@ -220,3 +220,72 @@ def test_symlink_outside_root_is_ignored(tmp_path, tmp_path_factory):
     outside.write_text(json.dumps(VUE))
     os.symlink(outside, tmp_path / "package.json")
     assert disc(tmp_path)["components"][0]["ecosystems"] == []
+
+
+# --- US3: deterministic, no side effect, commands only through the runner (spec 003) ---------
+
+FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "fx-split-stack"
+
+
+@pytest.fixture(scope="module")
+def fx(tmp_path_factory):
+    import subprocess
+    target = tmp_path_factory.mktemp("fx3") / "split-stack"
+    subprocess.run(["bash", str(FIXTURE / "build.sh"), str(target)], check=True, capture_output=True)
+    return target
+
+
+def snapshot(root: Path) -> list:
+    return sorted((p.relative_to(root).as_posix(), p.stat().st_mtime_ns)
+                  for p in root.rglob("*") if ".git" not in p.parts)
+
+
+def test_determinism(fx):
+    first = json.dumps(discover(fx, which=nothing_on_path), sort_keys=True)
+    assert json.dumps(discover(fx, which=nothing_on_path), sort_keys=True) == first
+
+
+def test_no_side_effect(fx):
+    before = snapshot(fx)
+    discover(fx)
+    assert snapshot(fx) == before
+
+
+def test_runner_calls(fx):
+    from peo.runner import run
+    calls = []
+
+    def recording(args, cwd):
+        assert isinstance(args, list)
+        calls.append(args)
+        return run(args, cwd)
+
+    discover(fx, run=recording)
+    assert calls == [["git", "ls-files", "-z"]]
+
+
+def test_which_never_executes(fx):
+    asked, calls = [], []
+
+    def which(name):
+        asked.append(name)
+        return None
+
+    def recording(args, cwd):
+        calls.append(args)
+        return Result(0, b"package.json\x00backend/composer.json\x00docker-compose.yml\x00", b"")
+
+    discover(fx, run=recording, which=which)
+    assert set(asked) == {"node", "php"}
+    assert all(c[0] == "git" for c in calls)
+
+
+def test_no_network(fx, monkeypatch):
+    import socket
+
+    def refuse(*args, **kwargs):
+        raise OSError("network access during discover")
+
+    monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket, "create_connection", refuse)
+    assert len(discover(fx)["components"]) == 2

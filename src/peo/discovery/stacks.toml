@@ -1,0 +1,281 @@
+# Discovery tables (spec 12, sections 2.1 to 2.3). Order is significant: it is the output order.
+
+# Ecosystems, in the order of spec 12 table 2.1. `binary` is the main binary (spec 12 §2.3).
+[[ecosystem]]
+id = "node"
+manifests = ["package.json"]
+binary = "node"
+
+[[ecosystem]]
+id = "php"
+manifests = ["composer.json"]
+binary = "php"
+
+[[ecosystem]]
+id = "python"
+manifests = ["pyproject.toml", "requirements*.txt"]
+binary = "python3"
+
+[[ecosystem]]
+id = "go"
+manifests = ["go.mod"]
+binary = "go"
+
+[[ecosystem]]
+id = "rust"
+manifests = ["Cargo.toml"]
+binary = "cargo"
+
+[[ecosystem]]
+id = "jvm"
+manifests = ["pom.xml", "build.gradle", "build.gradle.kts"]
+binary = "java"
+
+[[ecosystem]]
+id = "ruby"
+manifests = ["Gemfile"]
+binary = "ruby"
+
+# Languages, in the order of spec 12 §2.2 rule 7. Extension order is the paths.code order.
+[[language]]
+id = "typescript"
+extensions = ["vue", "ts", "tsx"]
+
+[[language]]
+id = "javascript"
+extensions = ["js", "jsx", "mjs", "cjs"]
+
+[[language]]
+id = "css"
+extensions = ["css", "scss"]
+
+[[language]]
+id = "php"
+extensions = ["php"]
+
+[[language]]
+id = "python"
+extensions = ["py"]
+
+[[language]]
+id = "go"
+extensions = ["go"]
+
+[[language]]
+id = "rust"
+extensions = ["rs"]
+
+[[language]]
+id = "java"
+extensions = ["java"]
+
+[[language]]
+id = "kotlin"
+extensions = ["kt", "kts"]
+
+[[language]]
+id = "ruby"
+extensions = ["rb"]
+
+# Stacks, in the order of spec 12 table 2.1. A package ending with "*" is a prefix.
+# versioned: framework stacks only (spec 12 §2.1). role: render or server (spec 12 §2.2 rule 8).
+# manifest_only: present as soon as the manifest exists.
+
+[[stack]]
+id = "nuxt"
+ecosystem = "node"
+packages = ["nuxt"]
+versioned = true
+role = "render"
+
+[[stack]]
+id = "next"
+ecosystem = "node"
+packages = ["next"]
+versioned = true
+role = "render"
+
+[[stack]]
+id = "vue"
+ecosystem = "node"
+packages = ["vue"]
+versioned = true
+role = "render"
+
+[[stack]]
+id = "react"
+ecosystem = "node"
+packages = ["react"]
+versioned = true
+role = "render"
+
+[[stack]]
+id = "nestjs"
+ecosystem = "node"
+packages = ["@nestjs/core"]
+versioned = true
+role = "server"
+
+[[stack]]
+id = "express"
+ecosystem = "node"
+packages = ["express"]
+role = "server"
+
+[[stack]]
+id = "vite"
+ecosystem = "node"
+packages = ["vite"]
+role = "render"
+
+[[stack]]
+id = "tailwind"
+ecosystem = "node"
+packages = ["tailwindcss", "@nuxtjs/tailwindcss"]
+
+[[stack]]
+id = "threejs"
+ecosystem = "node"
+packages = ["three"]
+
+[[stack]]
+id = "vitest"
+ecosystem = "node"
+packages = ["vitest"]
+
+[[stack]]
+id = "jest"
+ecosystem = "node"
+packages = ["jest"]
+
+[[stack]]
+id = "playwright"
+ecosystem = "node"
+packages = ["@playwright/test", "playwright"]
+
+[[stack]]
+id = "eslint"
+ecosystem = "node"
+packages = ["eslint"]
+
+[[stack]]
+id = "typescript"
+ecosystem = "node"
+packages = ["typescript", "vue-tsc"]
+
+[[stack]]
+id = "php-laravel"
+ecosystem = "php"
+packages = ["laravel/framework"]
+versioned = true
+role = "server"
+
+[[stack]]
+id = "filament"
+ecosystem = "php"
+packages = ["filament/filament"]
+versioned = true
+
+[[stack]]
+id = "symfony"
+ecosystem = "php"
+packages = ["symfony/framework-bundle"]
+versioned = true
+role = "server"
+
+[[stack]]
+id = "phpunit"
+ecosystem = "php"
+packages = ["phpunit/phpunit"]
+
+[[stack]]
+id = "pest"
+ecosystem = "php"
+packages = ["pestphp/pest"]
+
+[[stack]]
+id = "pint"
+ecosystem = "php"
+packages = ["laravel/pint"]
+
+[[stack]]
+id = "phpstan"
+ecosystem = "php"
+packages = ["phpstan/phpstan"]
+
+[[stack]]
+id = "larastan"
+ecosystem = "php"
+packages = ["larastan/larastan", "nunomaduro/larastan"]
+
+[[stack]]
+id = "django"
+ecosystem = "python"
+packages = ["django"]
+versioned = true
+role = "server"
+
+[[stack]]
+id = "fastapi"
+ecosystem = "python"
+packages = ["fastapi"]
+versioned = true
+role = "server"
+
+[[stack]]
+id = "flask"
+ecosystem = "python"
+packages = ["flask"]
+role = "server"
+
+[[stack]]
+id = "pytest"
+ecosystem = "python"
+packages = ["pytest"]
+
+[[stack]]
+id = "ruff"
+ecosystem = "python"
+packages = ["ruff"]
+
+[[stack]]
+id = "mypy"
+ecosystem = "python"
+packages = ["mypy"]
+
+[[stack]]
+id = "go"
+ecosystem = "go"
+packages = []
+manifest_only = true
+
+[[stack]]
+id = "rust"
+ecosystem = "rust"
+packages = []
+manifest_only = true
+
+[[stack]]
+id = "java"
+ecosystem = "jvm"
+packages = []
+manifest_only = true
+
+[[stack]]
+id = "kotlin"
+ecosystem = "jvm"
+packages = ["kotlin-stdlib*", "org.jetbrains.kotlin.jvm"]
+
+[[stack]]
+id = "spring"
+ecosystem = "jvm"
+packages = ["spring-boot*", "org.springframework.boot"]
+versioned = true
+role = "server"
+
+[[stack]]
+id = "rails"
+ecosystem = "ruby"
+packages = ["rails"]
+versioned = true
+role = "server"
