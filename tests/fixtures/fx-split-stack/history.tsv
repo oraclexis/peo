@@ -1,0 +1,46 @@
+feat/design-tokens	feat(style): ajout des jetons de couleur et du système d'espacement	app/assets/css/tokens.css
+feat/A1-page-shell	feat(layout): ajout du gabarit de page et de la mise en page par défaut	app/layouts/default.vue app/error.vue
+feat/typography	feat(style): ajout des styles de base pour la typographie	app/assets/css/main.css
+feat/A2-site-header	feat(header): ajout de l'en-tête avec le logo et la navigation	app/components/SiteHeader.vue
+feat/A3-site-footer	feat(footer): ajout du pied de page avec les liens	app/components/SiteFooter.vue
+fix/header-overlap	fix(header): ajout d'un indicateur pour éviter le chevauchement du contenu	app/components/ScrollHint.vue
+feat/A4-nav-menu	feat(nav): ajout du menu mobile avec les ancres	app/components/NavMenu.vue app/components/ButtonLink.vue
+feat/B1-hero-scene	feat(hero): ajout de la scène 3D pour le premier écran	app/components/HeroScene.vue app/plugins/scene.client.ts
+feat/B2-scene-engine	feat(scene): ajout du moteur de rendu pour les scènes	app/composables/useScene.ts app/utils/math.ts
+feat/B3-scroll-motion	feat(motion): ajout du défilement doux avec les transitions	app/composables/useScroll.ts app/utils/easing.ts
+fix/scroll-jump	fix(motion): ajout du suivi de la fenêtre pour les sauts de défilement	app/composables/useViewport.ts
+feat/B4-reduced-motion	feat(motion): ajout du respect des préférences pour le mouvement réduit	app/composables/useMotion.ts app/plugins/motion.client.ts
+feat/about-page	feat(about): ajout de la page de présentation avec les valeurs	app/pages/about.vue app/components/SectionTitle.vue
+feat/image-slider	feat(media): ajout du carrousel pour les images	app/components/ImageSlider.vue
+fix/slider-swipe	fix(media): ajout du balayage tactile pour le carrousel	app/components/ProgressBar.vue
+feat/stats-band	feat(home): ajout du bandeau des chiffres clés pour la page d'accueil	app/components/StatsBand.vue app/utils/format.ts
+feat/text-columns	feat(home): ajout des colonnes de texte pour les sections	app/components/TextColumns.vue
+feat/media-figure	feat(media): ajout des figures avec la légende	app/components/MediaFigure.vue
+feat/quote-block	feat(home): ajout du bloc de citation pour la page d'accueil	app/components/QuoteBlock.vue app/pages/index.vue
+feat/C1-news-list	feat(news): ajout de la liste des actualités	app/pages/news/index.vue app/components/CardGrid.vue
+feat/C2-news-detail	feat(news): ajout de la page de détail pour les actualités	app/pages/news/[slug].vue app/types/content.ts
+feat/C3-news-api	feat(news): ajout du client de l'API pour les actualités	app/composables/useNews.ts app/utils/api.ts
+fix/news-dates	fix(news): ajout du format des dates pour les actualités	app/types/news.ts
+feat/C4-news-cards	feat(news): ajout des cartes pour la liste des actualités	app/components/NewsCard.vue
+feat/D1-backend-setup	feat(api): ajout du projet Laravel avec le conteneur Docker	backend/composer.json backend/artisan backend/Dockerfile docker-compose.yml Makefile backend/bootstrap/app.php backend/bootstrap/providers.php backend/public/index.php backend/routes/web.php backend/routes/console.php backend/config/app.php backend/config/database.php backend/config/filesystems.php backend/app/Http/Controllers/Controller.php backend/app/Providers/AppServiceProvider.php backend/app/Models/User.php backend/database/migrations/0001_01_01_000000_create_users_table.php backend/database/factories/UserFactory.php backend/database/seeders/DatabaseSeeder.php
+feat/D2-page-model	feat(api): ajout du modèle des pages avec la migration	backend/app/Models/Page.php backend/database/migrations/2026_03_01_000001_create_pages_table.php
+feat/D3-news-model	feat(api): ajout du modèle des actualités avec la migration	backend/app/Models/NewsItem.php backend/database/migrations/2026_03_01_000002_create_news_items_table.php
+feat/D4-team-model	feat(api): ajout du modèle des membres avec la migration	backend/app/Models/TeamMember.php backend/database/migrations/2026_03_01_000003_create_team_members_table.php
+feat/E1-admin-panel	feat(admin): ajout du panneau d'administration avec la connexion	backend/app/Providers/Filament/AdminPanelProvider.php backend/config/filament.php
+feat/E2-admin-pages	feat(admin): ajout de la gestion des pages	backend/app/Filament/Resources/PageResource.php
+feat/E3-admin-news	feat(admin): ajout de la gestion des actualités	backend/app/Filament/Resources/NewsItemResource.php
+fix/admin-upload	fix(admin): ajout des réglages pour le téléversement des images	backend/app/Models/Setting.php backend/database/migrations/2026_03_01_000004_create_settings_table.php
+feat/E4-admin-team	feat(admin): ajout de la gestion des membres et des réglages	backend/app/Filament/Resources/TeamMemberResource.php backend/app/Filament/Resources/SettingResource.php
+feat/F1-content-api	feat(api): ajout des routes publiques pour les contenus	backend/routes/api.php backend/app/Http/Controllers/Api/PageController.php backend/app/Http/Controllers/Api/NewsController.php backend/app/Http/Resources/PageResource.php backend/app/Http/Resources/NewsResource.php
+feat/F2-team-section	feat(team): ajout de la section équipe avec les cartes	backend/app/Http/Controllers/Api/TeamController.php app/components/TeamGrid.vue app/components/TeamCard.vue
+fix/footer-links	fix(footer): ajout du préfixe de langue pour les liens du pied de page	app/middleware/locale.ts
+feat/video-embed	feat(media): ajout des vidéos intégrées avec le chargement différé	app/components/VideoEmbed.vue
+feat/cookie-notice	feat(legal): ajout du bandeau des cookies pour la conformité	app/components/CookieNotice.vue
+feat/language-switch	feat(i18n): ajout du sélecteur de langue pour le menu	app/components/LanguageSwitch.vue
+feat/seo-meta	feat(seo): ajout des balises de partage et du contrôle de santé pour le serveur	app/composables/useSeo.ts server/api/health.ts
+fix/viewport-resize	fix(scene): ajout de la conversion des couleurs pour le redimensionnement de la scène	app/utils/color.ts
+feat/unit-tests	test(utils): ajout des tests unitaires pour le formatage	vitest.config.ts test/format.spec.ts
+feat/e2e-smoke	test(e2e): ajout du parcours de bout en bout pour la page d'accueil	playwright.config.ts e2e/smoke.spec.ts
+fix/back-to-top	fix(nav): ajout du bouton de retour pour le haut de la page	app/components/BackToTop.vue
+feat/F3-contact-page	feat(contact): ajout de la page de contact avec les coordonnées	app/pages/contact.vue
+feat/F4-content-block	feat(content): ajout du rendu des blocs pour les pages	app/components/ContentBlock.vue

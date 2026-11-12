@@ -24,7 +24,7 @@ The same inputs give byte-identical outputs: sorted keys, stable order, no times
 
 ### V. Safety
 
-- No `shell=True`; every subprocess goes through the injectable command runner (spec 14, section 4.1).
+- No `shell=True`, anywhere. In PEO's code (`src/peo/`), every subprocess goes through the injectable command runner (spec 14, section 4.1); tests and maintenance scripts may call `subprocess.run` with an argument list.
 - No network outside adapters, and only after user consent.
 - Never `sudo` or a system package manager.
 - Never write outside managed blocks or owned keys.

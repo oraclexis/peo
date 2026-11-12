@@ -219,7 +219,7 @@
   "docs": {
     "readme": true,
     "claude_md": {
-      "class": "thin",
+      "class": "rich",
       "lines": 27,
       "rules_count": 9
     },
@@ -284,7 +284,7 @@
       "file": "README.md",
       "line": 72,
       "confidence": "likely",
-      "message": "README announces backend/ as upcoming; it already exists"
+      "message": "Path apps/api/ announced as upcoming does not exist; backend code lives in backend/"
     },
     {
       "rule": "D4",
