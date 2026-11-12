@@ -15,6 +15,7 @@ import pytest
 import peo.cli
 import peo.runner
 from peo import cli
+from peo.runner import Result
 from peo.validate import load_schema, validate
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -222,7 +223,9 @@ def test_write_creates_profile(repo_copy, capsys):
     assert validate(obj, load_schema("profile")) == []
     assert text == json.dumps(obj, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", obj["generated"])
-    assert stat.S_IMODE(path.stat().st_mode) == 0o644
+    umask = os.umask(0)
+    os.umask(umask)
+    assert stat.S_IMODE(path.stat().st_mode) == 0o666 & ~umask
     assert "generated" not in env["data"]
     assert env["data"] == {k: v for k, v in obj.items() if k != "generated"}
 
@@ -264,6 +267,50 @@ def test_write_peo_is_a_file_exit_1(repo_copy, capsys):
     assert env["errors"][0]["code"] == "E_WRITE_FAILED"
     assert (repo_copy / ".peo").read_text() == "not a dir\n"
     assert set(repo_copy.rglob("*")) == before
+
+
+def test_write_respects_umask(repo_copy, capsys):
+    previous = os.umask(0o027)
+    try:
+        code, _, _, _ = run_discover(capsys, "--json", "discover", "--write", "--project", str(repo_copy))
+    finally:
+        os.umask(previous)
+    assert code == 0
+    assert stat.S_IMODE(written(repo_copy).stat().st_mode) == 0o640
+
+
+def test_write_fsyncs_before_replace(repo_copy, monkeypatch, capsys):
+    events = []
+    fsync, replace = os.fsync, os.replace
+    monkeypatch.setattr(os, "fsync", lambda fd: (events.append("fsync"), fsync(fd))[1])
+    monkeypatch.setattr(os, "replace", lambda a, b: (events.append("replace"), replace(a, b))[1])
+    code, _, _, _ = run_discover(capsys, "--json", "discover", "--write", "--project", str(repo_copy))
+    assert code == 0
+    assert events == ["fsync", "replace"]
+
+
+def test_write_interrupted_leaves_no_temp_file(repo_copy, monkeypatch, capsys):
+    def interrupt(*args):
+        raise KeyboardInterrupt
+    monkeypatch.setattr(os, "replace", interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        cli.main(["--json", "discover", "--write", "--project", str(repo_copy)])
+    assert list((repo_copy / ".peo").iterdir()) == []
+
+
+def test_write_then_discover_outside_git_is_stable(tmp_path, capsys):
+    (tmp_path / "package.json").write_text('{"name": "x"}\n')
+    _, first, _, _ = run_discover(capsys, "--json", "discover", "--project", str(tmp_path))
+    run_discover(capsys, "--json", "discover", "--write", "--project", str(tmp_path))
+    _, second, _, _ = run_discover(capsys, "--json", "discover", "--project", str(tmp_path))
+    assert (tmp_path / ".peo" / "profile.json").exists()
+    assert second["data"] == first["data"]
+
+
+def test_git_root_not_utf8(monkeypatch):
+    raw = b"/tmp/caf\xe9"
+    monkeypatch.setattr(peo.runner, "run", lambda args, cwd: Result(0, raw + b"\n", b""))
+    assert cli._project_root(None) == Path(os.fsdecode(raw))
 
 
 def test_write_human_output_names_path(repo_copy, capsys):

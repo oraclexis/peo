@@ -27,6 +27,13 @@ def test_unimplemented_commands_answer_with_the_envelope(command, capsys):
     assert out["errors"][0]["code"] == "E_NOT_IMPLEMENTED"
 
 
+def test_unimplemented_command_human_stderr_has_the_code(capsys):
+    assert cli.main(["status"]) == cli.EXIT_ERROR
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "E_NOT_IMPLEMENTED" in captured.err
+
+
 def test_spec_commands_are_all_declared():
     # spec 11, sections 2.1 to 2.4
     expected = {"discover", "questions", "select", "plan", "apply", "status", "tools", "catalog",
