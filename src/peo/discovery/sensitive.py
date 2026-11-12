@@ -42,8 +42,11 @@ def walk(root: Path) -> tuple[list[str], list[str]]:
         dirnames[:] = sorted(d for d in dirnames if d not in EXCLUDED and depth < MAX_DEPTH)
         dirs += [(base / d).as_posix() for d in dirnames]
         for name in filenames:
-            path = Path(dirpath) / name
-            if path.resolve().is_relative_to(real_root):
+            try:
+                inside = (Path(dirpath) / name).resolve().is_relative_to(real_root)
+            except (OSError, RuntimeError):   # symlink loop: RuntimeError before Python 3.13
+                inside = False
+            if inside:
                 files.append((base / name).as_posix())
     return sorted(files), sorted(dirs)
 

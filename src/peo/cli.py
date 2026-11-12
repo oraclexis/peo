@@ -78,12 +78,18 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _oneline(text: str) -> str:
+    """Control characters escaped as in JSON: a file name cannot break or fake a stderr line."""
+    return json.dumps(text, ensure_ascii=False)[1:-1]
+
+
 def _emit(args: argparse.Namespace, env: dict, human: str | None) -> None:
     """The envelope on stdout with --json, else the human text; one stderr line per message."""
     for w in env["warnings"]:
-        print(f"{w['code']} {w.get('path') or w.get('ref')}: {w['message']}", file=sys.stderr)
+        where = _oneline(w.get("path") or w.get("ref") or "")
+        print(f"{w['code']} {where}: {_oneline(w['message'])}", file=sys.stderr)
     for error in env["errors"]:
-        print(f"{error['code']}: {error['message']}", file=sys.stderr)
+        print(f"{error['code']}: {_oneline(error['message'])}", file=sys.stderr)
     if args.json:
         print(json.dumps(env, sort_keys=True))
     elif env["ok"]:
@@ -100,32 +106,34 @@ def _project_root(project: str | None) -> Path | None:
 
 def _write_profile(root: Path, profile: dict) -> Path:
     """Write .peo/profile.json atomically, with generated in UTC (spec 11, section 2.1)."""
-    from peo.discovery import _inside
-
     peo_dir = root / ".peo"
-    if not _inside(root, ".peo"):
-        raise OSError(f"{peo_dir} resolves outside the project root")
+    if peo_dir.is_symlink():   # outside the root, a loop, or a directory Discovery does not skip
+        raise OSError(f"{peo_dir} is a symbolic link")
     peo_dir.mkdir(exist_ok=True)
     generated = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     # ASCII: a file name that is not UTF-8 (lone surrogate) stays valid and lossless.
     text = json.dumps(profile | {"generated": generated}, sort_keys=True, indent=2) + "\n"
     target = peo_dir / "profile.json"
-    tmp = peo_dir / f".profile.{os.getpid()}.tmp"
+    tmp = peo_dir / f".profile.{os.getpid()}.{os.urandom(4).hex()}.tmp"
+    # O_EXCL with mode 0666: the kernel applies the umask, which stays untouched.
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666)
     try:
-        # O_EXCL with mode 0666: the kernel applies the umask, which stays untouched.
-        with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666), "wb") as f:
+        with open(fd, "wb") as f:
             f.write(text.encode())
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, target)
+    finally:
+        # Ours only; gone after a successful replace, removed on any failure, Ctrl-C included.
+        tmp.unlink(missing_ok=True)
+    try:
         dir_fd = os.open(peo_dir, os.O_RDONLY)
         try:
             os.fsync(dir_fd)
         finally:
             os.close(dir_fd)
-    finally:
-        # Gone after a successful replace; removed on any failure, Ctrl-C included.
-        tmp.unlink(missing_ok=True)
+    except OSError:   # best effort: some file systems refuse it; the profile is already in place
+        pass
     return target
 
 

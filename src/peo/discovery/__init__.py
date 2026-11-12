@@ -55,7 +55,10 @@ class Manifest(NamedTuple):
 # --- files -----------------------------------------------------------------------------------
 
 def _inside(root: Path, rel: str) -> bool:
-    return (root / rel).resolve().is_relative_to(root.resolve())
+    try:
+        return (root / rel).resolve().is_relative_to(root.resolve())
+    except (OSError, RuntimeError):   # symlink loop: RuntimeError before Python 3.13
+        return False
 
 
 def _excluded(rel: str) -> bool:
