@@ -125,29 +125,23 @@
           "id": "php-laravel",
           "version": "11",
           "confidence": "fact",
-          "evidence": "backend/composer.json: laravel/framework ^11.9"
+          "evidence": "backend/composer.json: laravel/framework"
         },
         {
           "id": "filament",
           "version": "3",
           "confidence": "fact",
-          "evidence": "backend/composer.json: filament/filament ^3.2"
+          "evidence": "backend/composer.json: filament/filament"
         },
         {
           "id": "phpunit",
           "confidence": "fact",
-          "evidence": "backend/composer.json require-dev: phpunit/phpunit"
+          "evidence": "backend/composer.json: phpunit/phpunit"
         },
         {
           "id": "pint",
           "confidence": "fact",
-          "evidence": "backend/composer.json require-dev: laravel/pint"
-        },
-        {
-          "id": "postgres",
-          "version": "16",
-          "confidence": "fact",
-          "evidence": "docker-compose.yml: service db"
+          "evidence": "backend/composer.json: laravel/pint"
         }
       ],
       "runtime": {

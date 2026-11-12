@@ -22,7 +22,7 @@ Taille des fichiers lus : 1 Mo au plus ; au-delà, fichier compté mais non anal
 
 | Manifeste | Écosystème | Stacks déduites (exemples, liste complète dans `discovery/stacks.toml`) |
 |---|---|---|
-| `package.json` | node | `nuxt`, `next`, `vue`, `react`, `nestjs`, `express`, `vite`, `tailwind`, `threejs`, `playwright`, `vitest`, `jest`, `eslint`, `typescript` |
+| `package.json` | node | `nuxt`, `next`, `vue`, `react`, `nestjs`, `express`, `vite`, `tailwind`, `threejs`, `vitest`, `jest`, `playwright`, `eslint`, `typescript` |
 | `composer.json` | php | `php-laravel`, `filament`, `symfony`, `phpunit`, `pest`, `pint`, `phpstan`, `larastan` |
 | `pyproject.toml`, `requirements*.txt` | python | `django`, `fastapi`, `flask`, `pytest`, `ruff`, `mypy` |
 | `go.mod` | go | `go` |
@@ -30,7 +30,13 @@ Taille des fichiers lus : 1 Mo au plus ; au-delà, fichier compté mais non anal
 | `pom.xml`, `build.gradle*` | jvm | `java`, `kotlin`, `spring` |
 | `Gemfile` | ruby | `rails` |
 
-Une stack vient d'une dépendance déclarée : confiance `fact`, preuve `"<manifeste>: <paquet> <contrainte>"`. La version majeure est extraite de la contrainte quand elle est univoque (`^11.0` → 11, `~3.5` → 3) ; sinon, stack sans version.
+Une stack vient d'une ou plusieurs dépendances déclarées (dépendances et dépendances de dev confondues) : confiance `fact`, preuve `"<manifeste>: <paquet>[, <paquet>…]"`, avec tous les paquets qui déclenchent la stack, triés, sans contrainte ni section (ex. `package.json: typescript, vue-tsc`, `backend/composer.json: laravel/framework`). Le chemin du manifeste est relatif à la racine du dépôt.
+
+Version (révisée le 2026-11-12, P1.3) : seules les stacks de framework, marquées `versioned = true` dans `discovery/stacks.toml` (`nuxt`, `next`, `vue`, `react`, `nestjs`, `php-laravel`, `filament`, `symfony`, `django`, `fastapi`, `rails`, `spring`), reçoivent une version, tirée de la contrainte **de leur propre paquet** quand elle est univoque (`^11.0` → 11, `~3.5` → 3) ; sinon, stack sans version. Les outils (tests, linters, `typescript`) n'ont pas de version : aucune fiche ne la lit.
+
+Les stacks d'un composant viennent **seulement** de ses manifestes. Une base de données d'un fichier compose n'est pas une stack : elle est décrite par `sensitive.data_stores` (section 7 bis).
+
+Ordre des stacks : celui de `discovery/stacks.toml`, qui suit l'ordre de la table ci-dessus.
 
 ### 2.2 Algorithme
 
