@@ -233,12 +233,12 @@
     "auth": {
       "value": true,
       "confidence": "likely",
-      "evidence": "README: OIDC login planned; no auth dependency yet"
+      "evidence": "README.md:63 mentions OIDC"
     },
     "public_surface": {
       "value": true,
       "confidence": "likely",
-      "evidence": "README: contact form planned"
+      "evidence": "README.md:64 mentions Formulaire"
     },
     "frontend_heavy": {
       "value": true,
@@ -248,7 +248,7 @@
     "design_rules_in_instructions": {
       "value": true,
       "confidence": "fact",
-      "evidence": "CLAUDE.md: design-system rules"
+      "evidence": "CLAUDE.md: 4 design rules"
     }
   },
   "sensitive": {

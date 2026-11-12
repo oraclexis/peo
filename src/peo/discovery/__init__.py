@@ -23,7 +23,10 @@ from peo.discovery.compose import read_services
 from peo.discovery.docs import doc_files, docs_section, intents
 from peo.discovery.drift import find_drift
 from peo.discovery.history import read_history
+from peo.discovery.present import present_tools
 from peo.discovery.runtime import component_runtime
+from peo.discovery.sensitive import sensitive
+from peo.discovery.signals import code_files, signals
 
 EXCLUDED = {".git", "node_modules", "vendor", "dist", "build", ".nuxt", ".output", ".venv",
             "target", "coverage"}
@@ -48,6 +51,7 @@ class Manifest(NamedTuple):
     deps: dict[str, str]          # normalized package name -> constraint ("" when none)
     scripts: dict[str, str]       # script name -> command (spec 12 §3)
     workspaces: list[str] | None  # globs, when this manifest declares workspaces
+    sections: dict[str, str] | None = None   # package name -> declaring section (spec 12 §7 ter)
 
 
 # --- files -----------------------------------------------------------------------------------
@@ -143,39 +147,47 @@ def parse_manifest(rel: str, ecosystem: str, text: str) -> Manifest:
     deps: dict[str, str] = {}
     scripts: dict[str, str] = {}
     workspaces = None
+    sections: dict[str, str] = {}
+
+    def add(found: dict[str, str], section: str) -> None:
+        deps.update(found)
+        for package in found:
+            sections.setdefault(package, section)
+
     try:
         if name == "package.json":
             data = _dict(json.loads(text))
             for key in ("dependencies", "devDependencies"):
-                deps.update({k.lower(): _constraint(v) for k, v in _dict(data.get(key)).items()})
+                add({k.lower(): _constraint(v) for k, v in _dict(data.get(key)).items()}, key)
             scripts = _scripts(data.get("scripts"))
             ws = data.get("workspaces")
             workspaces = _strings(ws.get("packages") if isinstance(ws, dict) else ws)
         elif name == "composer.json":
             data = _dict(json.loads(text))
             for key in ("require", "require-dev"):
-                deps.update({k.lower(): _constraint(v) for k, v in _dict(data.get(key)).items()
-                             if k != "php" and not k.startswith("ext-")})
+                add({k.lower(): _constraint(v) for k, v in _dict(data.get(key)).items()
+                     if k != "php" and not k.startswith("ext-")}, key)
             scripts = _scripts(data.get("scripts"))
         elif name == "pyproject.toml":
             data = tomllib.loads(text)
             project = _dict(data.get("project"))
-            deps.update(_requirements(project.get("dependencies") or []))
+            add(_requirements(project.get("dependencies") or []), "dependencies")
             for group in _dict(project.get("optional-dependencies")).values():
-                deps.update(_requirements(group if isinstance(group, list) else []))
+                group = group if isinstance(group, list) else []
+                add(_requirements(group), "optional-dependencies")
             for group in _dict(data.get("dependency-groups")).values():
-                deps.update(_requirements(group if isinstance(group, list) else []))
+                add(_requirements(group if isinstance(group, list) else []), "dependency-groups")
             poetry = _dict(_dict(data.get("tool")).get("poetry"))
             tables = [poetry.get("dependencies"), poetry.get("dev-dependencies")]
             tables += [_dict(g).get("dependencies") for g in _dict(poetry.get("group")).values()]
             for table in tables:
-                deps.update({_py_name(k): _constraint(v) for k, v in _dict(table).items()
-                             if k.lower() != "python"})
+                add({_py_name(k): _constraint(v) for k, v in _dict(table).items()
+                     if k.lower() != "python"}, "tool.poetry")
             scripts = _scripts(project.get("scripts"))
             uv = _dict(_dict(_dict(data.get("tool")).get("uv")).get("workspace"))
             workspaces = _strings(uv.get("members"))
         elif fnmatch.fnmatch(name, "requirements*.txt"):
-            deps = _requirements(text.splitlines())
+            add(_requirements(text.splitlines()), "dependencies")
         elif name == "go.mod":
             block = False
             for line in text.splitlines():
@@ -203,7 +215,7 @@ def parse_manifest(rel: str, ecosystem: str, text: str) -> Manifest:
                 deps[gem.lower()] = version
     except (json.JSONDecodeError, tomllib.TOMLDecodeError) as exc:
         raise ValueError(str(exc)) from exc
-    return Manifest(rel, ecosystem, deps, scripts, workspaces)
+    return Manifest(rel, ecosystem, deps, scripts, workspaces, sections)
 
 
 def _ecosystem_of(rel: str) -> str | None:
@@ -396,6 +408,11 @@ def discover(root: Path, *, run: runner.Runner = runner.run,
     built.sort(key=lambda item: (item[0]["id"] != "root", item[0]["id"]))
     components = [c for c, _ in built]
     history = read_history(root, run, is_git)
+    code = code_files(files, [e for lang in LANGUAGES for e in lang["extensions"]])
+    by_path = {c["path"]: c["id"] for c in components}
+
+    def component_of(manifest_path: str) -> str | None:
+        return by_path.get(_dir(manifest_path))
     root_manifests = [m for m in manifests if _dir(m.path) == "."]
     commands = {"verify": verify_command(files, root_manifests, read, pm)}
     ci = _ci(files)
@@ -414,7 +431,23 @@ def discover(root: Path, *, run: runner.Runner = runner.run,
             "monorepo": multi and workspace_tool, "multi_component": multi, "commands": commands,
             "conventions": history["conventions"], "git": history["git"], "ci": ci, "docs": docs,
             "intent_from_docs": intents(files, read), "docs_drift": drift,
+            "sensitive": sensitive(root, files if is_git else [], services),
+            "signals": signals(files, manifests, read, code, loc),
+            "present_tools": present_tools(files, manifests, component_of),
+            "metrics": _metrics(files, code, loc, history["counts"]),
             "gaps": sorted(gaps, key=_gap_rank)}
+
+
+def _metrics(files: list[str], code: list[str], loc: Callable[[str], int], counts: dict) -> dict:
+    """spec 12, section 7: loc per extension of the tracked code files."""
+    per_ext: dict[str, int] = {}
+    for rel in code:
+        ext = PurePosixPath(rel).suffix.lstrip(".")
+        per_ext[ext] = per_ext.get(ext, 0) + loc(rel)
+    loc_map = {ext: per_ext[ext] for ext in sorted(per_ext)}
+    return {"commits": counts["commits"], "tracked_files": len(files),
+            "contributors": counts["contributors"], "loc": loc_map,
+            "loc_total": sum(loc_map.values())}
 
 
 def _ci(files: list[str]) -> dict:

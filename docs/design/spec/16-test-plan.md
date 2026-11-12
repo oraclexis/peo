@@ -4,7 +4,7 @@ Principe : **les tests sont écrits avant le code de chaque phase**, à partir d
 
 ## 1. Fixtures (dépôts de test)
 
-Chaque fixture est un dossier sous `tests/fixtures/<nom>/` **et** un script `build.sh` qui crée l'historique git (commits, branches) de façon déterministe (`GIT_AUTHOR_DATE` fixé). Aucun historique réel n'est copié.
+Chaque fixture est un dossier sous `tests/fixtures/<nom>/` **et** un script `build.sh` qui crée l'historique git (commits, branches) de façon déterministe (`GIT_AUTHOR_DATE` fixé). Aucun historique réel n'est copié. Les chemins listés dans `untracked.txt` de la fixture sont copiés après l'historique, **sans `git add`** : ils sont présents et non suivis dans le dépôt construit (précisé le 2026-11-12, P1.6).
 
 | Fixture | Contenu | Sert à |
 |---|---|---|
@@ -39,7 +39,7 @@ Fixture écrite à la main (`tree/` + `build.sh`, section 1). Elle reproduit les
 | E5 | `docker-compose.yml` avec un service `api` ; `Makefile` qui exécute PHP par `docker compose exec api` ; pas de `backend/vendor` |
 | E6 | Playwright en dépendance de développement |
 | Taille | Fichiers de code au contenu `// line n`, en nombre suffisant pour tenir les seuils de sélection (environ 4 800 lignes, deux fichiers lourds) |
-| Surfaces sensibles (ajout du 2026-11-12) | `backend/.env` avec les variables `APP_KEY`, `DB_DATABASE`, `DB_HOST`, `DB_PASSWORD`, `DB_USERNAME` et des valeurs **manifestement factices** (`fixture-not-a-secret`) ; ignoré par le `.gitignore` de la fixture, donc présent dans l'arbre de travail construit et **non suivi**. Le service `db` (`postgres:16`) du `docker-compose.yml` existe déjà. Les valeurs leurres de NF14 ne sont **jamais** dans la fixture : elles sont générées par le test (A14.2) |
+| Surfaces sensibles (ajout du 2026-11-12) | `backend/.env` avec les variables `APP_KEY`, `DB_DATABASE`, `DB_HOST`, `DB_PASSWORD`, `DB_USERNAME` et des valeurs **manifestement factices** (`fixture-not-a-secret`) ; listé dans `untracked.txt`, donc présent dans l'arbre de travail construit et **non suivi** (et ignoré par le `.gitignore` de la fixture) ; ajouté au dépôt de PEO avec `git add -f`. Valeurs : `APP_KEY=fixture-not-a-secret`, `DB_DATABASE=app`, `DB_HOST=db`, `DB_PASSWORD=fixture-not-a-secret`, `DB_USERNAME=app`. Le service `db` (`postgres:16`) du `docker-compose.yml` existe déjà. Les valeurs leurres de NF14 ne sont **jamais** dans la fixture : elles sont générées par le test (A14.2) |
 
 Fichiers attendus : `tests/golden/fx-split-stack/`. La fixture n'est produite par aucun script de copie ; sa relecture en revue vérifie qu'elle ne contient rien du projet réel.
 

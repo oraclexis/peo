@@ -56,8 +56,8 @@ x-anchor: &default
 def test_read_services_object_build_and_short_volumes(tmp_path):
     write(tmp_path, {"docker-compose.yml": COMPOSE})
     assert read_services(tmp_path, ["docker-compose.yml"]) == [
-        Service("docker-compose.yml", "api", "./backend", ["./backend:/var/www/html"]),
-        Service("docker-compose.yml", "db", None, []),
+        Service("docker-compose.yml", "api", "./backend", ["./backend:/var/www/html"], None),
+        Service("docker-compose.yml", "db", None, [], "postgres:16"),
     ]
 
 
@@ -65,8 +65,13 @@ def test_read_services_scalar_build_quotes_and_two_files(tmp_path):
     write(tmp_path, {"compose.yaml": 'services:\n  web:\n    build: "."\n    volumes:\n      - ".:/app"\n',
                      "docker-compose.yml": "services:\n  worker:\n    build: ./worker # comment\n"})
     services = read_services(tmp_path, ["compose.yaml", "docker-compose.yml"])
-    assert services == [Service("compose.yaml", "web", ".", [".:/app"]),
-                        Service("docker-compose.yml", "worker", "./worker", [])]
+    assert services == [Service("compose.yaml", "web", ".", [".:/app"], None),
+                        Service("docker-compose.yml", "worker", "./worker", [], None)]
+
+
+def test_read_services_image_quoted(tmp_path):
+    write(tmp_path, {"compose.yaml": 'services:\n  cache:\n    image: "redis:7"\n'})
+    assert read_services(tmp_path, ["compose.yaml"])[0].image == "redis:7"
 
 
 def test_environment_is_never_read(tmp_path):
