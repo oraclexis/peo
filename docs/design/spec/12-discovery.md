@@ -6,7 +6,7 @@ Discovery lit le dépôt **sans LLM, sans réseau, sans rien écrire** (sauf `--
 
 | Source | Comment | Limites |
 |---|---|---|
-| Fichiers suivis | `git ls-files -z` ; hors git : parcours avec exclusions | Exclusions fixes : `.git`, `.peo`, `node_modules`, `vendor`, `dist`, `build`, `.nuxt`, `.output`, `.venv`, `target`, `coverage` (`.peo` ajouté le 2026-11-12, P1.7 : le profil écrit ne change pas le profil suivant) |
+| Fichiers suivis | `git ls-files -z` ; hors git : parcours avec exclusions | Exclusions fixes : `.git`, `.peo`, `node_modules`, `vendor`, `dist`, `build`, `.nuxt`, `.output`, `.venv`, `target`, `coverage` (`.peo` ajouté le 2026-11-12, P1.7 : le profil écrit ne change pas le profil suivant). Un fichier dont le chemin résolu sort de la racine, ou un lien symbolique en boucle, est ignoré |
 | Historique | `git rev-list --count HEAD`, `git for-each-ref refs/heads refs/remotes`, `git log -200 --format=%s` | Pas de lecture du contenu des commits |
 | Manifestes | Table 2.1 | JSON et TOML analysés ; YAML lu par motifs ligne à ligne (pas de bibliothèque YAML, NF1) |
 | Docker | `docker-compose*.yml`, `compose*.yaml` | Seuls `services.<nom>.build.context` et `volumes` (forme courte) sont lus |
