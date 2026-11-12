@@ -5,14 +5,15 @@
 
 > **Status: pre-alpha, phase P1.** Nothing is usable yet. The design and the MVP specification are complete and live in [`docs/design/`](docs/design/README.md) (in French).
 
-PEO sets up a solid, minimal and justified AI-assisted engineering environment for a software project, starting with Claude Code:
+PEO sets up a solid, minimal and justified AI-assisted engineering environment for a software project, starting with Claude Code. It works in three steps:
 
-- it **discovers** the project (components, stacks, commands, conventions, documentation drift) without an LLM;
-- it **selects** the smallest set of tools that covers what the project needs, from an **evaluated catalog**, refusing combinations that overlap or conflict, and explains every choice;
-- it **delegates** installation to native installers (Claude Code plugins, `uv`, `npm`, Spec Kit) after showing an exact plan;
-- it **enforces process gates** (no code before an approved spec, plan and tasks) through a Claude Code hook.
+1. **Audit** (read only). It **discovers** the project (components, stacks, commands, conventions, documentation drift) without an LLM, and **inventories** the agent environment: installed tools, hooks per event and their owner, conflicts, and **what the agent can read and send** (secret files, databases, dumps, logs, missing controls).
+2. **Recommend**. It **selects** the smallest set of tools that covers what the project needs, from an **evaluated catalog**, refusing combinations that overlap or conflict, and explains every choice.
+3. **Apply**. It **delegates** installation to native installers (Claude Code plugins, `uv`, `npm`, Spec Kit) after showing an exact plan, and **enforces process gates** (no code before an approved spec, plan and tasks) through a Claude Code hook.
 
-PEO is deliberately thin: it is not a package manager, not a methodology and not an agent framework. See [`docs/design/01-vision-et-analyse-strategique.md`](docs/design/01-vision-et-analyse-strategique.md).
+For security and privacy, PEO **detects, configures and verifies** controls (Claude Code permissions, secret scanning, masking tools). It never masks data itself and never sits on the data path, and it never claims that data is protected.
+
+PEO is deliberately thin: it is not a package manager, not a methodology, not an agent framework and not a data-masking tool. See [`docs/design/01-vision-et-analyse-strategique.md`](docs/design/01-vision-et-analyse-strategique.md) (section 9 for the 2026-11-12 review) and [`docs/design/17-securite-et-confidentialite.md`](docs/design/17-securite-et-confidentialite.md).
 
 ## Repository layout
 
