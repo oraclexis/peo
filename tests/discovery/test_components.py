@@ -112,7 +112,8 @@ def test_two_components_without_workspace_tool(tmp_path):
 
 def test_depth_and_excluded_directories(tmp_path):
     write(tmp_path, {"a/b/c/package.json": VUE, "a/b/c/d/package.json": VUE,
-                     "node_modules/x/package.json": VUE})
+                     "node_modules/x/package.json": VUE,
+                     ".peo/package.json": VUE})
     assert [c["id"] for c in disc(tmp_path)["components"]] == ["a-b-c"]
 
 

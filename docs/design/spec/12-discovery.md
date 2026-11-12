@@ -6,7 +6,7 @@ Discovery lit le dépôt **sans LLM, sans réseau, sans rien écrire** (sauf `--
 
 | Source | Comment | Limites |
 |---|---|---|
-| Fichiers suivis | `git ls-files -z` ; hors git : parcours avec exclusions | Exclusions fixes : `.git`, `node_modules`, `vendor`, `dist`, `build`, `.nuxt`, `.output`, `.venv`, `target`, `coverage` |
+| Fichiers suivis | `git ls-files -z` ; hors git : parcours avec exclusions | Exclusions fixes : `.git`, `.peo`, `node_modules`, `vendor`, `dist`, `build`, `.nuxt`, `.output`, `.venv`, `target`, `coverage` (`.peo` ajouté le 2026-11-12, P1.7 : le profil écrit ne change pas le profil suivant). Un fichier dont le chemin résolu sort de la racine, ou un lien symbolique en boucle, est ignoré |
 | Historique | `git rev-list --count HEAD`, `git for-each-ref refs/heads refs/remotes`, `git log -200 --format=%s` | Pas de lecture du contenu des commits |
 | Manifestes | Table 2.1 | JSON et TOML analysés ; YAML lu par motifs ligne à ligne (pas de bibliothèque YAML, NF1) |
 | Docker | `docker-compose*.yml`, `compose*.yaml` | Seuls `services.<nom>.build.context` et `volumes` (forme courte) sont lus |
@@ -226,6 +226,8 @@ Valeur attendue pour `fx-split-stack` :
 | `fact` | Lu dans un manifeste, un fichier de configuration ou l'état git | Jamais demandé ; affiché dans l'hypothèse groupée du tour 1 seulement s'il influence la sélection |
 | `likely` | Déduit d'un indice (doc, convention de nommage, absence de binaire) | Présenté comme hypothèse au tour 1 |
 | `unknown` | Aucun indice | Question dédiée, seulement si un champ consommateur existe |
+
+**Champ de décision** (précisé le 2026-11-12, P1.7, test A1.2) : tout objet du profil qui porte une clé `value`. Il porte aussi `confidence` (`fact`, `likely` ou `unknown`) et une `evidence` non vide. Les entrées de `docs_drift` (preuve portée par `rule`, `file`, `line`, `message`), ainsi que `sensitive`, `metrics`, `present_tools` et `gaps`, ne sont pas des champs de décision.
 
 ## 9. Lacunes (`gaps`)
 

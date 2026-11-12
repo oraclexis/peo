@@ -28,6 +28,8 @@ Le cœur est le CLI `peo`. Le plugin Claude Code n'est qu'une interface : ses sk
 
 `data` a un schéma par commande (dossier [schemas/](schemas/)). Les codes d'avertissement et d'erreur sont stables : un skill ou un script peut s'y fier, pas aux messages.
 
+Un avertissement porte `code`, `message` et ce qu'il concerne (précisé le 2026-11-12, P1.7) : `ref` pour une entrée du catalogue, `path` pour un fichier du projet, relatif à la racine. Avec ou sans `--json`, chaque avertissement et chaque erreur est aussi écrit sur stderr, une ligne préfixée par son code : `<code> <path ou ref>: <message>` pour un avertissement, `<code>: <message>` pour une erreur. Un message tient toujours sur une ligne : un nom de fichier ne peut ni la casser ni en imiter une autre.
+
 ### 1.3 Codes de sortie
 
 | Code | Sens |
@@ -54,6 +56,8 @@ Les commandes de hook (`gate`, `context`) suivent le protocole des hooks (sectio
 | `peo plan [--answers -]` | Plan exact et son empreinte (document 14) | rien | `plan` |
 | `peo apply --answers - --expect-plan SHA [--autonomy guided\|semi] [--only GROUP]` | Recalcule le plan, vérifie l'empreinte, applique | tout ce que le plan liste | `{ "applied": [...], "skipped": [...], "manual": [...] }` |
 | `peo apply --resume` | Reprend après des étapes manuelles (spike S1) : vérifie, puis termine lock, journal et doc | lock, journal, doc | idem |
+
+`peo discover` (précisé le 2026-11-12, P1.7) : `data` est le profil sans `generated`, identique d'une exécution à l'autre ; les avertissements de Discovery vont dans `warnings`. `--write` écrit `.peo/profile.json` (clés triées) avec en plus `generated`, seul champ dépendant du temps : instant UTC à la seconde, `AAAA-MM-JJTHH:MM:SSZ`. Le fichier est du JSON en ASCII (un nom de fichier qui n'est pas en UTF-8 reste lisible et sans perte), avec les droits par défaut de l'utilisateur (umask). L'écriture est atomique et durable : le fichier est complet ou inchangé, jamais partiel, et la commande n'échoue pas une fois le nouveau profil en place. Avertissement : `W_MANIFEST_UNREADABLE` (`path` = manifeste illisible, ignoré). Erreurs : `E_PROJECT_NOT_FOUND` (code 2, `--project` n'est pas un dossier), `E_WRITE_FAILED` (code 1, écriture impossible ou `.peo` lien symbolique ; aucun fichier temporaire restant après une erreur ou une interruption, sauf arrêt brutal, sans effet sur les écritures suivantes ni sur le profil puisque `.peo` est exclu).
 
 `--answers -` lit un objet JSON sur stdin : `{ "q.mission": "…", "q.gate_mode": "ask", … }`. Les réponses sont **persistées** dans `[answers]` de `peo.toml` lors de l'`apply`, pour la reconfiguration.
 

@@ -25,11 +25,9 @@ from peo.discovery.drift import find_drift
 from peo.discovery.history import read_history
 from peo.discovery.present import present_tools
 from peo.discovery.runtime import component_runtime
-from peo.discovery.sensitive import sensitive
+from peo.discovery.sensitive import EXCLUDED, sensitive
 from peo.discovery.signals import code_files, signals
 
-EXCLUDED = {".git", "node_modules", "vendor", "dist", "build", ".nuxt", ".output", ".venv",
-            "target", "coverage"}
 MAX_BYTES = 1024 * 1024
 MAX_DEPTH = 3
 MIN_LINES = 50
@@ -57,7 +55,10 @@ class Manifest(NamedTuple):
 # --- files -----------------------------------------------------------------------------------
 
 def _inside(root: Path, rel: str) -> bool:
-    return (root / rel).resolve().is_relative_to(root.resolve())
+    try:
+        return (root / rel).resolve().is_relative_to(root.resolve())
+    except (OSError, RuntimeError):   # symlink loop: RuntimeError before Python 3.13
+        return False
 
 
 def _excluded(rel: str) -> bool:

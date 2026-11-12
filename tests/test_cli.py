@@ -18,13 +18,20 @@ def test_no_command_is_a_usage_error():
     assert cli.main([]) == cli.EXIT_USAGE
 
 
-@pytest.mark.parametrize("command", sorted(cli.COMMANDS))
+@pytest.mark.parametrize("command", sorted(set(cli.COMMANDS) - {"discover"}))
 def test_unimplemented_commands_answer_with_the_envelope(command, capsys):
     assert cli.main(["--json", command]) == cli.EXIT_ERROR
     out = json.loads(capsys.readouterr().out)
     assert set(out) == {"schema", "command", "ok", "data", "warnings", "errors"}
     assert out["ok"] is False
     assert out["errors"][0]["code"] == "E_NOT_IMPLEMENTED"
+
+
+def test_unimplemented_command_human_stderr_has_the_code(capsys):
+    assert cli.main(["status"]) == cli.EXIT_ERROR
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "E_NOT_IMPLEMENTED" in captured.err
 
 
 def test_spec_commands_are_all_declared():
