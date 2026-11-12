@@ -10,14 +10,12 @@ import argparse
 import json
 import os
 import sys
-import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from shutil import which
 from typing import Any
 
 from peo import SCHEMA_VERSION, __version__, runner
-from peo.discovery import discover
 
 # Exit codes (spec 11, section 1.3)
 EXIT_OK = 0
@@ -81,14 +79,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _emit(args: argparse.Namespace, env: dict, human: str | None) -> None:
-    """The envelope on stdout with --json; otherwise the human text, or the errors on stderr."""
+    """The envelope on stdout with --json, else the human text; one stderr line per message."""
+    for w in env["warnings"]:
+        print(f"{w['code']} {w.get('path') or w.get('ref')}: {w['message']}", file=sys.stderr)
+    for error in env["errors"]:
+        print(f"{error['code']}: {error['message']}", file=sys.stderr)
     if args.json:
         print(json.dumps(env, sort_keys=True))
     elif env["ok"]:
         print(human)
-    for error in env["errors"]:
-        if not args.json:
-            print(f"peo: {error['code']}: {error['message']}", file=sys.stderr)
 
 
 def _project_root(project: str | None) -> Path | None:
@@ -96,35 +95,37 @@ def _project_root(project: str | None) -> Path | None:
     if project is not None:
         return Path(project) if Path(project).is_dir() else None
     done = runner.run(["git", "rev-parse", "--show-toplevel"], Path.cwd())
-    return Path(os.fsdecode(done.stdout.strip())) if done.returncode == 0 else Path.cwd()
+    return Path(os.fsdecode(done.stdout.rstrip(b"\n"))) if done.returncode == 0 else Path.cwd()
 
 
 def _write_profile(root: Path, profile: dict) -> Path:
     """Write .peo/profile.json atomically, with generated in UTC (spec 11, section 2.1)."""
+    from peo.discovery import _inside
+
     peo_dir = root / ".peo"
-    if not peo_dir.resolve().is_relative_to(root.resolve()):
+    if not _inside(root, ".peo"):
         raise OSError(f"{peo_dir} resolves outside the project root")
     peo_dir.mkdir(exist_ok=True)
     generated = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    text = json.dumps(profile | {"generated": generated}, sort_keys=True, indent=2,
-                      ensure_ascii=False) + "\n"
+    # ASCII: a file name that is not UTF-8 (lone surrogate) stays valid and lossless.
+    text = json.dumps(profile | {"generated": generated}, sort_keys=True, indent=2) + "\n"
     target = peo_dir / "profile.json"
-    umask = os.umask(0)
-    os.umask(umask)
-    tmp: Path | None = None
+    tmp = peo_dir / f".profile.{os.getpid()}.tmp"
     try:
-        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=peo_dir, prefix=".profile.",
-                                         delete=False) as f:
-            tmp = Path(f.name)
-            f.write(text)
+        # O_EXCL with mode 0666: the kernel applies the umask, which stays untouched.
+        with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666), "wb") as f:
+            f.write(text.encode())
             f.flush()
             os.fsync(f.fileno())
-        os.chmod(tmp, 0o666 & ~umask)
         os.replace(tmp, target)
+        dir_fd = os.open(peo_dir, os.O_RDONLY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
     finally:
         # Gone after a successful replace; removed on any failure, Ctrl-C included.
-        if tmp is not None:
-            tmp.unlink(missing_ok=True)
+        tmp.unlink(missing_ok=True)
     return target
 
 
@@ -145,11 +146,12 @@ def discover_command(args: argparse.Namespace) -> int:
                  "message": f"project directory not found: {args.project}"}
         _emit(args, envelope("discover", False, errors=[error]), None)
         return EXIT_USAGE
+    # Imported here: Discovery costs 30-60 ms, too much for peo gate and peo context (NF4).
+    from peo.discovery import discover
+
     warnings: list[dict] = []
     # runner.run looked up at call time so tests can record the commands (A1.6).
     profile = discover(root, run=runner.run, which=which, warnings=warnings)
-    for w in warnings:
-        print(f"{w['code']} {w['path']}: {w['message']}", file=sys.stderr)
     written = None
     if args.write:
         try:
@@ -163,6 +165,9 @@ def discover_command(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):   # file names that are not UTF-8 print escaped
+            stream.reconfigure(errors="backslashreplace")
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command is None:

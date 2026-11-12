@@ -25,11 +25,9 @@ from peo.discovery.drift import find_drift
 from peo.discovery.history import read_history
 from peo.discovery.present import present_tools
 from peo.discovery.runtime import component_runtime
-from peo.discovery.sensitive import sensitive
+from peo.discovery.sensitive import EXCLUDED, sensitive
 from peo.discovery.signals import code_files, signals
 
-EXCLUDED = {".git", ".peo", "node_modules", "vendor", "dist", "build", ".nuxt", ".output", ".venv",
-            "target", "coverage"}
 MAX_BYTES = 1024 * 1024
 MAX_DEPTH = 3
 MIN_LINES = 50

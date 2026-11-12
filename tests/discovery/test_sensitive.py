@@ -85,9 +85,11 @@ def test_sens_depth_3_max(tmp_path):
 
 
 def test_sens_exclusions_are_discovery_exclusions():
+    import importlib
+
     import peo.discovery
-    import peo.discovery.sensitive
-    assert peo.discovery.EXCLUDED is peo.discovery.sensitive.EXCLUDED
+    # peo.discovery.sensitive is the function; the module is reached through importlib.
+    assert peo.discovery.EXCLUDED is importlib.import_module("peo.discovery.sensitive").EXCLUDED
 
 
 def test_sens_excluded_dirs(tmp_path):
