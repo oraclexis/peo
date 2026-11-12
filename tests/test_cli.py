@@ -18,7 +18,7 @@ def test_no_command_is_a_usage_error():
     assert cli.main([]) == cli.EXIT_USAGE
 
 
-@pytest.mark.parametrize("command", sorted(cli.COMMANDS))
+@pytest.mark.parametrize("command", sorted(set(cli.COMMANDS) - {"discover"}))
 def test_unimplemented_commands_answer_with_the_envelope(command, capsys):
     assert cli.main(["--json", command]) == cli.EXIT_ERROR
     out = json.loads(capsys.readouterr().out)
