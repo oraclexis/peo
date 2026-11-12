@@ -163,6 +163,9 @@
         },
         "text": {
           "type": "string"
+        },
+        "weakens": {
+          "type": "boolean"
         }
       },
       "required": [

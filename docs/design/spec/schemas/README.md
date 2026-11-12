@@ -30,4 +30,4 @@ Conventions des exemples :
 python3 check_examples.py .     # nécessite jsonschema (dépendance de développement uniquement)
 ```
 
-Résultat au 2026-11-11 : 8 exemples valides, 5 contre-exemples rejetés pour la raison attendue. Contrôles croisés effectués en plus : chacune des 19 fiches apparaît exactement une fois dans la sélection de `fx-split-stack` ; chaque exigence est couverte par un outil retenu ou réutilisé ; `cost_total` égale la somme des coûts.
+Résultat au 2026-11-12 : 8 exemples valides, 5 contre-exemples rejetés pour la seule raison attendue. Contrôles croisés effectués en plus : chacune des 21 fiches apparaît exactement une fois dans la sélection de `fx-split-stack` ; chaque exigence est couverte par un outil retenu ou réutilisé ; `cost_total` égale la somme des coûts.

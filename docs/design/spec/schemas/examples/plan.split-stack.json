@@ -246,6 +246,47 @@
         "name": "@playwright/test"
       },
       "reason": "Reused for browser.e2e"
+    },
+    {
+      "id": "a014",
+      "group": "files",
+      "op": "change",
+      "risk": "R2",
+      "tool": "peo:native-controls",
+      "target": {
+        "type": "json-keys",
+        "path": ".claude/settings.json",
+        "keys": [
+          "permissions.deny[Read(./backend/.env)]"
+        ]
+      },
+      "reason": "backend/.env exists: keep it out of the agent's file reads"
+    },
+    {
+      "id": "a015",
+      "group": "files",
+      "op": "manual",
+      "risk": "R0",
+      "tool": "peo:native-controls",
+      "target": {
+        "type": "file",
+        "path": ".claude/settings.json"
+      },
+      "reason": "Sandbox not written: component backend runs in docker:api, and docker does not work inside the sandbox",
+      "text": "The Bash sandbox would also block reads of backend/.env by shell commands, but it breaks 'docker compose exec'. Keep it off, or enable it and list docker in excludedCommands (that command then runs with full access)."
+    },
+    {
+      "id": "a016",
+      "group": "ci",
+      "op": "add",
+      "risk": "R1",
+      "tool": "ci-check:gitleaks",
+      "target": {
+        "type": "ci",
+        "path": ".gitlab-ci.yml",
+        "block": "peo-ci"
+      },
+      "reason": "Secret scanning in CI (secrets.scan.ci)"
     }
   ]
 }

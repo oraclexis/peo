@@ -18,6 +18,7 @@ Schéma : [schemas/plan.schema.json](schemas/plan.schema.json).
 | `command` | pour les actions déléguées : liste d'arguments exacte, affichée telle quelle |
 | `preconditions` | empreintes `sha256` des fichiers lus ou modifiés ; absence attendue notée `absent` |
 | `reason` | phrase courte, reprise de la sélection |
+| `weakens` | `true` quand l'action **retire ou relâche un contrôle** : règle `permissions.deny` possédée retirée, outil fournissant `exposure.native`, `secrets.scan.*` ou `privacy.masking` retiré ou désactivé. Le rendu du plan l'affiche en tête. Absent sinon (ajout du 2026-11-12) |
 
 ### 2.1 Classes de risque
 
@@ -64,6 +65,10 @@ Rétention des sauvegardes : 10 dernières exécutions. `.peo/backups/` est igno
 | Outils CLI | `uv tool list` ; `npm ls -g --depth=0 --json` ; `shutil.which` pour les binaires de `[detect].bin` | `fact` |
 | Dépendances de dev (E6) | `package.json`, `composer.json`, `pyproject.toml` de chaque composant, comparés aux `[detect]` des fiches | `fact` |
 | Spec Kit | `.specify/` présent, version dans `.specify/init-options.json` si présente, extensions dans `.specify/extensions/` | `fact` |
+| Permissions (ajout du 2026-11-12) | `permissions.allow`, `ask`, `deny` des trois fichiers de réglages (projet, local, utilisateur), avec leur portée | `fact` |
+| Sandbox (ajout du 2026-11-12) | `sandbox.enabled`, `sandbox.failIfUnavailable`, `sandbox.allowUnsandboxedCommands`, `sandbox.filesystem.denyRead` des mêmes fichiers | `fact` |
+| Échec des hooks (ajout du 2026-11-12) | `onFailure` de chaque entrée de hook (absent = échec ouvert) | `fact` |
+| Valeurs des configs d'agent (ajout du 2026-11-12) | `env` et `headers` des serveurs de `.mcp.json`, `env` des fichiers de réglages : pour chaque clé dont le nom contient `token`, `secret`, `key`, `password`, `passwd`, `pwd` ou `auth` (insensible à la casse), la **forme** de la valeur : `reference` (entièrement `${…}`) ou `literal`. La valeur elle-même n'est ni conservée ni affichée (NF14) | `fact` |
 
 Sortie : `data.inventory` de `peo status --json`, et entrée du Selector (outils présents).
 
@@ -134,7 +139,10 @@ Branches de correction : la recette `bugfix` en piste S ne passe pas par `specif
 - Analyse stricte. Fichier invalide → arrêt avec action `manual` (jamais de réécriture d'un fichier qu'on ne comprend pas).
 - Fusion profonde par clé ; ordre des clés existantes conservé ; nouvelles clés ajoutées à la fin ; indentation détectée (2 espaces par défaut) ; saut de ligne final conservé.
 - Tableaux de hooks : les entrées de PEO sont reconnues par leur commande (`peo gate`, `peo context`) ; elles sont remplacées en place, jamais dupliquées ; les autres entrées sont intactes.
-- `permissions` : une seule modification, possédée : ajout de `Bash(peo flow approve:*)` et `Bash(peo flow override:*)` à `permissions.ask` (document 15, section 4.1 bis). Rien d'autre.
+- `permissions` : deux modifications possédées, rien d'autre :
+  - ajout de `Bash(peo flow approve:*)` et `Bash(peo flow override:*)` à `permissions.ask` (document 15, section 4.1 bis) ;
+  - quand `peo:native-controls` est retenu (ajout du 2026-11-12) : ajout à `permissions.deny` de `Read(./<path>)` pour chaque entrée de `sensitive.secret_files` et `sensitive.data_dumps`, et `Read(./<path>/**)` pour chaque `sensitive.log_dirs` (spec 12, section 7 bis). Risque R2. Une règle équivalente déjà présente (même chaîne) n'est pas dupliquée et n'est pas possédée.
+- `sandbox` : **jamais écrit** au MVP (décision S-9). `peo:native-controls` produit une action `manual` qui décrit les réglages recommandés (`enabled`, `filesystem.denyRead` des mêmes chemins, `failIfUnavailable: true`, `allowUnsandboxedCommands: false`), ou, si un composant a `runtime = docker:<service>`, une action `manual` qui explique pourquoi le sandbox casserait ses commandes.
 - Possession : chemins JSON (`hooks.PreToolUse[command=peo gate]`) avec l'empreinte de la valeur écrite.
 
 ### 6.2 Blocs gérés
@@ -197,6 +205,8 @@ Bloc géré `verify` dans le `Makefile` racine (créé s'il n'existe pas) : une 
 | GitHub | `.github/workflows/peo.yml` (fichier entier possédé) | idem en GitHub Actions |
 
 Les versions des images ou actions utilisées sont **épinglées** dans les fiches.
+
+Un job de scan de secrets (`ci-check:gitleaks`, ajout du 2026-11-12) masque les valeurs trouvées dans les journaux de CI (`--redact`) : sans cela, la CI publierait le secret qu'elle signale.
 
 ## 7. Lock et journal (F8)
 

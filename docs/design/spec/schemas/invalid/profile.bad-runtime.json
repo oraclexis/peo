@@ -257,6 +257,12 @@
       "evidence": "CLAUDE.md: design-system rules"
     }
   },
+  "sensitive": {
+    "secret_files": [],
+    "data_stores": [],
+    "data_dumps": [],
+    "log_dirs": []
+  },
   "intent_from_docs": [
     {
       "tool": "spec-kit",

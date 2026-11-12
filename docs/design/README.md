@@ -36,7 +36,7 @@ Les décisions H1 à H12 ont été prises le 2026-11-11 (document 08, section 6 
 | [spec/10-spec-overview.md](spec/10-spec-overview.md) | Spécification : périmètre, glossaire, architecture du code, exigences non fonctionnelles, points techniques levés, décisions S-1 à S-7 |
 | [spec/11-cli-and-commands.md](spec/11-cli-and-commands.md) | CLI, sorties JSON, codes de sortie, skills, hooks |
 | [spec/12-discovery.md](spec/12-discovery.md) | Détection : composants, runtime, commandes, conventions, dérive documentaire, signaux |
-| [spec/13-catalog-and-selection.md](spec/13-catalog-and-selection.md) | Catalogue initial (19 fiches), langage `when`, questionnaire, Selector |
+| [spec/13-catalog-and-selection.md](spec/13-catalog-and-selection.md) | Catalogue initial (21 fiches), langage `when`, questionnaire, Selector |
 | [spec/14-planner-installers.md](spec/14-planner-installers.md) | Actions et risques, Inventory, adaptateurs, Spec Kit, fichiers gérés, `CLAUDE.md`, lock, journal |
 | [spec/15-flow-and-gates.md](spec/15-flow-and-gates.md) | Recettes, portes, `peo gate`, `peo context`, `peo status` |
 | [spec/16-test-plan.md](spec/16-test-plan.md) | Fixtures, référence synthétique `fx-split-stack`, test local du pilote n°1, tests d'acceptation F1 à F13 |
