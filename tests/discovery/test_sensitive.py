@@ -84,6 +84,12 @@ def test_sens_depth_3_max(tmp_path):
     assert [f["path"] for f in sensitive(tmp_path)["secret_files"]] == ["a/b/c/.env"]
 
 
+def test_sens_exclusions_are_discovery_exclusions():
+    import peo.discovery
+    import peo.discovery.sensitive
+    assert peo.discovery.EXCLUDED is peo.discovery.sensitive.EXCLUDED
+
+
 def test_sens_excluded_dirs(tmp_path):
     write(tmp_path, {"node_modules/x/.env": "A=1\n", "vendor/.env": "B=1\n", ".peo/.env": "C=1\n"})
     assert sensitive(tmp_path)["secret_files"] == []

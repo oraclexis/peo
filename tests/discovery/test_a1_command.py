@@ -7,12 +7,14 @@ import shutil
 import socket
 import stat
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 import pytest
 
 import peo.cli
+import peo.discovery
 import peo.runner
 from peo import cli
 from peo.runner import Result
@@ -221,7 +223,8 @@ def test_write_creates_profile(repo_copy, capsys):
     text = path.read_text()
     obj = json.loads(text)
     assert validate(obj, load_schema("profile")) == []
-    assert text == json.dumps(obj, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    assert text == json.dumps(obj, sort_keys=True, indent=2) + "\n"
+    assert path.read_bytes().isascii()
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", obj["generated"])
     umask = os.umask(0)
     os.umask(umask)
@@ -286,7 +289,7 @@ def test_write_fsyncs_before_replace(repo_copy, monkeypatch, capsys):
     monkeypatch.setattr(os, "replace", lambda a, b: (events.append("replace"), replace(a, b))[1])
     code, _, _, _ = run_discover(capsys, "--json", "discover", "--write", "--project", str(repo_copy))
     assert code == 0
-    assert events == ["fsync", "replace"]
+    assert events == ["fsync", "replace", "fsync"]   # file, rename, then .peo directory
 
 
 def test_write_interrupted_leaves_no_temp_file(repo_copy, monkeypatch, capsys):
@@ -305,6 +308,66 @@ def test_write_then_discover_outside_git_is_stable(tmp_path, capsys):
     _, second, _, _ = run_discover(capsys, "--json", "discover", "--project", str(tmp_path))
     assert (tmp_path / ".peo" / "profile.json").exists()
     assert second["data"] == first["data"]
+
+
+def test_write_non_utf8_name_is_lossless(tmp_path):
+    # A tracked file name that is not UTF-8 comes back from git as a lone surrogate.
+    path = cli._write_profile(tmp_path, {"x": "caf\udce9"})
+    assert path.read_bytes().isascii()
+    assert json.loads(path.read_text())["x"] == "caf\udce9"
+
+
+def test_write_leaves_the_umask_alone(repo_copy, monkeypatch, capsys):
+    def no_umask(mask):
+        raise AssertionError("process-wide umask changed")
+    current = os.umask(0)
+    os.umask(current)
+    monkeypatch.setattr(os, "umask", no_umask)
+    code, _, _, _ = run_discover(capsys, "--json", "discover", "--write", "--project", str(repo_copy))
+    assert code == 0
+    assert stat.S_IMODE(written(repo_copy).stat().st_mode) == 0o666 & ~current
+
+
+def fake_discover(profile, warnings_out):
+    def run(root, *, run, which, warnings):
+        warnings += warnings_out
+        return profile
+    return run
+
+
+MINIMAL = {"kind": {"value": "new"}, "components": [], "docs_drift": []}
+
+
+def test_human_summary_survives_non_utf8_path(tmp_path, monkeypatch, capsys):
+    profile = MINIMAL | {"components": [{"id": "x", "path": "caf\udce9", "runtime": {"value": "host"}}]}
+    monkeypatch.setattr(peo.discovery, "discover", fake_discover(profile, []))
+    assert cli.main(["discover", "--project", str(tmp_path)]) == 0
+    assert "caf\\udce9" in capsys.readouterr().out
+
+
+def test_warning_with_ref_goes_to_stderr(tmp_path, monkeypatch, capsys):
+    warning = {"code": "W_CATALOG_EXPIRED", "ref": "mcp:serena", "message": "expired"}
+    monkeypatch.setattr(peo.discovery, "discover", fake_discover(MINIMAL, [warning]))
+    assert cli.main(["--json", "discover", "--project", str(tmp_path)]) == 0
+    assert "W_CATALOG_EXPIRED mcp:serena: expired" in capsys.readouterr().err
+
+
+def test_errors_on_stderr_with_json(tmp_path, capsys):
+    code, _, _, err = run_discover(capsys, "--json", "discover", "--project", str(tmp_path / "nope"))
+    assert code == 2
+    assert re.search(r"^E_PROJECT_NOT_FOUND: ", err, re.M)
+
+
+def test_git_root_keeps_trailing_space(monkeypatch):
+    monkeypatch.setattr(peo.runner, "run", lambda args, cwd: Result(0, b"/work/proj \n", b""))
+    assert cli._project_root(None) == Path("/work/proj ")
+
+
+def test_cli_import_does_not_load_discovery():
+    # NF4: peo gate and peo context go through cli.main; Discovery costs 30-60 ms to import.
+    code = "import sys, peo.cli; print('peo.discovery' in sys.modules)"
+    done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    assert done.stdout.strip() == "False"
 
 
 def test_git_root_not_utf8(monkeypatch):
