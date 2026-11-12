@@ -208,11 +208,13 @@ def test_git_mode_reads_tracked_files_only(tmp_path):
 
     def git(args, cwd):
         calls.append(list(args))
-        return Result(0, b"package.json\x00", b"")
+        if list(args) == ["git", "ls-files", "-z"]:
+            return Result(0, b"package.json\x00", b"")
+        return Result(128, b"", b"")
 
     p = disc(tmp_path, run=git)
     assert [c["id"] for c in p["components"]] == ["root"]
-    assert calls == [["git", "ls-files", "-z"]]
+    assert calls[0] == ["git", "ls-files", "-z"]
 
 
 def test_symlink_outside_root_is_ignored(tmp_path, tmp_path_factory):
@@ -261,7 +263,8 @@ def test_runner_calls(fx):
         return run(args, cwd)
 
     discover(fx, run=recording)
-    assert calls == [["git", "ls-files", "-z"]]
+    assert calls[0] == ["git", "ls-files", "-z"]
+    assert all(c[0] == "git" for c in calls)
 
 
 def test_which_never_executes(fx):

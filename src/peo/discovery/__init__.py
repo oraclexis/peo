@@ -18,7 +18,9 @@ from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
 from peo import SCHEMA_VERSION, runner
+from peo.discovery.commands import component_commands, is_test_file, package_manager, verify_command
 from peo.discovery.compose import read_services
+from peo.discovery.history import read_history
 from peo.discovery.runtime import component_runtime
 
 EXCLUDED = {".git", "node_modules", "vendor", "dist", "build", ".nuxt", ".output", ".venv",
@@ -29,6 +31,7 @@ MIN_LINES = 50
 COMPOSE_FILES = ("docker-compose*.yml", "docker-compose*.yaml", "compose*.yml", "compose*.yaml")
 WORKSPACE_FILES = ("pnpm-workspace.yaml", "turbo.json", "nx.json", "lerna.json")
 NEEDS_DEPENDENCY = {"package.json", "composer.json", "pyproject.toml"}   # spec 12 §2.2 rule 4
+GLOBAL_GAPS = ("no-ci", "no-verify", "no-remote", "no-agents-md", "no-adr")   # spec 12 §9 order
 
 TABLES = tomllib.loads(resources.files("peo.discovery").joinpath("stacks.toml").read_text())
 ECOSYSTEMS = TABLES["ecosystem"]
@@ -41,7 +44,7 @@ class Manifest(NamedTuple):
     path: str
     ecosystem: str
     deps: dict[str, str]          # normalized package name -> constraint ("" when none)
-    scripts: bool
+    scripts: dict[str, str]       # script name -> command (spec 12 §3)
     workspaces: list[str] | None  # globs, when this manifest declares workspaces
 
 
@@ -55,9 +58,11 @@ def _excluded(rel: str) -> bool:
     return any(part in EXCLUDED for part in PurePosixPath(rel).parts[:-1])
 
 
-def list_files(root: Path, run: runner.Runner) -> list[str]:
+def list_files(root: Path, run: runner.Runner) -> tuple[list[str], bool]:
+    """Tracked files (or a walk outside git) and whether root is a git repository."""
     result = run(["git", "ls-files", "-z"], root)
-    if result.returncode == 0:
+    is_git = result.returncode == 0
+    if is_git:
         rels = [p for p in result.stdout.decode("utf-8", "surrogateescape").split("\0") if p]
     else:
         rels = []
@@ -65,7 +70,7 @@ def list_files(root: Path, run: runner.Runner) -> list[str]:
             dirnames[:] = [d for d in dirnames if d not in EXCLUDED]
             base = Path(dirpath).relative_to(root)
             rels += [(base / f).as_posix() for f in filenames]
-    return sorted(r for r in rels if not _excluded(r) and _inside(root, r))
+    return sorted(r for r in rels if not _excluded(r) and _inside(root, r)), is_git
 
 
 def read_text(root: Path, rel: str) -> str | None:
@@ -114,6 +119,16 @@ def _dict(value) -> dict:
     return value if isinstance(value, dict) else {}
 
 
+def _scripts(value) -> dict[str, str]:
+    out = {}
+    for name, body in _dict(value).items():
+        if isinstance(body, list):
+            body = " && ".join(b for b in body if isinstance(b, str))
+        if isinstance(body, str):
+            out[name] = body
+    return out
+
+
 def _constraint(value) -> str:
     if isinstance(value, dict):
         value = value.get("version", "")
@@ -124,13 +139,14 @@ def parse_manifest(rel: str, ecosystem: str, text: str) -> Manifest:
     """Raise ValueError when the manifest cannot be read."""
     name = PurePosixPath(rel).name
     deps: dict[str, str] = {}
-    scripts, workspaces = False, None
+    scripts: dict[str, str] = {}
+    workspaces = None
     try:
         if name == "package.json":
             data = _dict(json.loads(text))
             for key in ("dependencies", "devDependencies"):
                 deps.update({k.lower(): _constraint(v) for k, v in _dict(data.get(key)).items()})
-            scripts = bool(data.get("scripts"))
+            scripts = _scripts(data.get("scripts"))
             ws = data.get("workspaces")
             workspaces = _strings(ws.get("packages") if isinstance(ws, dict) else ws)
         elif name == "composer.json":
@@ -138,7 +154,7 @@ def parse_manifest(rel: str, ecosystem: str, text: str) -> Manifest:
             for key in ("require", "require-dev"):
                 deps.update({k.lower(): _constraint(v) for k, v in _dict(data.get(key)).items()
                              if k != "php" and not k.startswith("ext-")})
-            scripts = bool(data.get("scripts"))
+            scripts = _scripts(data.get("scripts"))
         elif name == "pyproject.toml":
             data = tomllib.loads(text)
             project = _dict(data.get("project"))
@@ -153,7 +169,7 @@ def parse_manifest(rel: str, ecosystem: str, text: str) -> Manifest:
             for table in tables:
                 deps.update({_py_name(k): _constraint(v) for k, v in _dict(table).items()
                              if k.lower() != "python"})
-            scripts = bool(project.get("scripts"))
+            scripts = _scripts(project.get("scripts"))
             uv = _dict(_dict(_dict(data.get("tool")).get("uv")).get("workspace"))
             workspaces = _strings(uv.get("members"))
         elif fnmatch.fnmatch(name, "requirements*.txt"):
@@ -269,7 +285,8 @@ def _pnpm_packages(text: str) -> list[str]:
 
 
 def _component(directory: str, manifests: list[Manifest], files: list[str], nested: list[str],
-               loc: Callable[[str], int], services, which) -> dict:
+               loc: Callable[[str], int], services, which, read, pm: str) -> tuple[dict, bool]:
+    """One component, and whether it has at least one test file (gap no-tests)."""
     own = [f for f in files if _under(f, directory) and not any(_under(f, n) for n in nested)]
     by_ext: dict[str, list[str]] = {}
     for f in own:
@@ -286,6 +303,9 @@ def _component(directory: str, manifests: list[Manifest], files: list[str], nest
     present_ecos = {m.ecosystem for m in manifests}
     ecosystems = [e["id"] for e in ECOSYSTEMS if e["id"] in present_ecos]
     stacks = stacks_of(sorted(manifests, key=lambda m: m.path))
+    runtime = component_runtime(directory, ecosystems, services, which, BINARIES)
+    commands = component_commands(directory, manifests, own, read, pm, runtime["value"],
+                                  [s["id"] for s in stacks], ecosystems)
     return {
         "id": "root" if directory == "." else directory.replace("/", "-"),
         "path": directory,
@@ -293,9 +313,10 @@ def _component(directory: str, manifests: list[Manifest], files: list[str], nest
         "ecosystems": ecosystems,
         "languages": languages,
         "stacks": stacks,
-        "runtime": component_runtime(directory, ecosystems, services, which, BINARIES),
+        "runtime": runtime,
+        "commands": commands,
         "paths": {"code": patterns},
-    }
+    }, any(map(is_test_file, own))
 
 
 def discover(root: Path, *, run: runner.Runner = runner.run,
@@ -304,7 +325,7 @@ def discover(root: Path, *, run: runner.Runner = runner.run,
     """Components part of the profile (spec 12, sections 1 and 2). Reads only."""
     root = Path(root)
     warnings = [] if warnings is None else warnings
-    files = list_files(root, run)
+    files, is_git = list_files(root, run)
 
     manifests: list[Manifest] = []
     for rel in files:
@@ -343,7 +364,7 @@ def discover(root: Path, *, run: runner.Runner = runner.run,
         if m.path not in declaring:
             by_dir.setdefault(_dir(m.path), []).append(m)
     def opens(m: Manifest) -> bool:   # spec 12 §2.2 rule 4
-        return PurePosixPath(m.path).name not in NEEDS_DEPENDENCY or bool(m.deps) or m.scripts
+        return PurePosixPath(m.path).name not in NEEDS_DEPENDENCY or bool(m.deps) or bool(m.scripts)
 
     component_dirs = sorted(d for d, ms in by_dir.items() if member(d) or any(map(opens, ms)))
 
@@ -358,15 +379,47 @@ def discover(root: Path, *, run: runner.Runner = runner.run,
     compose = sorted(r for r in files if "/" not in r
                      and any(fnmatch.fnmatchcase(r, p) for p in COMPOSE_FILES))
     services = read_services(root, compose)
+    pm = package_manager(files)
+
+    def read(rel: str) -> str | None:
+        return read_text(root, rel)
 
     if not component_dirs:
-        components = [_component(".", [], files, [], loc, services, which)]
+        built = [_component(".", [], files, [], loc, services, which, read, pm)]
     else:
-        components = []
+        built = []
         for d in component_dirs:
             nested = [n for n in component_dirs if n != d and _under(n, d)]
-            components.append(_component(d, by_dir[d], files, nested, loc, services, which))
-    components.sort(key=lambda c: (c["id"] != "root", c["id"]))
+            built.append(_component(d, by_dir[d], files, nested, loc, services, which, read, pm))
+    built.sort(key=lambda item: (item[0]["id"] != "root", item[0]["id"]))
+    components = [c for c, _ in built]
+    history = read_history(root, run, is_git)
+    root_manifests = [m for m in manifests if _dir(m.path) == "."]
+    commands = {"verify": verify_command(files, root_manifests, read, pm)}
+    ci = _ci(files)
+    gaps = [g for g, missing in (("no-ci", ci["kind"] == "none"),
+                                 ("no-verify", commands["verify"]["value"] is None),
+                                 ("no-remote", not history["git"]["remote"])) if missing]
+    gaps += [f"no-tests:{c['id']}" for c, has_tests in built if not has_tests]
+    gaps += [f"no-lint:{c['id']}" for c in components if c["commands"]["lint"]["value"] is None]
     multi = len(components) >= 2
-    return {"schema": SCHEMA_VERSION, "components": components,
-            "monorepo": multi and workspace_tool, "multi_component": multi}
+    return {"schema": SCHEMA_VERSION, "kind": history["kind"], "components": components,
+            "monorepo": multi and workspace_tool, "multi_component": multi, "commands": commands,
+            "conventions": history["conventions"], "git": history["git"], "ci": ci,
+            "gaps": sorted(gaps, key=_gap_rank)}
+
+
+def _ci(files: list[str]) -> dict:
+    """spec 12 §4.3."""
+    if ".gitlab-ci.yml" in files:
+        return {"kind": "gitlab", "file": ".gitlab-ci.yml"}
+    workflows = sorted(f for f in files if PurePosixPath(f).parent.as_posix() == ".github/workflows"
+                       and f.endswith((".yml", ".yaml")))
+    return {"kind": "github", "file": workflows[0]} if workflows else {"kind": "none", "file": None}
+
+
+def _gap_rank(gap: str) -> tuple:
+    """spec 12 §9: global gaps in fixed order, then no-tests:*, then no-lint:* (stable sort)."""
+    if gap in GLOBAL_GAPS:
+        return (GLOBAL_GAPS.index(gap),)
+    return (len(GLOBAL_GAPS) + (gap.startswith("no-lint:")),)

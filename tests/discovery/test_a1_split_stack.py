@@ -44,7 +44,7 @@ def without(component: dict, *keys: str) -> dict:
     return {k: v for k, v in component.items() if k not in keys}
 
 
-@pytest.mark.xfail(strict=True, reason="full profile: commands, conventions, docs, signals (P1.4 to P1.7)")
+@pytest.mark.xfail(strict=True, reason="full profile: docs, signals, sensitive, metrics (P1.5 to P1.7)")
 def test_a1_1_profile_matches_golden(profile):
     assert strip_volatile(profile) == strip_volatile(GOLDEN)
 
@@ -56,8 +56,8 @@ def test_a1_3_two_components_backend_in_docker(profile):
 
 
 def test_a1_3_components_match_golden(profile):
-    got = [without(c, "commands", "runtime") for c in profile["components"]]
-    assert got == [without(c, "commands", "runtime") for c in GOLDEN["components"]]
+    got = [without(c, "runtime") for c in profile["components"]]
+    assert got == [without(c, "runtime") for c in GOLDEN["components"]]
     assert profile["monorepo"] == GOLDEN["monorepo"]
     assert profile["multi_component"] == GOLDEN["multi_component"]
 
@@ -66,11 +66,28 @@ def test_a1_3_runtime_matches_golden(profile):
     assert [c["runtime"] for c in profile["components"]] == [c["runtime"] for c in GOLDEN["components"]]
 
 
-@pytest.mark.xfail(strict=True, reason="conventions (P1.4)")
 def test_a1_4_conventions_survive_merge_commits(profile):
     assert profile["conventions"]["branches"]["id_style"] == "mixed"
     assert profile["conventions"]["branches"]["pattern"] == "^(feat|fix)/[A-Za-z0-9-]+$"
     assert profile["conventions"]["commits"]["style"] == "conventional"
+
+
+def test_a1_commands_match_golden(profile):
+    assert [c["commands"] for c in profile["components"]] == [c["commands"] for c in GOLDEN["components"]]
+    assert profile["commands"] == GOLDEN["commands"]
+
+
+def test_a1_4_conventions_match_golden(profile):
+    assert profile["conventions"] == GOLDEN["conventions"]
+
+
+def test_a1_repository_match_golden(profile):
+    assert {k: profile[k] for k in ("kind", "git", "ci")} == {k: GOLDEN[k] for k in ("kind", "git", "ci")}
+
+
+def test_a1_gaps(profile):
+    later = {"no-agents-md", "no-adr"}   # P1.5
+    assert profile["gaps"] == [g for g in GOLDEN["gaps"] if g not in later]
 
 
 @pytest.mark.xfail(strict=True, reason="documentation drift (P1.5)")
