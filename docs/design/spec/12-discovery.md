@@ -227,6 +227,8 @@ Valeur attendue pour `fx-split-stack` :
 | `likely` | Déduit d'un indice (doc, convention de nommage, absence de binaire) | Présenté comme hypothèse au tour 1 |
 | `unknown` | Aucun indice | Question dédiée, seulement si un champ consommateur existe |
 
+**Champ de décision** (précisé le 2026-11-12, P1.7, test A1.2) : tout objet du profil qui porte une clé `value`. Il porte aussi `confidence` (`fact`, `likely` ou `unknown`) et une `evidence` non vide. Les entrées de `docs_drift` (preuve portée par `rule`, `file`, `line`, `message`), ainsi que `sensitive`, `metrics`, `present_tools` et `gaps`, ne sont pas des champs de décision.
+
 ## 9. Lacunes (`gaps`)
 
 Codes stables, utilisés par la doc générée et `status` : `no-ci`, `no-verify`, `no-tests:<composant>`, `no-lint:<composant>`, `no-remote`, `no-agents-md`, `no-adr`.
