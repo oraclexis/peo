@@ -107,9 +107,11 @@ def test_a1_1_json_before_or_after_subcommand(split_stack_repo, monkeypatch, cap
 
 def test_project_option_is_root_without_climbing(split_stack_repo, capsys):
     _, env, _, _ = run_discover(capsys, "--json", "discover", "--project",
-                                str(split_stack_repo / "frontend"))
+                                str(split_stack_repo / "backend"))
     assert env["ok"] is True
-    assert "backend" not in [c["id"] for c in env["data"]["components"]]
+    # backend/ is the root: one php component at ".", no node component from the git root.
+    comps = [(c["path"], c["ecosystems"]) for c in env["data"]["components"]]
+    assert comps == [(".", ["php"])]
 
 
 def test_project_option_before_subcommand(split_stack_repo, capsys):

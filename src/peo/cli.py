@@ -1,17 +1,23 @@
 """Command-line entry point (spec 11).
 
-Only the envelope, exit codes and command names exist at this stage. Each command
-is implemented in its phase (P1: discover, catalog, status; P2: questions, select; ...).
+The envelope, exit codes and command names exist for every command. Each command is
+implemented in its phase (P1: discover, catalog, status; P2: questions, select; ...).
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import tempfile
+from datetime import UTC, datetime
+from pathlib import Path
+from shutil import which
 from typing import Any
 
-from peo import SCHEMA_VERSION, __version__
+from peo import SCHEMA_VERSION, __version__, runner
+from peo.discovery import discover
 
 # Exit codes (spec 11, section 1.3)
 EXIT_OK = 0
@@ -60,9 +66,96 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--catalog", metavar="SOURCE", help="local path or URL@ref of the catalog")
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
     for name, phase in COMMANDS.items():
+        if name == "discover":
+            p = sub.add_parser(name, help="detect the project profile (spec 11, section 2.1)")
+            # SUPPRESS: without it the subparser default overwrites the global option.
+            p.add_argument("--project", metavar="DIR", default=argparse.SUPPRESS,
+                           help="project root")
+            p.add_argument("--json", action="store_true", default=argparse.SUPPRESS,
+                           help="print the JSON envelope on stdout")
+            p.add_argument("--write", action="store_true", help="write .peo/profile.json")
+            continue
         p = sub.add_parser(name, help=f"(not implemented yet, phase {phase})")
         p.add_argument("rest", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
     return parser
+
+
+def _emit(args: argparse.Namespace, env: dict, human: str | None) -> None:
+    """The envelope on stdout with --json; otherwise the human text, or the errors on stderr."""
+    if args.json:
+        print(json.dumps(env, sort_keys=True))
+    elif env["ok"]:
+        print(human)
+    for error in env["errors"]:
+        if not args.json:
+            print(f"peo: {error['code']}: {error['message']}", file=sys.stderr)
+
+
+def _project_root(project: str | None) -> Path | None:
+    """--project as given if it is a directory; otherwise the git root of cwd, else cwd."""
+    if project is not None:
+        return Path(project) if Path(project).is_dir() else None
+    done = runner.run(["git", "rev-parse", "--show-toplevel"], Path.cwd())
+    return Path(done.stdout.decode().strip()) if done.returncode == 0 else Path.cwd()
+
+
+def _write_profile(root: Path, profile: dict) -> Path:
+    """Write .peo/profile.json atomically, with generated in UTC (spec 11, section 2.1)."""
+    peo_dir = root / ".peo"
+    if not peo_dir.resolve().is_relative_to(root.resolve()):
+        raise OSError(f"{peo_dir} resolves outside the project root")
+    peo_dir.mkdir(exist_ok=True)
+    generated = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    text = json.dumps(profile | {"generated": generated}, sort_keys=True, indent=2,
+                      ensure_ascii=False) + "\n"
+    target = peo_dir / "profile.json"
+    tmp: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=peo_dir, prefix=".profile.",
+                                         delete=False) as f:
+            tmp = Path(f.name)
+            f.write(text)
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, target)
+    except OSError:
+        if tmp is not None:
+            tmp.unlink(missing_ok=True)
+        raise
+    return target
+
+
+def _summary(profile: dict, warnings: list[dict], written: Path | None) -> str:
+    lines = [f"kind: {profile['kind']['value']}"]
+    lines += [f"component {c['id']} ({c['path']}) runtime {c['runtime']['value']}"
+              for c in profile["components"]]
+    lines += [f"docs drift: {len(profile['docs_drift'])}", f"warnings: {len(warnings)}"]
+    if written is not None:
+        lines.append(f"written: {written}")
+    return "\n".join(lines)
+
+
+def discover_command(args: argparse.Namespace) -> int:
+    root = _project_root(args.project)
+    if root is None:
+        error = {"code": "E_PROJECT_NOT_FOUND",
+                 "message": f"project directory not found: {args.project}"}
+        _emit(args, envelope("discover", False, errors=[error]), None)
+        return EXIT_USAGE
+    warnings: list[dict] = []
+    # runner.run looked up at call time so tests can record the commands (A1.6).
+    profile = discover(root, run=runner.run, which=which, warnings=warnings)
+    for w in warnings:
+        print(f"{w['code']} {w['path']}: {w['message']}", file=sys.stderr)
+    written = None
+    if args.write:
+        try:
+            written = _write_profile(root, profile)
+        except OSError as exc:
+            error = {"code": "E_WRITE_FAILED", "message": f"cannot write .peo/profile.json: {exc}"}
+            _emit(args, envelope("discover", False, warnings=warnings, errors=[error]), None)
+            return EXIT_ERROR
+    _emit(args, envelope("discover", True, profile, warnings), _summary(profile, warnings, written))
+    return EXIT_OK
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -71,11 +164,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.command is None:
         parser.print_help(sys.stderr)
         return EXIT_USAGE
+    if args.command == "discover":
+        return discover_command(args)
     phase = COMMANDS[args.command]
     message = f"'peo {args.command}' is specified but not implemented yet (phase {phase})"
     error = {"code": "E_NOT_IMPLEMENTED", "message": message}
     if args.json:
-        print(json.dumps(envelope(args.command, False, errors=[error])))
+        print(json.dumps(envelope(args.command, False, errors=[error]), sort_keys=True))
     else:
         print(f"peo: {error['message']}", file=sys.stderr)
     return EXIT_ERROR
