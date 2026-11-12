@@ -57,6 +57,12 @@ def test_a0_1_branches(repo):
     assert Counter(style(b) for b in branches) == {"alnum-id": 24, "free": 22}
 
 
+def test_a0_1_untracked_files_present(repo):
+    assert (repo / "backend" / ".env").is_file()
+    assert git(repo, "ls-files", "backend/.env") == ""
+    assert git(repo, "status", "--short", "--ignored", "backend/.env") == "!! backend/.env"
+
+
 def test_a0_1_tracked_files(repo):
     assert len(git(repo, "ls-files").splitlines()) == 99
 

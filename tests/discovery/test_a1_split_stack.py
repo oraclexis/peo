@@ -44,7 +44,7 @@ def without(component: dict, *keys: str) -> dict:
     return {k: v for k, v in component.items() if k not in keys}
 
 
-@pytest.mark.xfail(strict=True, reason="full profile: signals, sensitive, metrics, present_tools (P1.6, P1.7)")
+@pytest.mark.xfail(strict=True, reason="generated is added by peo discover --write (P1.7)")
 def test_a1_1_profile_matches_golden(profile):
     assert strip_volatile(profile) == strip_volatile(GOLDEN)
 
@@ -99,6 +99,31 @@ def test_a1_intent_match_golden(profile):
 
 def test_a1_5_drift_matches_golden(profile):
     assert profile["docs_drift"] == GOLDEN["docs_drift"]
+
+
+def test_a1_8_sensitive_matches_golden(profile):
+    assert profile["sensitive"] == GOLDEN["sensitive"]
+
+
+def test_a1_8_no_fixture_secret_in_profile(profile):
+    assert "fixture-not-a-secret" not in json.dumps(profile)
+
+
+def test_a1_signals_match_golden(profile):
+    assert profile["signals"] == GOLDEN["signals"]
+
+
+def test_a1_present_match_golden(profile):
+    assert profile["present_tools"] == GOLDEN["present_tools"]
+
+
+def test_a1_metrics_match_golden(profile):
+    assert profile["metrics"] == GOLDEN["metrics"]
+
+
+def test_a1_only_generated_is_missing(profile):
+    assert set(GOLDEN) - set(profile) == {"generated"}
+    assert set(profile) - set(GOLDEN) == set()
 
 
 def test_a1_5_documentation_drift(profile):

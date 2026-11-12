@@ -1,0 +1,23 @@
+# Provisional detection rules (spec 12 §7 ter): the [detect] rules of the initial catalog
+# (spec 13 §5), limited to what can be read in the repository. Replaced by the fiches in R3.
+
+[[tool]]
+ref = "cli:playwright"
+npm = ["@playwright/test", "playwright"]
+
+[[tool]]
+ref = "framework:spec-kit"
+files = [".specify/init-options.json"]
+
+[[tool]]
+ref = "ci-check:semgrep"
+pip = ["semgrep"]
+files = [".semgrep.yml"]
+
+[[tool]]
+ref = "ci-check:gitleaks"
+files = [".gitleaks.toml"]
+
+[[tool]]
+ref = "mcp:serena"
+files = [".serena/project.yml"]
