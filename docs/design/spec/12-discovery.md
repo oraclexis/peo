@@ -52,7 +52,7 @@ Stacks de manifeste (`go`, `rust`, `java`) : présentes dès que le manifeste ex
 8. `kind` : `frontend` si une stack de rendu (`nuxt`, `next`, `vue`, `react`, `vite`) sans stack serveur ; `backend` si une stack serveur (`php-laravel`, `symfony`, `nestjs`, `express`, `django`, `fastapi`, `spring`, `rails`) ; `fullstack` si les deux ; sinon `library`.
 9. `multi_component = true` dès deux composants ; `monorepo = true` si, en plus, un outil d'espace de travail est présent (`workspaces`, pnpm, turbo, nx, lerna, uv workspace). Un seul composant : les deux valent `false`.
 10. Ordre de sortie : `root` en premier, puis composants triés par identifiant.
-11. Aucun composant trouvé (dépôt neuf, manifestes illisibles ou vides) : un seul composant `root` (`.`), sans écosystème ni stack, `kind = library` ; ses `languages` et `paths.code` suivent les règles 6 et 7 ; `runtime = host`, confiance `unknown`, preuve `"no manifest"`. Un dépôt a toujours au moins un composant (spec 10, glossaire).
+11. Aucun composant trouvé (dépôt neuf, manifestes illisibles ou vides) : un seul composant `root` (`.`), sans écosystème ni stack, `kind = library` ; ses `languages` et `paths.code` suivent les règles 6 et 7 ; `runtime = host`, confiance `unknown`, preuve `"no manifest"`. Un dépôt a toujours au moins un composant (spec 10, glossaire). `ecosystems` et `paths.code` peuvent donc être vides (schéma aligné le 2026-11-12 : il exigeait au moins un élément, ce qui rendait invalide le profil de `fx-new`).
 
 ### 2.3 Environnement d'exécution (E5)
 

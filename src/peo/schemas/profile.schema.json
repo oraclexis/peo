@@ -552,8 +552,7 @@
               "jvm",
               "ruby"
             ]
-          },
-          "minItems": 1
+          }
         },
         "languages": {
           "type": "array",
@@ -651,8 +650,7 @@
               "type": "array",
               "items": {
                 "type": "string"
-              },
-              "minItems": 1
+              }
             }
           },
           "required": [
