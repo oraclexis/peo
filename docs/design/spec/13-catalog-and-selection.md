@@ -87,7 +87,7 @@ Schéma : [schemas/tool-entry.schema.json](schemas/tool-entry.schema.json). Le d
 |---|---|---|---|
 | `[selection]` | `when.any`, `when.all`, `when.not`, `score` | `any` : au moins une vraie ; `all` : toutes vraies ; `not` : contre-indications, aucune ne doit être vraie. Absence de `when` = toujours candidat si une capacité fournie est requise | Confirmation du pilote (UI UX Pro Max) |
 | `[[prerequisites]]` | `check`, `fix`, `hint`, `blocking` | Ce qui doit être vrai pour que l'outil fonctionne : `bin:<nom>` (sur le poste), `path:<chemin>` (avec `{component:<id>}`), `runtime:host` (le composant visé tourne sur le poste). `fix` : référence d'une autre fiche du catalogue qui satisfait le prérequis (ex. `cli:intelephense`) ; `hint` : étape manuelle affichée | **E5** |
-| `[detect]` | `npm`, `composer`, `pip`, `bin`, `plugin`, `mcp`, `files` | Reconnaître l'outil **déjà présent** sous une autre forme (dépendance de dev, binaire, plugin installé à la main) | **E6** |
+| `[detect]` | `npm`, `composer`, `pip`, `bin`, `plugin`, `mcp`, `files` | Reconnaître l'outil **déjà présent** sous une autre forme (dépendance de dev, binaire, plugin installé à la main). `mcp` (révisé le 2026-11-14, R2) est un tableau d'objets `{kind = "package" \| "host" \| "command", value = "…"}`, comparés à la projection en mémoire d'un serveur MCP (paquet, hôte, nom de commande ; spec 14 §3.3) par la fonction `identify` que l'appelant (R3, R4, R5) passe à l'Inventory ; exemple : `mcp = [{ kind = "command", value = "serena" }]` | **E6** |
 | `[conventions]` | `branch.final_segment`, `branch.configurable`, `specs_dir` | Conventions imposées par un framework et ce qui en est configurable | **E3** |
 | `[surface]` (ajout du 2026-11-12) | `data_path` (`none`, `reads-sensitive`, `rewrites-io`), `fail_mode` (`open`, `closed`), **obligatoires** | `reads-sensitive` : lit des données hors du code (base, navigateur, e-mails). `rewrites-io` : réécrit les entrées ou sorties d'outils de l'agent. `fail_mode` : comportement de la session quand l'outil est absent ou en panne (`closed` bloque, `open` laisse passer ; `open` pour un outil sans hook) | Document 05, section 8.1 |
 | `[canary]` (ajout du 2026-11-12) | `command` (liste d'arguments, `{dir}` remplacé par le dossier du canari), `detected_exit` | Commande qui doit détecter le canari (spec 15, section 7.2). Optionnelle | Document 17, section 6.4 |
@@ -226,7 +226,7 @@ Règles de validation (`catalog validate`) :
 | Id | Tour | Posée si | Alimente |
 |---|---|---|---|
 | `q.confirm_profile` | 1 | toujours, si au moins un `likely` influence la sélection | confirmation des hypothèses |
-| `q.backbone_conflict` | 1 | un socle alternatif est détecté (installé ou activé) | `backbone.id` ou abandon |
+| `q.backbone_conflict` | 1 | un socle alternatif figure dans les déclarations suivies du projet (spec 14 §3.4 ; H27, révisé le 2026-11-14). Actif ailleurs (vue observée), il n'est pas vu par le Selector : c'est le Planner qui arrête le plan (spec 14 §2.4) | `backbone.id` ou abandon |
 | `q.docs_drift` | 1 | au moins un constat de dérive (questions regroupées en une seule) | actions de correction dans le plan |
 | `q.mission` | 2 | toujours (texte libre ; recommandation tirée du premier paragraphe du README) | `project.mission`, doc générée |
 | `q.verify_cmd` | 2 | `commands.verify` inconnu | `commands.verify`, porte G5 |
@@ -252,10 +252,12 @@ Règles de validation (`catalog validate`) :
 
 ```text
 1. socle    = backbone de peo.toml, sinon socle par défaut du catalogue
-              si un socle alternatif est détecté : erreur E_BACKBONE_CONFLICT (code 6),
-              sauf réponse à q.backbone_conflict
+              si un socle alternatif figure dans les déclarations suivies du projet
+              (H27) : erreur E_BACKBONE_CONFLICT (code 6), sauf réponse à q.backbone_conflict ;
+              actif seulement dans la vue observée : veto du Planner (spec 14 §2.4)
 2. requis   = capacités du socle (dures) ∪ process.gates (dure) ∪ règles de requirements.toml
-3. présents = outils reconnus par [detect] dans l'inventaire (E6) → capacités couvertes à coût 0
+3. présents = present_tools (Discovery) + déclarations suivies du projet (declared(),
+              spec 14 §3.2 ; H27) reconnus par [detect] (E6) → capacités couvertes à coût 0
 4. candidats = fiches t telles que
                t.status ∉ {rejected, watch, backbone-alt}
                t fournit au moins une capacité requise et non couverte par « présents »
@@ -317,7 +319,7 @@ Schéma : [schemas/selection.schema.json](schemas/selection.schema.json). Exempl
 
 | Propriété | Énoncé |
 |---|---|
-| Déterminisme | Même catalogue, profil, réponses et inventaire ⇒ sortie identique octet pour octet |
+| Déterminisme | Même catalogue, profil, réponses et déclarations suivies du projet ⇒ sortie identique octet pour octet. La vue observée (machine) n'entre jamais dans la sélection (H27) |
 | Absence de conflit | Aucune paire de S en `conflicts` ; aucune capacité exclusive fournie deux fois dans S ∪ présents |
 | Couverture | Toute exigence dure est couverte, ou la sortie a `ok = false` et la cite |
 | Minimalité | Retirer un outil quelconque de S fait perdre une exigence couverte |

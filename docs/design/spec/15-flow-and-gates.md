@@ -169,9 +169,22 @@ Voir document 11, section 4.3. Contenu : identifiant du travail, piste, étape, 
 | `S-GATE-BYPASS` | error (`--ci`) | Fichiers de code modifiés sur la branche par rapport à la base, sans les portes `before_code` du travail |
 | `S-GATE-OVERRIDE` | warning | `flow override` utilisé sur le travail |
 | `S-DOCS-DRIFT` | info | Nouveaux constats D1 à D4 |
-| `S-DEGRADED-INVENTORY` | warning | Claude Code < 2.1.285 ou `claude` absent : inventaire par les fichiers seulement |
+| `S-DEGRADED-INVENTORY` | warning | Mode dégradé de l'Inventory (spec 14 §3.1) : `claude` absent, trop ancien, version illisible, ou `claude plugin list` en échec ou illisible ; inventaire par les fichiers seulement. Le message cite l'état et la raison de la source `claude` (`absent`, `claude-too-old`, `version-unparsed`, `command-failed`, `timeout-or-missing`, `output-unparsed`) |
 | `S-INSTALLED-UNCONFIGURED` | warning | Installation R3 réussie sans configuration (apply interrompu) |
 | `S-PREREQ` | warning | Prérequis non bloquant toujours non satisfait (ex. `backend/vendor` absent) |
+
+**Effet des états de l'Inventory sur les constats** (spec 14 §3.1 ; ajout du 2026-11-14, R2). Chaque constat qui lit une source de l'Inventory dépend de son état :
+
+| État de la source | Effet sur les constats de R3 |
+|---|---|
+| `read` | applicable |
+| `absent` | applicable pour un fichier : l'absence de réglage est un fait (aucun hook, aucune règle). Pour la source `claude` : mode dégradé (`S-DEGRADED-INVENTORY`) |
+| `invalid` | `skipped` pour les constats qui lisent cette source |
+| `unavailable` | `skipped` |
+| `not_inspected` | `skipped` ; sauf raison `disabled` : les hooks d'un plugin désactivé ne s'exécutent pas, les constats sur ses hooks ne s'appliquent pas |
+| famille nommée dans `invalid_families` | même effet que `invalid`, limité aux constats qui lisent cette famille pour cette source |
+
+**Drapeaux de hooks.** Pour les constats de hooks (`S-HOOK-*`, `S-GATE-*`, `X-HOOK-FAIL-OPEN`) : si `disableAllHooks` (selon sa portée, spec 10 §5) ou `allowManagedHooksOnly` (lu en managed seulement) rend un hook inerte, le constat le dit. PEO ne dit jamais qu'un hook « s'exécutera » : la source `settings:cli` (`--settings`, `--bare`, `--safe-mode`) est toujours `not_inspected`.
 
 `--ci` : code 3 si au moins un `error`. En CI, l'inventaire des plugins est sauté (pas de Claude Code) : seuls les constats sur fichiers, lock, catalogue et portes s'appliquent ; les autres sont `skipped`.
 
@@ -179,7 +192,7 @@ Base de comparaison pour `S-GATE-BYPASS` : variable `PEO_BASE_REF`, sinon `CI_ME
 
 ## 7. Audit d'exposition (F14, ajout du 2026-11-12)
 
-`peo status --exposure` ajoute aux constats de la section 6 les constats `X-*` ci-dessous. Entrées : section `sensitive` du profil (spec 12, section 7 bis), Inventory (spec 14, section 3), lock et catalogue. Lecture seule, sans réseau (NF5), sans valeur dans la sortie (NF14). Gravités fixes (S-8) ; `--ci` : code 3 si au moins un `error`.
+`peo status --exposure` ajoute aux constats de la section 6 les constats `X-*` ci-dessous. Entrées : section `sensitive` du profil (spec 12, section 7 bis), Inventory (spec 14, section 3 ; vue observée), lock et catalogue. L'effet des états de source et des familles invalides est celui de la section 6. Lecture seule, sans réseau (NF5), sans valeur dans la sortie (NF14). Gravités fixes (S-8) ; `--ci` : code 3 si au moins un `error`.
 
 **Règle de formulation** : un constat décrit un contrôle présent ou absent et sa limite. Aucun message ne dit qu'une donnée est « protégée » (document 17, section 4).
 
@@ -189,14 +202,14 @@ Base de comparaison pour `S-GATE-BYPASS` : variable `PEO_BASE_REF`, sinon `CI_ME
 |---|---|---|
 | `X-SECRET-TRACKED` | error | Fichier de `secret_files` suivi par git |
 | `X-SECRET-READABLE` | error | Fichier de `secret_files` sans règle `permissions.deny` `Read(...)` qui le couvre, dans aucune portée |
-| `X-LITERAL-IN-AGENT-CONFIG` | error | Valeur de forme `literal` pour une clé sensible d'une config d'agent **suivie par git** (spec 14, section 3) ; le message cite le fichier et la clé, jamais la valeur |
+| `X-LITERAL-IN-AGENT-CONFIG` | error | Sur une source du projet (`settings:project`, `settings:local`, `mcp:project`) avec `tracked: true`, une entrée de `values` avec `form = literal` et (`sensitive_name` ou `value_hint` non nul), ou une entrée de `mcp_servers` avec `args_hint` non nul (spec 14 §3.3, seule définition). `tracked: null` sur une source du projet donne `skipped` ; les sources user et managed ne sont pas visées. Le message cite le fichier et la clé (ou le serveur), jamais la valeur |
 | `X-MASKING-DUPLICATE` | error | Deux outils actifs dont la fiche a `surface.data_path = "rewrites-io"` |
 | `X-DATA-READABLE` | warning | Entrée de `data_dumps` ou de `log_dirs` sans règle `deny` qui la couvre |
 | `X-NO-SECRET-SCAN` | warning | Aucun fournisseur de `secrets.scan.ci` dans le lock, et aucun job de CI ne mentionne un scanner connu du catalogue (`[detect].files` de ses fiches) |
 | `X-SANDBOX-OFF` | warning | `secret_files` ou `data_stores` non vide et `sandbox.enabled` absent ou faux. **`info`** si un composant a `runtime = docker:<service>` (le sandbox casserait ses commandes, S-9) |
 | `X-SANDBOX-FALLBACK` | warning | Sandbox actif avec `failIfUnavailable` différent de `true` ou `allowUnsandboxedCommands` différent de `false` : repli possible hors sandbox |
 | `X-DATA-STORE` | info | Entrée de `data_stores` : rappel que l'agent ne doit travailler que sur des données de test (base anonymisée, rôle en lecture seule) |
-| `X-MCP-UNEVALUATED` | info | Serveur MCP hors catalogue, ou dont la fiche a `data_path = "reads-sensitive"` |
+| `X-MCP-UNEVALUATED` | info | Serveur MCP dont `tool_ref` est `null` (hors catalogue), ou dont la fiche a `data_path = "reads-sensitive"` ; cité par (`source`, `plugin_index`, `index`) et par `name` s'il n'est pas `null` |
 | `X-HOOK-FAIL-OPEN` | info | Hook d'un outil `data_path = "rewrites-io"` sans `onFailure: "block"` |
 | `X-CANARY-MISSED` | error | `--canary` : un détecteur installé n'a pas détecté le canari |
 | `X-CANARY-UNVERIFIABLE` | warning | `--canary` : commande absente, en échec pour une autre raison, ou fiche avec `surface.network = "runtime"` (non lancée) |
@@ -209,7 +222,7 @@ En CI (pas de Claude Code, pas de `.env`), seuls les constats calculables sur le
 
 Option explicite, jamais implicite (NF5).
 
-1. Pour chaque outil actif dont la fiche a `[canary]` et `surface.network` ≠ `runtime` :
+1. Pour chaque outil testable (définition à fixer en R3 ; le mot « actif » est réservé à la spec 14 §3.4) dont la fiche a `[canary]` et `surface.network` ≠ `runtime` :
 2. créer un dossier temporaire **hors du dépôt** (`tempfile.mkdtemp`) ;
 3. y écrire un fichier leurre : une fausse clé de format connu (préfixe `AKIA` + 16 caractères `[A-Z2-7]`, et `ghp_` + 36 caractères alphanumériques), générée par `secrets` à chaque exécution, jamais écrite ailleurs ni affichée ;
 4. lancer `canary.command` par l'exécuteur injectable (`{dir}` remplacé), avec un délai de 30 s ;

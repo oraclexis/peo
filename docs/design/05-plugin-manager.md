@@ -62,7 +62,7 @@ remove(entry, keep_cfg)  → retrait limité aux artefacts possédés et non mod
 | Information | Source |
 |---|---|
 | Disponible | Catalogue |
-| Installé, version, portée, activé | Inventory : settings des trois portées, `.mcp.json`, `uv tool list`, `package.json`, dossiers de skills |
+| Installé, version, portée, activé | Inventory (R2) : réglages des portées managed, local, project et user, `.mcp.json`, `claude plugin list`. CLI et paquets : `Adapter.detect` (R5). Dossiers de skills : hors R2 |
 | Possédé par PEO ou installé à la main | Présence dans `peo.lock.json` |
 | Dépendances manquantes | `requires` des fiches, comparé à l'inventaire |
 | Incompatibilités | `conflicts` des fiches, exclusivité des socles, collisions d'événements de hook |

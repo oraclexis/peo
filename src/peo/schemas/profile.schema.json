@@ -294,9 +294,6 @@
           },
           "via": {
             "enum": [
-              "plugin",
-              "mcp",
-              "cli",
               "dev-dependency",
               "file"
             ]

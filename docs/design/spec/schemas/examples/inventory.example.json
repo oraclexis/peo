@@ -1,0 +1,289 @@
+{
+  "schema": 1,
+  "sources": [
+    {
+      "id": "settings:managed",
+      "scope": "managed",
+      "path": "/Library/Application Support/ClaudeCode/managed-settings.json",
+      "status": "read",
+      "reason": null,
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "settings:managed.d",
+      "scope": "managed",
+      "path": null,
+      "status": "absent",
+      "reason": null,
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "settings:managed-other",
+      "scope": "managed",
+      "path": null,
+      "status": "not_inspected",
+      "reason": "out-of-scope",
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "settings:cli",
+      "scope": "cli",
+      "path": null,
+      "status": "not_inspected",
+      "reason": "out-of-scope",
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "settings:local",
+      "scope": "local",
+      "path": ".claude/settings.local.json",
+      "status": "read",
+      "reason": null,
+      "tracked": false,
+      "invalid_families": [
+        "hooks"
+      ]
+    },
+    {
+      "id": "settings:project",
+      "scope": "project",
+      "path": ".claude/settings.json",
+      "status": "read",
+      "reason": null,
+      "tracked": true,
+      "invalid_families": [
+        "flags"
+      ]
+    },
+    {
+      "id": "settings:user",
+      "scope": "user",
+      "path": "<user-config>/settings.json",
+      "status": "invalid",
+      "reason": "json",
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "mcp:managed",
+      "scope": "managed",
+      "path": "/Library/Application Support/ClaudeCode/managed-mcp.json",
+      "status": "unavailable",
+      "reason": "permission-denied",
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "mcp:local",
+      "scope": "local",
+      "path": null,
+      "status": "not_inspected",
+      "reason": "out-of-scope",
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "mcp:project",
+      "scope": "project",
+      "path": ".mcp.json",
+      "status": "read",
+      "reason": null,
+      "tracked": true,
+      "invalid_families": []
+    },
+    {
+      "id": "mcp:user",
+      "scope": "user",
+      "path": null,
+      "status": "not_inspected",
+      "reason": "out-of-scope",
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "claude",
+      "scope": null,
+      "path": null,
+      "status": "read",
+      "reason": null,
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "plugin:#0",
+      "scope": "user",
+      "path": "plugin:#0/hooks/hooks.json",
+      "status": "read",
+      "reason": null,
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "plugin:#1",
+      "scope": "project",
+      "path": null,
+      "status": "not_inspected",
+      "reason": "disabled",
+      "tracked": null,
+      "invalid_families": []
+    },
+    {
+      "id": "plugin:#2",
+      "scope": "synced",
+      "path": "plugin:#2/hooks/hooks.json",
+      "status": "absent",
+      "reason": null,
+      "tracked": null,
+      "invalid_families": []
+    }
+  ],
+  "permission_rules": [
+    {
+      "source": "settings:project",
+      "list": "allow",
+      "rule": "WebFetch(domain:docs.example.test)"
+    },
+    {
+      "source": "settings:project",
+      "list": "deny",
+      "rule": "Read(./backend/.env)"
+    },
+    {
+      "source": "settings:project",
+      "list": "deny",
+      "rule": "Read"
+    }
+  ],
+  "flags": [
+    {
+      "source": "settings:managed",
+      "key": "sandbox.enabled",
+      "value": true
+    }
+  ],
+  "hooks": [
+    {
+      "source": "settings:project",
+      "event": "PostToolUse",
+      "matcher": null,
+      "type": "http",
+      "on_failure": null,
+      "group_index": 0,
+      "hook_index": 0
+    },
+    {
+      "source": "plugin:#0",
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "type": "command",
+      "on_failure": "block",
+      "group_index": 0,
+      "hook_index": 0
+    }
+  ],
+  "plugins": [
+    {
+      "source": "claude",
+      "index": 0,
+      "id": "egm@egm",
+      "scope": "user",
+      "enabled": true,
+      "error_count": 0,
+      "confidence": "fact"
+    },
+    {
+      "source": "claude",
+      "index": 1,
+      "id": null,
+      "scope": "project",
+      "enabled": false,
+      "error_count": 1,
+      "confidence": "fact"
+    },
+    {
+      "source": "claude",
+      "index": 2,
+      "id": "engineering@synced",
+      "scope": "synced",
+      "enabled": true,
+      "error_count": 0,
+      "confidence": "fact"
+    },
+    {
+      "source": "settings:project",
+      "index": 0,
+      "id": "egm@egm",
+      "scope": null,
+      "enabled": true,
+      "error_count": null,
+      "confidence": "likely"
+    }
+  ],
+  "mcp_servers": [
+    {
+      "source": "mcp:project",
+      "plugin_index": null,
+      "index": 0,
+      "name": "github",
+      "transport": "stdio",
+      "tool_ref": null,
+      "args_hint": "url-userinfo"
+    },
+    {
+      "source": "claude",
+      "plugin_index": 0,
+      "index": 0,
+      "name": "serena",
+      "transport": "stdio",
+      "tool_ref": null,
+      "args_hint": null
+    }
+  ],
+  "values": [
+    {
+      "source": "settings:project",
+      "location": "env",
+      "key": "NODE_ENV",
+      "form": "literal",
+      "sensitive_name": false,
+      "value_hint": null
+    },
+    {
+      "source": "settings:project",
+      "location": "hook:PostToolUse#0.0.headers",
+      "key": "Authorization",
+      "form": "interpolated",
+      "sensitive_name": true,
+      "value_hint": null
+    },
+    {
+      "source": "settings:project",
+      "location": "hook:PostToolUse#0.0.url",
+      "key": "url",
+      "form": "literal",
+      "sensitive_name": false,
+      "value_hint": null
+    },
+    {
+      "source": "mcp:project",
+      "location": "mcp#0.env",
+      "key": "GITHUB_TOKEN",
+      "form": "literal",
+      "sensitive_name": true,
+      "value_hint": null
+    },
+    {
+      "source": "claude",
+      "location": "mcp#0/0.env",
+      "key": "SERENA_TOKEN",
+      "form": "reference",
+      "sensitive_name": true,
+      "value_hint": null
+    }
+  ],
+  "claude_version": "2.1.300"
+}

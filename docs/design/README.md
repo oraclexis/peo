@@ -40,7 +40,7 @@ Les décisions H1 à H12 ont été prises le 2026-11-11 (document 08, section 6 
 | [spec/14-planner-installers.md](spec/14-planner-installers.md) | Actions et risques, Inventory, adaptateurs, Spec Kit, fichiers gérés, `CLAUDE.md`, lock, journal |
 | [spec/15-flow-and-gates.md](spec/15-flow-and-gates.md) | Recettes, portes, `peo gate`, `peo context`, `peo status` |
 | [spec/16-test-plan.md](spec/16-test-plan.md) | Fixtures, référence synthétique `fx-split-stack`, test local du pilote n°1, tests d'acceptation F1 à F13 |
-| [spec/schemas/](spec/schemas/README.md) | 7 schémas JSON, exemples `fx-split-stack`, contre-exemples, script de vérification |
+| [spec/schemas/](spec/schemas/README.md) | 8 schémas JSON, exemples `fx-split-stack`, contre-exemples, script de vérification |
 
 Ordre de lecture conseillé : 01 → 08 → 04 → 03 → 02 → 06 → 05 → 07 → 09, puis la spécification 10 → 16. Révision du 2026-11-12 : 01 (section 9) → 17 → 18 → 08 (section 6 quater) → 07 (section 7).
 

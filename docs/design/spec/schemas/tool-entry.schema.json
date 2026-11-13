@@ -250,7 +250,25 @@
         "mcp": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "required": [
+              "kind",
+              "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "package",
+                  "host",
+                  "command"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "pattern": "^[a-z0-9@][a-z0-9@./_-]{0,213}$"
+              }
+            }
           }
         },
         "files": {

@@ -125,6 +125,14 @@ Conséquences sur la spécification (PR séparée, R0) :
 
 Revue recommandée avant la spec : relecture EGM du document 17.
 
+## 6 quinquies. Décisions du 2026-11-13
+
+Analyse : conception de R2 (Inventory), brainstorm EGM et deux relectures ; spec 14, section 3.
+
+| # | Décision | Choix | Conséquence |
+|---|---|---|---|
+| H27 | État de la machine et sélection | **L'état de la machine bloque, il n'oriente jamais.** La sélection ne lit que les déclarations suivies du projet (`declared()` de l'Inventory : entrées de `.claude/settings.json` et `.mcp.json` suivis par git). Le Planner lit la vue observée et arrête le plan (`E_BACKBONE_CONFLICT`, code 6, portée citée) pour un socle alternatif ou un fournisseur de `privacy.masking` actif hors des déclarations suivies. Les autres capacités exclusives dans ce cas ne bloquent pas : constat `info` de `peo status` | Spec 13, sections 7.2, 8.1 et 8.5 ; spec 14, sections 2.4 et 3.4. La sélection, `[answers]` et la doc générée sont reproductibles entre machines. Code en R4 (Selector) et R5 (veto du Planner) ; R2 livre `declared()` |
+
 ## 7. Synthèse
 
 PEO est **utile et différenciant** à condition de ne faire que ce que personne ne fait : **savoir** quels outils valent la peine pour un projet donné, **refuser** les combinaisons qui se marchent dessus, et **tenir** le processus. Il devient une mauvaise idée dès qu'il se met à installer, stocker, exécuter ou réinventer ce que Claude Code, APM, Spec Kit et les méthodologies existantes font déjà.

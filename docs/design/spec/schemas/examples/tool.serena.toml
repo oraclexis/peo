@@ -20,6 +20,9 @@ overlaps = ["claude-plugin:typescript-lsp", "claude-plugin:php-lsp"]
 [selection]
 when = { any = ["profile.metrics.loc_total > 50000", "answers['q.refactoring'] == true"], not = ["profile.kind.value == 'new'"] }
 
+[detect]
+mcp = [{ kind = "command", value = "serena" }]
+
 [surface]
 hooks       = []
 mcp_tools   = 20

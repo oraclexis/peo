@@ -55,7 +55,7 @@ jobs:
         run: |
           wheel=$(ls dist/*.whl)
           uvx --from "$wheel" peo --version
-          uv run --no-project --with "$wheel" python -c "import importlib.resources as r; assert len([p for p in r.files('peo.schemas').iterdir() if p.name.endswith('.schema.json')]) == 7"
+          uv run --no-project --with "$wheel" python -c "import importlib.resources as r; assert len([p for p in r.files('peo.schemas').iterdir() if p.name.endswith('.schema.json')]) == 8"
       - uses: actions/upload-artifact@v7
         with:
           name: dist
