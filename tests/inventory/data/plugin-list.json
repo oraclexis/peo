@@ -1,0 +1,113 @@
+[
+  {
+    "id": "user-plugin@market",
+    "version": "1.0.0",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "{plugins}/fixture-not-a-secret-install/p0"
+  },
+  {
+    "id": "managed-plugin@market",
+    "version": "1.0.0",
+    "scope": "managed",
+    "enabled": true,
+    "errors": [],
+    "installPath": "{plugins}/fixture-not-a-secret-install/p1"
+  },
+  {
+    "id": "project-plugin@market",
+    "version": "1.0.0",
+    "scope": "project",
+    "enabled": true,
+    "projectPath": "{root}",
+    "projectEnabled": true,
+    "installPath": "{plugins}/fixture-not-a-secret-install/p2"
+  },
+  {
+    "id": "other-project-plugin@market",
+    "version": "1.0.0",
+    "scope": "project",
+    "enabled": true,
+    "projectPath": "{plugins}/fixture-not-a-secret-other-project",
+    "projectEnabled": true,
+    "installPath": "{plugins}/fixture-not-a-secret-install/p3"
+  },
+  {
+    "id": "disabled-plugin@market",
+    "version": "1.0.0",
+    "scope": "user",
+    "enabled": false,
+    "installPath": "{plugins}/fixture-not-a-secret-install/p4"
+  },
+  {
+    "id": "broken-plugin@market",
+    "version": "1.0.0",
+    "scope": "user",
+    "enabled": true,
+    "errors": [
+      "fixture-not-a-secret-error-one",
+      "fixture-not-a-secret-error-two"
+    ],
+    "notes": [
+      "fixture-not-a-secret-note"
+    ],
+    "installPath": "{plugins}/fixture-not-a-secret-install/p5"
+  },
+  {
+    "id": "mcp-plugin@market",
+    "version": "1.0.0",
+    "scope": "user",
+    "enabled": true,
+    "mcpServers": {
+      "fixture-db": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "fixture-not-a-secret-pkg",
+          "postgresql://u:fixture-not-a-secret-pw@h/db"
+        ],
+        "env": {
+          "DB_TOKEN": "fixture-not-a-secret-plugin-env"
+        }
+      },
+      "serena": {
+        "command": "serena",
+        "args": [
+          "start-mcp-server",
+          "fixture-not-a-secret-arg"
+        ]
+      }
+    },
+    "installPath": "{plugins}/fixture-not-a-secret-install/p6"
+  },
+  {
+    "id": "fixture-not-a-secret-id:x@market",
+    "version": "1.0.0",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "{plugins}/fixture-not-a-secret-install/p7"
+  },
+  {
+    "id": "galaxy-plugin@market",
+    "version": "1.0.0",
+    "scope": "galaxy",
+    "enabled": true,
+    "installPath": "{plugins}/fixture-not-a-secret-install/p8"
+  },
+  {
+    "id": "synced-plugin@market",
+    "version": "1.0.0",
+    "scope": "synced",
+    "enabled": true,
+    "installPath": "{plugins}/fixture-not-a-secret-install/p9"
+  },
+  {
+    "id": "local-off-plugin@market",
+    "version": "1.0.0",
+    "scope": "local",
+    "enabled": true,
+    "projectPath": "{root}",
+    "projectEnabled": false,
+    "installPath": "{plugins}/fixture-not-a-secret-install/p10"
+  }
+]
