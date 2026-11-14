@@ -87,7 +87,7 @@
         },
         "path": {
           "type": "string",
-          "description": "Project-relative path, / separator; a folder ends with /."
+          "description": "Project-relative path, / separator, no trailing / (a folder is marked by the code, not the path). For a symbolic link, the link path, never its target."
         },
         "source": {
           "$ref": "#/$defs/source_id"
@@ -98,8 +98,11 @@
         },
         "reason": {
           "enum": [
+            "symlink-outside",
             "symlink",
+            "untested-platform",
             "untested-version",
+            "contradictory-observations",
             "untested-scope",
             "untested-form",
             "case-only",
@@ -110,8 +113,8 @@
         },
         "suggested_rule": {
           "type": "string",
-          "pattern": "^Read\\(\\./[^()*?\\[\\]{}]+\\)$",
-          "description": "Omitted when the path holds a pattern character or a parenthesis (spec 15 section 7.1)."
+          "pattern": "^Read\\(\\./[^()*?\\[\\]{}!\\\\]+?(/\\*\\*)?\\)$",
+          "description": "Read(./<exact path>) or Read(./<folder>/**); omitted when the path holds a pattern character or a parenthesis (spec 15 section 7.1)."
         },
         "plugin_index": {
           "type": [
@@ -170,6 +173,7 @@
           "L-LAUNCH-ROOT",
           "L-MCP-APPROVAL",
           "L-MCP-LOCAL-USER",
+          "L-SERVER-MANAGED",
           "L-SETTINGS-CLI",
           "L-SETTINGS-MANAGED-OTHER",
           "L-SYMLINK-DIR"

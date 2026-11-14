@@ -6,7 +6,7 @@ Discovery lit le dépôt **sans LLM, sans réseau, sans rien écrire** (sauf `--
 
 | Source | Comment | Limites |
 |---|---|---|
-| Fichiers suivis | `git ls-files -z` ; hors git : parcours avec exclusions | Exclusions fixes : `.git`, `.peo`, `node_modules`, `vendor`, `dist`, `build`, `.nuxt`, `.output`, `.venv`, `target`, `coverage` (`.peo` ajouté le 2026-11-12, P1.7 : le profil écrit ne change pas le profil suivant). Un fichier dont le chemin résolu sort de la racine, ou un lien symbolique en boucle, est ignoré |
+| Fichiers suivis | `git ls-files -z` ; hors git : parcours avec exclusions | Exclusions fixes : `.git`, `.peo`, `node_modules`, `vendor`, `dist`, `build`, `.nuxt`, `.output`, `.venv`, `target`, `coverage` (`.peo` ajouté le 2026-11-12, P1.7 : le profil écrit ne change pas le profil suivant). Un fichier dont le chemin résolu sort de la racine, ou un lien symbolique en boucle, est ignoré, sauf pour les surfaces sensibles (section 7 bis, précisé le 2026-11-14) |
 | Historique | `git rev-list --count HEAD`, `git for-each-ref refs/heads refs/remotes`, `git log -200 --format=%s` | Pas de lecture du contenu des commits |
 | Manifestes | Table 2.1 | JSON et TOML analysés ; YAML lu par motifs ligne à ligne (pas de bibliothèque YAML, NF1) |
 | Docker | `docker-compose*.yml`, `compose*.yaml` | Seuls `services.<nom>.build.context` et `volumes` (forme courte) sont lus |
@@ -206,7 +206,7 @@ Section toujours calculée : `peo status --exposure` (F14) la consomme (S-5 éla
 
 Confiance : ces informations sont des `fact` (existence d'un fichier, clé d'un compose) ; elles ne portent pas de champ `confidence` ni d'`evidence` : le chemin est la preuve.
 
-**Liens symboliques et parcours** (ajout du 2026-11-14, R3, pour le matcher de la spec 14 §3.5). Une entrée de `secret_files`, `data_dumps` ou `log_dirs` dont le chemin est un lien symbolique porte en plus `link_target` : la cible résolue (`os.path.realpath`), relative à la racine du projet résolue, ou `null` si elle est hors du projet ; le champ est absent pour un chemin ordinaire. La section porte aussi `walk` : `depth_pruned` (le parcours a laissé des dossiers au-delà de la profondeur 3) et `linked_dirs` (dossiers liés rencontrés et non suivis, triés). Ni la cible ni les dossiers ne sont ouverts ; seuls des chemins sortent (NF14).
+**Liens symboliques et parcours** (ajout du 2026-11-14, R3, pour le matcher de la spec 14 §3.5 ; révisé le 2026-11-14). Une entrée de `secret_files`, `data_dumps` ou `log_dirs` dont le chemin est un lien symbolique porte en plus `link_target` : la cible résolue (`os.path.realpath`), relative à la racine du projet résolue, ou `null` si elle est hors du projet ; le champ est absent pour un chemin ordinaire. **Exception à la règle de la section 1** pour cette section seulement : un lien dont le nom correspond à un motif de `secret_files`, `data_dumps` ou `log_dirs` et dont la cible sort de la racine **n'est pas ignoré** ; il est gardé avec `link_target = null`, et sa cible n'est **jamais ouverte** ni citée (pas de lecture des variables, `variables = []`, `bytes = 0`). La section porte aussi `walk` : `depth_pruned` (le parcours a laissé des dossiers au-delà de la profondeur 3) et `linked_dirs` (dossiers liés rencontrés et non suivis, triés). Seuls des chemins du projet sortent (NF14).
 
 Valeur attendue pour `fx-split-stack` :
 

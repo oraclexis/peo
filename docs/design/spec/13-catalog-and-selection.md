@@ -97,7 +97,7 @@ Exemple de prérequis (`tools/claude-plugin/php-lsp.toml`, extrait) :
 ```toml
 [[prerequisites]]
 check    = "bin:intelephense"
-fix      = "cli:intelephense"              # fiche du catalogue (kind = "cli", manager npm) : action R3
+fix      = "cli:intelephense"              # fiche du catalogue (kind = "cli", manager npm) : action de classe de risque R3
 blocking = true
 
 [[prerequisites]]
@@ -131,10 +131,10 @@ reuse_only = true    # PEO reconnaît et réutilise, n'installe jamais cet outil
 | `claude-plugin:mattpocock-skills` | core | `clarify.interview`, `tdd.discipline`, `review.code`, `debug.diagnosis` | socle par défaut | oui |
 | `peo:gates` | core | `process.gates` | toujours | oui (hooks du projet) |
 | `peo:native-controls` | core | `exposure.native` | exigence présente (fichier de secrets, dump ou logs) | oui : règles `permissions.deny` ; sandbox recommandé seulement (S-9). Ajout du 2026-11-12 |
-| `ci-check:gitleaks` | conditional | `secrets.scan.ci` | toujours candidat | oui (bloc CI, valeurs masquées dans les journaux de CI avec `--redact`). jetons `ci = ["gitleaks", "Secret-Detection"]` dans `discovery/detect.toml` en R3 (spec 12 §7 ter). `[canary]` (R3.1) : `gitleaks dir {dir}`, détecté = code 1 [À VÉRIFIER sur la version épinglée à l'écriture de la fiche]. Ajout du 2026-11-12 |
+| `ci-check:gitleaks` | conditional | `secrets.scan.ci` | toujours candidat | oui (bloc CI, valeurs masquées dans les journaux de CI avec `--redact`). jetons `ci = ["gitleaks", "Secret-Detection"]` dans `discovery/detect.toml` en R3 (spec 12 §7 ter). `[canary]` (R4.1) : `gitleaks dir {dir}`, détecté = code 1 [À VÉRIFIER sur la version épinglée à l'écriture de la fiche]. Ajout du 2026-11-12 |
 | `claude-plugin:typescript-lsp` | conditional | `nav.lsp.typescript` | composant TypeScript ou Vue | oui |
 | `claude-plugin:php-lsp` | conditional | `nav.lsp.php` | composant PHP | oui, avec prérequis |
-| `cli:intelephense` | conditional | — (prérequis de `php-lsp`) | requis par `php-lsp` | oui (`npm install -g`, R3) |
+| `cli:intelephense` | conditional | — (prérequis de `php-lsp`) | requis par `php-lsp` | oui (`npm install -g`, classe de risque R3) |
 | `claude-plugin:pyright-lsp` | conditional | `nav.lsp.python` | composant Python | oui |
 | `mcp:serena` | conditional | `nav.symbols` | `loc_total > 50000` ou refonte prévue ; pas sur un projet neuf | oui |
 | `cli:graphify` | conditional | `nav.graph` | `loc_total > 100000` | oui |

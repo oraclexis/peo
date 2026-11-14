@@ -149,9 +149,10 @@
       "code": "S-HOOK-FOREIGN",
       "confidence": "fact",
       "evidence": [
-        "settings:project PostToolUse#0.0 http"
+        "settings:project PostToolUse#0.0 http",
+        "settings:project invalid_families flags: disableAllHooks unknown, hook may be inert"
       ],
-      "message": "PostToolUse http hook written in .claude/settings.json: owner settings:project, outside the catalog",
+      "message": "PostToolUse http hook written in .claude/settings.json: owner settings:project, outside the catalog; whether disableAllHooks makes it inert is unknown (flags unreadable)",
       "severity": "info",
       "source": "settings:project",
       "status": "applied"
@@ -472,6 +473,7 @@
     "L-HTTP-HOOK",
     "L-MCP-APPROVAL",
     "L-MCP-LOCAL-USER",
+    "L-SERVER-MANAGED",
     "L-SETTINGS-CLI",
     "L-SETTINGS-MANAGED-OTHER"
   ],

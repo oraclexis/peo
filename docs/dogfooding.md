@@ -9,8 +9,9 @@ Aggregated results only (document 07, section 7.1; spec 16, section 2.3). No fil
 
 | Measure | Threshold | Result |
 |---|---|---|
-| (a) Actionable `X-*` findings | ≥ 1 on each of the 3 repositories | — |
-| (a) False positives, severity `error` | 0 in total (`fixture-de-test` verdicts excluded) | — |
+| (a) Actionable `X-*` findings | ≥ 1 on each of the 3 repositories (`X-MCP-UNEVALUATED`, `X-DATA-STORE`, `X-NO-SECRET-SCAN` and a `data_stores`-only `X-SANDBOX-OFF` excluded) | — |
+| (a) False positives, severity `error` | 0 in total (`fixture-de-test` verdicts and `likely` findings excluded) | — |
+| (a) `error` findings with confidence `likely` | counted separately, with their reason (table below) | — |
 | (a) False positives, `warning`/`info` | ≤ 1/3 of the non-systematic `X-*` `warning`/`info` findings, 3 repositories together | — |
 | (a) and (b) Gaps with the expected findings | each one recorded below | — |
 | "Protected" or equivalent shown wrongly | 0 | — |
@@ -25,6 +26,13 @@ Aggregated results only (document 07, section 7.1; spec 16, section 2.3). No fil
 | Pilot n°1 (pseudonymized) | Nuxt + Laravel | — | real workstation config | — | — | — |
 | — | NestJS | — | empty `CLAUDE_CONFIG_DIR` | — | — | — |
 | — | Python | — | empty `CLAUDE_CONFIG_DIR` | — | — | — |
+
+Claude Code version, pinned and identical for the 3 audits: —
+
+## `error` findings with confidence `likely`
+
+| Repository | Code | Path or source | Reason |
+|---|---|---|---|
 
 ## Expected findings (written before the run)
 
