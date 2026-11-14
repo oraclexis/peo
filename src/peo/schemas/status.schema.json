@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peo.dev/schemas/status.schema.json",
+  "title": "PEO status (data of peo status [--exposure] --json)",
+  "description": "Findings of spec 15 sections 6 and 7. No string carries a value read from a secret file, an agent config or a canary (NF14): evidence holds paths, key names and rules as written. data.inventory is defined by inventory.schema.json.",
+  "$defs": {
+    "code": {
+      "enum": [
+        "S-BACKBONE-CONFLICT",
+        "S-CATALOG-EXPIRED",
+        "S-DEGRADED-INVENTORY",
+        "S-DOCS-DRIFT",
+        "S-GATE-BYPASS",
+        "S-GATE-MATCHER-STALE",
+        "S-GATE-OVERRIDE",
+        "S-HOOK-FOREIGN",
+        "S-HOOK-UNDECLARED",
+        "S-INSTALLED-UNCONFIGURED",
+        "S-LOCK-MISSING",
+        "S-MANAGED-MODIFIED",
+        "S-PLUGIN-ERROR",
+        "S-PREREQ",
+        "S-VERSION-DRIFT",
+        "X-CANARY-MISSED",
+        "X-CANARY-UNVERIFIABLE",
+        "X-DATA-READABLE",
+        "X-DATA-STORE",
+        "X-HOOK-FAIL-OPEN",
+        "X-LITERAL-IN-AGENT-CONFIG",
+        "X-MASKING-DUPLICATE",
+        "X-MCP-UNEVALUATED",
+        "X-NO-SECRET-SCAN",
+        "X-SANDBOX-FALLBACK",
+        "X-SANDBOX-OFF",
+        "X-SECRET-READABLE",
+        "X-SECRET-TRACKED"
+      ]
+    },
+    "source_id": {
+      "type": "string",
+      "pattern": "^(settings:(managed|managed-other|cli|local|project|user)|settings:managed\\.d(/#[0-9]+)?|mcp:(managed|local|project|user)|claude|plugin:#[0-9]+|plugin:\\*)$"
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "code",
+        "confidence",
+        "evidence",
+        "message",
+        "severity",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "severity": {
+          "enum": [
+            "error",
+            "warning",
+            "info"
+          ]
+        },
+        "status": {
+          "enum": [
+            "applied",
+            "skipped"
+          ]
+        },
+        "confidence": {
+          "enum": [
+            "fact",
+            "likely"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "description": "One line. Never says protected (spec 15 section 7)."
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "path": {
+          "type": "string",
+          "description": "Project-relative path, / separator; a folder ends with /."
+        },
+        "source": {
+          "$ref": "#/$defs/source_id"
+        },
+        "rule": {
+          "type": "string",
+          "description": "Permission rule as written in the source (spec 14 section 3.5)."
+        },
+        "reason": {
+          "enum": [
+            "bare-tool",
+            "case-only",
+            "untested-scope",
+            "untested-form",
+            "source-unreadable"
+          ]
+        },
+        "suggested_rule": {
+          "type": "string",
+          "pattern": "^Read\\(\\./[^()]+\\)$"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "required": [
+    "findings",
+    "inventory",
+    "limits",
+    "rules_evaluated"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "inventory": {
+      "type": "object",
+      "description": "inventory.schema.json (spec 14 section 3.2)."
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      },
+      "description": "S-* findings, sorted by code, path, source."
+    },
+    "rules_evaluated": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/code"
+      },
+      "description": "Sorted codes evaluated in this run (the Etape column of spec 15)."
+    },
+    "limits": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "L-DISCOVERY-DEPTH",
+          "L-GREP-GLOB",
+          "L-LAUNCH-ROOT",
+          "L-MCP-APPROVAL",
+          "L-SETTINGS-CLI",
+          "L-SETTINGS-MANAGED-OTHER"
+        ]
+      },
+      "description": "Sorted; what this run could not see (spec 15 section 7.4)."
+    },
+    "exposure": {
+      "type": "object",
+      "required": [
+        "findings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          },
+          "description": "X-* findings, sorted by code, path, source."
+        }
+      }
+    }
+  }
+}

@@ -60,7 +60,7 @@ Avant le calcul de `plan_id`, le Planner lit la vue observée de l'Inventory (se
 
 ## 3. Inventory (F3)
 
-Révisé le 2026-11-14 (R2). L'Inventory décrit la configuration Claude Code réellement en place pour un projet sur la machine courante : hooks, permissions, sandbox, serveurs MCP et plugins, dans toutes les portées que PEO peut lire. Il n'écrit rien, ne persiste rien (ni `.peo/inventory.json`, ni `profile.json`), ne calcule ni constat ni valeur effective (R3 fusionne : scalaire = portée la plus forte ; listes = union, selon la précédence de la spec 10 §5, « Réglages Claude Code »). Ne sont pas lus : les outils CLI installés (`Adapter.detect`, R5, section 4.2), les dépendances de dev (E6, `present_tools` de Discovery), Spec Kit (`discovery/detect.toml`), les chemins `sandbox.filesystem.denyRead` et le compte des règles de permission par outil (reportés en R3, avec le premier constat qui les lit), le repli par `extraKnownMarketplaces` (retiré), les réglages d'approbation des serveurs MCP de projet (`enabledMcpjsonServers`, `disabledMcpjsonServers`, `enableAllProjectMcpServers`), l'inventaire Codex (E7, H23), les images Docker d'un serveur MCP lancé par `docker run`.
+Révisé le 2026-11-14 (R2). L'Inventory décrit la configuration Claude Code réellement en place pour un projet sur la machine courante : hooks, permissions, sandbox, serveurs MCP et plugins, dans toutes les portées que PEO peut lire. Il n'écrit rien, ne persiste rien (ni `.peo/inventory.json`, ni `profile.json`), ne calcule ni constat ni valeur effective (R3 fusionne : scalaire = portée la plus forte ; listes = union, selon la précédence de la spec 10 §5, « Réglages Claude Code »). Ne sont pas lus : les outils CLI installés (`Adapter.detect`, R5, section 4.2), les dépendances de dev (E6, `present_tools` de Discovery), Spec Kit (`discovery/detect.toml`), les chemins `sandbox.filesystem.denyRead` et le compte des règles de permission par outil (aucun constat de R3 ne les lit, décision du 2026-11-14), le repli par `extraKnownMarketplaces` (retiré), les réglages d'approbation des serveurs MCP de projet (`enabledMcpjsonServers`, `disabledMcpjsonServers`, `enableAllProjectMcpServers`), l'inventaire Codex (E7, H23), les images Docker d'un serveur MCP lancé par `docker run`.
 
 ### 3.1 Sources, portées, états
 
@@ -190,13 +190,55 @@ Limite : `interpolated` n'est pas une garantie (`sk-abc${SUFFIXE}`) ; ce cas rel
 
 ### 3.4 Consommateurs, « actif », vues, limites
 
-**Consommateurs** : `peo status` et l'audit d'exposition (R3, spec 15 §6 et §7) lisent la vue observée ; le Selector (R4, spec 13 §8.1) ne lit que `declared()` ; le Planner (R5) lit la vue observée pour le veto de la section 2.4 ; `Adapter.detect` de `claude-plugin` (section 4.2) lit la section 3.1.
+**Consommateurs** : `peo status` et l'audit d'exposition (R3, spec 15 §6 et §7) lisent la vue observée, et l'audit passe les règles `deny` au matcher de la section 3.5 ; le Selector (R4, spec 13 §8.1) ne lit que `declared()` ; le Planner (R5) lit la vue observée pour le veto de la section 2.4 ; `Adapter.detect` de `claude-plugin` (section 4.2) lit la section 3.1.
 
 **Actif** (définition unique, utilisée par H27, les capacités exclusives et les constats) : un plugin est actif quand son entrée de source `claude` porte `enabled: true` (valeur déjà fusionnée par Claude Code). En mode dégradé, l'activation se déduit des entrées `enabledPlugins` par la même précédence (calcul fait en R3/R5 ; un `false` local l'emporte sur un `true` user, spec 10 §5). Un serveur MCP est actif quand il figure dans une source lue : c'est une borne haute, puisque les réglages d'approbation ne sont pas lus (R5 devra les lire avant d'appliquer le veto à un serveur MCP).
 
 **Deux vues (H27).** La **vue observée** est toute la sortie ; elle dépend de la machine. Les **déclarations suivies du projet** sont celles que rend `declared()` (section 3.2). Exemple : `.claude/settings.json` suivi déclare `"superpowers@x": false` et la portée user l'active ; le projet l'emporte, l'entrée `claude` porte `enabled: false`, le plugin n'est pas actif, pas de veto.
 
 **Risques acceptés** : S7, un secret alphanumérique placé dans un nom passe la grammaire (NF14 autorise les noms) ; S16b, le contenu de `permission_rules[].rule` recopie ce que l'utilisateur a écrit comme chemin ou domaine (aucun motif ne sépare un chemin d'un secret) ; S23, `interpolated` peut cacher une partie de secret (Gitleaks, R3) ; S24, un `claude --version` lent passe pour une absence. **Hypothèses sans test en R2** : S20, `claude plugin list` n'accède pas au réseau (probable, spec 10 §5 ; l'appelant peut passer un Runner à délai court) ; S28, `git ls-files` lancé dans un dépôt non fiable n'exécute pas de code (`core.fsmonitor`) ; même exposition que Discovery, à traiter pour les deux.
+
+### 3.5 Couverture d'un chemin par les règles `Read` (`peo.inventory.claude_rules`, ajout du 2026-11-14, R3)
+
+Fonction pure, dans `src/peo/inventory/claude_rules.py`. `inventory()` ne l'appelle jamais ; l'audit d'exposition (`exposure.py`, spec 15 §7) l'appelle pour chaque chemin de `sensitive`. Elle ne lit aucun fichier, ne lance aucune commande et n'appelle ni `Path.home()` ni `os.getcwd()` : l'appelant lui passe tout.
+
+**Contrat** : `covers(path, rules, sources, project_root, home) -> Verdict`.
+
+- `path` : chemin relatif à la racine du projet, séparateur `/`, tel que Discovery le produit ; un dossier se termine par `/`.
+- `rules` : les entrées `permission_rules` de l'Inventory dont `list = "deny"` (section 3.2) ; `sources` : les sources de l'Inventory, pour la portée de chaque règle.
+- `project_root`, `home` : chemins absolus, fournis par l'appelant.
+- `Verdict` : `{ "verdict": "covered" | "not_covered" | "undecidable", "reason": <énumération> | null, "rule": <règle telle qu'écrite> | null, "source": <id de source> | null }`. Avec plusieurs règles, `covered` l'emporte, puis `undecidable` ; `rule` et `source` citent la première règle décisive dans l'ordre des `permission_rules`.
+
+**Formes reconnues comme couvrantes.** Seules les formes confirmées par le spike du 2026-11-14 (tableau de conformité [conformance/claude-rules.json](conformance/claude-rules.json), Claude Code 2.1.325) donnent `covered` :
+
+| Forme (règle `Read(<motif>)`) | Ancrage du motif | Cas du tableau |
+|---|---|---|
+| `./p`, ou `p` contenant un `/` | racine du projet | `dot-exact`, `bare-relative` |
+| `/p` | racine du projet (pas le dossier `.claude/`) | `slash-anchor`, `slash-anchor-claude-dir` |
+| `//p` | racine du système de fichiers | `double-slash-abs` |
+| `~/p` | `home` | `tilde` |
+| `n` sans `/` | nom comparé à chaque segment, à toute profondeur | `bare-name-at-depth`, `bare-name-at-root` |
+
+Correspondance par **segments**, à la manière de gitignore : `**` vaut zéro ou plusieurs segments ; `*`, `?` et `[...]` ne valent qu'à l'intérieur d'un segment (`fnmatch.fnmatchcase` appliqué à **un** segment, jamais au chemin entier : un `*` ne traverse jamais `/`). Un motif qui correspond à un **dossier parent** du chemin couvre tout ce qu'il contient, avec ou sans `/` final (`dir-no-slash`, `dir-trailing-slash`, `dir-doublestar`, `dir-star-direct`, `dir-star-nested`, `doublestar-name`, `question-mark`, `brackets`). Une règle `deny` couvre quelles que soient les règles `allow` et `ask` (`allow-specific-vs-deny`) et le mode de permission (`bypass-mode`).
+
+**Portées.** Règles lues dans `settings:project` et `settings:local` (`local-scope`) : toutes les formes ci-dessus. Règles d'autres portées (user, managed) : seules `//p` et `~/p`, qui ne dépendent pas de la portée, donnent `covered` ; les autres formes donnent `undecidable`, raison `untested-scope`.
+
+**`undecidable`** (raisons, énumération fermée) :
+
+| Raison | Cas |
+|---|---|
+| `bare-tool` | Règle `Read` sans parenthèses : le fichier n'est pas lu, mais par une erreur, pas par un refus (cas `bare-tool`, et `bare-tool-deny-only` sans règle `allow`) |
+| `case-only` | Le motif ne correspond qu'en ignorant la casse ; observé `covered` sur macOS (`case-differs`), pas encore joué sous Linux |
+| `untested-scope` | Forme relative ou `/p` dans une portée autre que projet ou local |
+| `untested-form` | Motif contenant `..`, `${`, un `\`, une accolade, ou que la grammaire ci-dessus ne lit pas |
+
+Les verdicts `undecidable` ne sont **jamais** lus comme `covered` : l'appelant émet le constat (spec 15 §7.1). Un motif plus large que ce que le matcher sait lire donne au pire un faux « non couvert » (constat de trop), jamais un faux « couvert ».
+
+**Limite constante** : le verdict suppose que Claude Code est lancé depuis la racine du projet. Lancé depuis un sous-dossier, même une règle `//p` du projet ne s'applique pas (cas `cwd-subfolder`, `cwd-subfolder-abs` : les réglages de la racine ne sont pas chargés). L'audit le déclare par la limite `L-LAUNCH-ROOT` (spec 15 §7.4). Grep et Glob ne sont pas couverts par le tableau (outils différés en 2.1.325) : limite `L-GREP-GLOB`.
+
+**Passages à jouer** (décision du 2026-11-14) : un passage sous Linux, dans un conteneur dont le système de fichiers distingue la casse (tableau `conformance/claude-rules.linux.json`), et le cas `bare-tool-deny-only`. `case-only` et `bare-tool` restent `undecidable` tant que ces passages n'ont pas été joués et versionnés ; les promouvoir en `covered` demande une modification de cette section.
+
+**Tableau de conformité.** `conformance/claude-rules.json` (macOS) est produit par `tools/spike_claude_rules.py`, joué à la main (jamais en CI), avec des faux fichiers dans un dossier temporaire : chemins remplacés par `<root>`, `<home>` et `<root-name>`, aucun contenu de fichier, version de `claude` et date enregistrées. Il est rejoué par le test A3.12 (spec 16). Un changement de version majeure de Claude Code, ou un écart signalé, impose de rejouer le spike avant de modifier le matcher.
 
 ## 4. Adaptateurs
 

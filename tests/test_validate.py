@@ -14,7 +14,8 @@ SPEC = ROOT / "docs" / "design" / "spec" / "schemas"
 GOLDEN = ROOT / "tests" / "golden" / "fx-split-stack"
 PREFIX_TO_SCHEMA = [("profile", "profile"), ("selection", "selection"), ("plan", "plan"),
                     ("lock", "lock"), ("history", "history-event"), ("peo.", "peo-config"),
-                    ("tool.", "tool-entry"), ("inventory", "inventory")]
+                    ("tool.", "tool-entry"), ("inventory", "inventory"),
+                    ("status", "status")]
 
 
 def schema_for(name):
@@ -148,7 +149,7 @@ def test_a2_6_validation_is_deterministic():
 
 def test_a2_6_every_shipped_schema_loads():
     names = sorted(p.name.removesuffix(".schema.json") for p in (ROOT / "src" / "peo" / "schemas").glob("*.schema.json"))
-    assert len(names) == 8
+    assert len(names) == 9
     for name in names:
         assert isinstance(load_schema(name), Schema)
 

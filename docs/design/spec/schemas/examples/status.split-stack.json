@@ -1,0 +1,400 @@
+{
+  "exposure": {
+    "findings": [
+      {
+        "code": "X-DATA-STORE",
+        "confidence": "fact",
+        "evidence": [
+          "docker-compose.yml services.db image postgres:16"
+        ],
+        "message": "Compose service db runs a database: let the agent work on test data only (anonymized copy, read-only role)",
+        "severity": "info",
+        "status": "applied"
+      },
+      {
+        "code": "X-LITERAL-IN-AGENT-CONFIG",
+        "confidence": "fact",
+        "evidence": [
+          ".mcp.json mcpServers.github args"
+        ],
+        "message": "Tracked .mcp.json: server github has credentials in an argument (url-userinfo); value not shown",
+        "severity": "error",
+        "source": "mcp:project",
+        "status": "applied"
+      },
+      {
+        "code": "X-MCP-UNEVALUATED",
+        "confidence": "fact",
+        "evidence": [
+          "claude plugin 0 mcp 0 serena"
+        ],
+        "message": "MCP server serena (plugin 0, index 0) is not described by the catalog: what it reads is not evaluated",
+        "severity": "info",
+        "source": "claude",
+        "status": "applied"
+      },
+      {
+        "code": "X-MCP-UNEVALUATED",
+        "confidence": "fact",
+        "evidence": [
+          "mcp:project 0 github"
+        ],
+        "message": "MCP server github (index 0) is not described by the catalog: what it reads is not evaluated",
+        "severity": "info",
+        "source": "mcp:project",
+        "status": "applied"
+      },
+      {
+        "code": "X-NO-SECRET-SCAN",
+        "confidence": "fact",
+        "evidence": [
+          "no CI file"
+        ],
+        "message": "No CI job runs a known secret scanner (recognized: gitleaks)",
+        "severity": "warning",
+        "status": "applied"
+      },
+      {
+        "code": "X-SANDBOX-FALLBACK",
+        "confidence": "fact",
+        "evidence": [
+          "settings:managed sandbox.enabled true",
+          "sandbox.failIfUnavailable absent",
+          "settings:project deny Read(./backend/.env)"
+        ],
+        "message": "Sandbox enabled without failIfUnavailable=true: commands can run outside it, and Bash can then read backend/.env despite its deny Read rule",
+        "path": "backend/.env",
+        "severity": "warning",
+        "source": "settings:managed",
+        "status": "applied"
+      }
+    ]
+  },
+  "findings": [
+    {
+      "code": "S-HOOK-FOREIGN",
+      "confidence": "fact",
+      "evidence": [
+        "plugin:#0 PreToolUse#0.0"
+      ],
+      "message": "PreToolUse hook of plugin egm@egm: tool outside the catalog",
+      "severity": "info",
+      "source": "plugin:#0",
+      "status": "applied"
+    }
+  ],
+  "inventory": {
+    "claude_version": "2.1.300",
+    "flags": [
+      {
+        "key": "sandbox.enabled",
+        "source": "settings:managed",
+        "value": true
+      }
+    ],
+    "hooks": [
+      {
+        "event": "PostToolUse",
+        "group_index": 0,
+        "hook_index": 0,
+        "matcher": null,
+        "on_failure": null,
+        "source": "settings:project",
+        "type": "http"
+      },
+      {
+        "event": "PreToolUse",
+        "group_index": 0,
+        "hook_index": 0,
+        "matcher": "Edit|Write",
+        "on_failure": "block",
+        "source": "plugin:#0",
+        "type": "command"
+      }
+    ],
+    "mcp_servers": [
+      {
+        "args_hint": "url-userinfo",
+        "index": 0,
+        "name": "github",
+        "plugin_index": null,
+        "source": "mcp:project",
+        "tool_ref": null,
+        "transport": "stdio"
+      },
+      {
+        "args_hint": null,
+        "index": 0,
+        "name": "serena",
+        "plugin_index": 0,
+        "source": "claude",
+        "tool_ref": null,
+        "transport": "stdio"
+      }
+    ],
+    "permission_rules": [
+      {
+        "list": "allow",
+        "rule": "WebFetch(domain:docs.example.test)",
+        "source": "settings:project"
+      },
+      {
+        "list": "deny",
+        "rule": "Read(./backend/.env)",
+        "source": "settings:project"
+      },
+      {
+        "list": "deny",
+        "rule": "Read",
+        "source": "settings:project"
+      }
+    ],
+    "plugins": [
+      {
+        "confidence": "fact",
+        "enabled": true,
+        "error_count": 0,
+        "id": "egm@egm",
+        "index": 0,
+        "scope": "user",
+        "source": "claude"
+      },
+      {
+        "confidence": "fact",
+        "enabled": false,
+        "error_count": 1,
+        "id": null,
+        "index": 1,
+        "scope": "project",
+        "source": "claude"
+      },
+      {
+        "confidence": "fact",
+        "enabled": true,
+        "error_count": 0,
+        "id": "engineering@synced",
+        "index": 2,
+        "scope": "synced",
+        "source": "claude"
+      },
+      {
+        "confidence": "likely",
+        "enabled": true,
+        "error_count": null,
+        "id": "egm@egm",
+        "index": 0,
+        "scope": null,
+        "source": "settings:project"
+      }
+    ],
+    "schema": 1,
+    "sources": [
+      {
+        "id": "settings:managed",
+        "invalid_families": [],
+        "path": "/Library/Application Support/ClaudeCode/managed-settings.json",
+        "reason": null,
+        "scope": "managed",
+        "status": "read",
+        "tracked": null
+      },
+      {
+        "id": "settings:managed.d",
+        "invalid_families": [],
+        "path": null,
+        "reason": null,
+        "scope": "managed",
+        "status": "absent",
+        "tracked": null
+      },
+      {
+        "id": "settings:managed-other",
+        "invalid_families": [],
+        "path": null,
+        "reason": "out-of-scope",
+        "scope": "managed",
+        "status": "not_inspected",
+        "tracked": null
+      },
+      {
+        "id": "settings:cli",
+        "invalid_families": [],
+        "path": null,
+        "reason": "out-of-scope",
+        "scope": "cli",
+        "status": "not_inspected",
+        "tracked": null
+      },
+      {
+        "id": "settings:local",
+        "invalid_families": [
+          "hooks"
+        ],
+        "path": ".claude/settings.local.json",
+        "reason": null,
+        "scope": "local",
+        "status": "read",
+        "tracked": false
+      },
+      {
+        "id": "settings:project",
+        "invalid_families": [
+          "flags"
+        ],
+        "path": ".claude/settings.json",
+        "reason": null,
+        "scope": "project",
+        "status": "read",
+        "tracked": true
+      },
+      {
+        "id": "settings:user",
+        "invalid_families": [],
+        "path": "<user-config>/settings.json",
+        "reason": "json",
+        "scope": "user",
+        "status": "invalid",
+        "tracked": null
+      },
+      {
+        "id": "mcp:managed",
+        "invalid_families": [],
+        "path": "/Library/Application Support/ClaudeCode/managed-mcp.json",
+        "reason": "permission-denied",
+        "scope": "managed",
+        "status": "unavailable",
+        "tracked": null
+      },
+      {
+        "id": "mcp:local",
+        "invalid_families": [],
+        "path": null,
+        "reason": "out-of-scope",
+        "scope": "local",
+        "status": "not_inspected",
+        "tracked": null
+      },
+      {
+        "id": "mcp:project",
+        "invalid_families": [],
+        "path": ".mcp.json",
+        "reason": null,
+        "scope": "project",
+        "status": "read",
+        "tracked": true
+      },
+      {
+        "id": "mcp:user",
+        "invalid_families": [],
+        "path": null,
+        "reason": "out-of-scope",
+        "scope": "user",
+        "status": "not_inspected",
+        "tracked": null
+      },
+      {
+        "id": "claude",
+        "invalid_families": [],
+        "path": null,
+        "reason": null,
+        "scope": null,
+        "status": "read",
+        "tracked": null
+      },
+      {
+        "id": "plugin:#0",
+        "invalid_families": [],
+        "path": "plugin:#0/hooks/hooks.json",
+        "reason": null,
+        "scope": "user",
+        "status": "read",
+        "tracked": null
+      },
+      {
+        "id": "plugin:#1",
+        "invalid_families": [],
+        "path": null,
+        "reason": "disabled",
+        "scope": "project",
+        "status": "not_inspected",
+        "tracked": null
+      },
+      {
+        "id": "plugin:#2",
+        "invalid_families": [],
+        "path": "plugin:#2/hooks/hooks.json",
+        "reason": null,
+        "scope": "synced",
+        "status": "absent",
+        "tracked": null
+      }
+    ],
+    "values": [
+      {
+        "form": "literal",
+        "key": "NODE_ENV",
+        "location": "env",
+        "sensitive_name": false,
+        "source": "settings:project",
+        "value_hint": null
+      },
+      {
+        "form": "interpolated",
+        "key": "Authorization",
+        "location": "hook:PostToolUse#0.0.headers",
+        "sensitive_name": true,
+        "source": "settings:project",
+        "value_hint": null
+      },
+      {
+        "form": "literal",
+        "key": "url",
+        "location": "hook:PostToolUse#0.0.url",
+        "sensitive_name": false,
+        "source": "settings:project",
+        "value_hint": null
+      },
+      {
+        "form": "literal",
+        "key": "GITHUB_TOKEN",
+        "location": "mcp#0.env",
+        "sensitive_name": true,
+        "source": "mcp:project",
+        "value_hint": null
+      },
+      {
+        "form": "reference",
+        "key": "SERENA_TOKEN",
+        "location": "mcp#0/0.env",
+        "sensitive_name": true,
+        "source": "claude",
+        "value_hint": null
+      }
+    ]
+  },
+  "limits": [
+    "L-DISCOVERY-DEPTH",
+    "L-GREP-GLOB",
+    "L-LAUNCH-ROOT",
+    "L-MCP-APPROVAL",
+    "L-SETTINGS-CLI",
+    "L-SETTINGS-MANAGED-OTHER"
+  ],
+  "rules_evaluated": [
+    "S-DEGRADED-INVENTORY",
+    "S-HOOK-FOREIGN",
+    "S-HOOK-UNDECLARED",
+    "S-PLUGIN-ERROR",
+    "X-DATA-READABLE",
+    "X-DATA-STORE",
+    "X-HOOK-FAIL-OPEN",
+    "X-LITERAL-IN-AGENT-CONFIG",
+    "X-MASKING-DUPLICATE",
+    "X-MCP-UNEVALUATED",
+    "X-NO-SECRET-SCAN",
+    "X-SANDBOX-FALLBACK",
+    "X-SANDBOX-OFF",
+    "X-SECRET-READABLE",
+    "X-SECRET-TRACKED"
+  ]
+}

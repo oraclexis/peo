@@ -142,7 +142,7 @@ Précisions du 2026-11-12 (P1.4) : `style = free` sous 80 %, `unknown` sans aucu
 | `docs.agents_md` | booléen |
 | `docs.handoff` | chemin d'un `HANDOFF*.md` s'il existe |
 | `docs.adr` | premier de `docs/adr/`, `docs/decisions/`, `adr/` qui contient un fichier suivi ; valeur = chemin sans `/` final (`docs/adr`), sinon `null` |
-| `intent_from_docs` | Outils dont un nom de `discovery/intents.toml` est cité dans `README*` ou `docs/**/*.md` (comparaison sans casse, mot entier) : `tool` = identifiant de fiche, confiance `likely`, preuve `"<fichier>:<ligne> mentions <nom>"` à la première citation ; un outil une seule fois ; liste triée par `tool`. La table est limitée aux outils du catalogue initial (spec 13 §5) et sera remplacée par les noms des fiches en R3 (précisé le 2026-11-12, P1.5) |
+| `intent_from_docs` | Outils dont un nom de `discovery/intents.toml` est cité dans `README*` ou `docs/**/*.md` (comparaison sans casse, mot entier) : `tool` = identifiant de fiche, confiance `likely`, preuve `"<fichier>:<ligne> mentions <nom>"` à la première citation ; un outil une seule fois ; liste triée par `tool`. La table est limitée aux outils du catalogue initial (spec 13 §5) et sera remplacée par les noms des fiches en R4, avec le Selector (précisé le 2026-11-12, P1.5 ; report de R3 en R4 le 2026-11-14 : le catalogue de R3 n'a que deux fiches, la remplacer ferait perdre des détections) |
 
 ## 6. Dérive documentaire (E2)
 
@@ -191,7 +191,7 @@ Mesures (`metrics`, toujours calculées, coût négligeable) : `commits` (`git r
 
 ## 7 ter. Outils présents (`present_tools`, ajout du 2026-11-12)
 
-Outils du catalogue déjà présents dans le projet sous une autre forme (E6). Jusqu'à R3, les règles de détection viennent de la table provisoire `discovery/detect.toml` (règles `[detect]` des fiches du catalogue initial, spec 13 §5) ; elle sera remplacée par les fiches. Discovery ne détecte que ce qui se lit dans le dépôt : dépendances déclarées (`npm`, `composer`, `pip`) → `via = "dev-dependency"`, preuve `"<manifeste> <section>: <paquet>"` (ex. `package.json devDependencies: @playwright/test`), et fichiers (`files`) → `via = "file"`, preuve = chemin. Les binaires installés relèvent de `Adapter.detect` (R5, spec 14 §4.2) ; les plugins et serveurs MCP, de l'Inventory (R2, spec 14 §3). Discovery ne lit pas l'Inventory (révisé le 2026-11-14). Une entrée par outil et par composant, triée par `ref` puis `component`.
+Outils du catalogue déjà présents dans le projet sous une autre forme (E6). Jusqu'à R4 (report du 2026-11-14), les règles de détection viennent de la table provisoire `discovery/detect.toml` (règles `[detect]` des fiches du catalogue initial, spec 13 §5) ; elle sera remplacée par les fiches. Discovery ne détecte que ce qui se lit dans le dépôt : dépendances déclarées (`npm`, `composer`, `pip`) → `via = "dev-dependency"`, preuve `"<manifeste> <section>: <paquet>"` (ex. `package.json devDependencies: @playwright/test`), et fichiers (`files`) → `via = "file"`, preuve = chemin. Les binaires installés relèvent de `Adapter.detect` (R5, spec 14 §4.2) ; les plugins et serveurs MCP, de l'Inventory (R2, spec 14 §3). Discovery ne lit pas l'Inventory (révisé le 2026-11-14). Une entrée par outil et par composant, triée par `ref` puis `component`.
 
 ## 7 bis. Surfaces sensibles (`sensitive`, ajout du 2026-11-12)
 

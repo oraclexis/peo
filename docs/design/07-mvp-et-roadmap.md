@@ -118,8 +118,9 @@ Raison (document 01, section 9) : Discovery et Inventory sont à construire de t
 | **R0** | Décisions H20 à H26 consignées ; spec modifiée (spec 10, 12, 13, 15, schémas) dans une PR séparée | — | — | Spec relue et acceptée |
 | **R1** | Discovery (P1 en cours) + signaux de surfaces sensibles **sans valeurs** | F1 | R0 | Fichier attendu de `fx-split-stack` enrichi ; test « aucune valeur » au vert |
 | **R2** | Inventory Claude Code : hooks par événement avec propriétaire et `onFailure`, permissions, sandbox, MCP | F3 | R1 | Chaque hook lu est listé avec sa source et `on_failure` ; une valeur littérale d'une clé sensible de `.mcp.json` est classée `literal` sans être émise ; une source illisible a un état explicite (la comparaison aux fiches passe en R3) |
-| **R3** | `peo status --exposure [--ci] [--canary]` + catalogue initial réduit aux fiches qu'il consomme (Gitleaks, Semgrep, réglages natifs) | F2 (partiel), F11 | R2 | **Jalon A′** (mesures ci-dessous) |
-| **R4** | Selector + questionnaire, avec les capacités `privacy.*`, `secrets.*`, `exposure.native` | F4, F5 | R3 | Déterministe ; refuse deux outils `privacy.masking` |
+| **R3** | `peo status [--exposure] [--ci]` avec le jeu de règles R3 (spec 15, colonne « Étape ») ; catalogue réduit à `ci-check:gitleaks` et `peo:native-controls` ; matcher des règles `Read` (spec 14 §3.5), précédé du spike de conformité (révisé le 2026-11-14) | F2 (partiel), F11 (partiel), F14 | R2 | **Jalon A′** (mesures ci-dessous) |
+| **R3.1** | `--canary` (spec 15 §7.2), après vérification de `gitleaks dir` et `detected_exit` sur la version épinglée | F14 | R3 | A14.4, A14.5 ; hors jalon A′ |
+| **R4** | Selector + questionnaire, catalogue complet (dont `ci-check:semgrep`, et les fiches qui remplacent `discovery/detect.toml` et `intents.toml`), avec les capacités `privacy.*`, `secrets.*`, `exposure.native` | F4, F5 | R3 | Déterministe ; refuse deux outils `privacy.masking` |
 | **R5** | Planner, installeurs, adaptateur Claude (dont le bloc `permissions` et sandbox), lock, journal, doc générée | F6 à F9 | R4 | Idempotent ; tout affaiblissement d'un contrôle marqué dans le plan |
 | **R6** | Porte + recette `feature`, `peo status --ci` complet | F10, F11 | R5 | Ancien jalon MVP (section 6) |
 | Ensuite | `peo tools` complet, fiche Cloakroom (après spike S5), Inventory Codex (E7), recettes supplémentaires, catalogue partagé, portabilité, socles alternatifs | F12, F13, ex-P6 à P10 | R6 | Selon la demande |
@@ -128,14 +129,27 @@ Correspondance avec l'ancienne feuille de route (section 4) : R1 à R3 = P1 éla
 
 ### 7.1 Mesures du jalon A′
 
+Révisé le 2026-11-14. Trois dépôts de stacks différentes, prises en charge par Discovery : le pilote n°1 (Nuxt + Laravel), puis un dépôt NestJS et un dépôt Python open source, chacun à un commit fixé. Critères de choix des dépôts open source : `.env.example`, `docker-compose` avec une base, une CI ; si possible `.claude/`, `CLAUDE.md` ou `.mcp.json` versionnés ; actif, licence permissive, 10 000 à 100 000 lignes.
+
+**Mesure (a), actionnabilité.** Sur le clone **non modifié** de chaque dépôt open source et sur le pilote, tel qu'il est sur le poste. Un constat est **actionnable** quand le propriétaire du dépôt changerait quelque chose en le lisant. `X-MCP-UNEVALUATED` et `X-DATA-STORE`, systématiques, ne comptent pas. Verdict par constat : `actionnable`, `faux positif` ou `déjà connu`.
+
+**Mesure (b), fidélité A/B.** Sur une copie de chaque dépôt open source : état A = clone + `.env` copié de l'exemple, valeurs factices générées ; état B = A + réglages Claude réalistes (`deny Read(./.env)`, sandbox actif sans `failIfUnavailable`). On vérifie qu'un constat apparaît dans A et disparaît ou reste dans B comme prévu. Ces constats sont créés par construction : ils ne comptent **jamais** comme actionnables.
+
+Les constats attendus de (a) et (b) sont écrits dans `docs/dogfooding.md` **avant** l'exécution. Chaque audit tourne avec un `CLAUDE_CONFIG_DIR` vide, pour que les réglages de l'auditeur ne faussent rien.
+
 | Mesure | Seuil de succès |
 |---|---|
-| Dépôts réels audités | 3, de stacks différentes |
-| Constats actionnables par dépôt | ≥ 1 |
+| Dépôts audités | 3 : le pilote n°1 et 2 dépôts open source à un commit fixé |
+| (a) Constats actionnables | ≥ 1 sur chacun des 3 dépôts **[PROPOSÉ]** |
+| (a) Faux positifs de gravité `error` | 0 au total **[PROPOSÉ]** |
+| (a) Faux positifs `warning` et `info` non systématiques | ≤ 1/3 au total **[PROPOSÉ]** |
+| (a) et (b) Écarts avec les constats prévus | tout écart est consigné **[PROPOSÉ]** |
 | Constat « protégé » ou équivalent affiché à tort | 0 |
-| Valeur sensible présente dans une sortie de PEO | 0 (test par fixture leurre) |
-| Durée de `peo status --exposure` sans `--canary` | < 5 s |
+| Valeur sensible présente dans une sortie de PEO | 0 (test par fixture leurre, A14.2, et test local A′, spec 16 §2.3) |
+| Durée de `peo status --exposure` sans `--canary` | < 5 s (NF3) |
 | Accès réseau sans `--canary` | 0 (test NF5) |
+
+Deux fichiers (décision du 2026-11-14). **`docs/dogfooding.md`, versionné, agrégé seulement** : dépôts open source nommés avec leur SHA, pilote n°1 pseudonymisé (comptes agrégés, spec 16 §2.2), constats prévus, verdicts, durées et tailles, seuils. **Journal brut `docs/dogfooding.local.md`**, local, exclu par `.git/info/exclude`. Aucun fichier ni sortie brute des dépôts audités n'est versionné.
 
 ### 7.2 Hors périmètre ajouté
 
