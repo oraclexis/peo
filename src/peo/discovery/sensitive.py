@@ -109,7 +109,10 @@ def sensitive(root: Path, tracked: list[str], services: list[Service]) -> dict:
         path = PurePosixPath(f)
         is_dump = any(fnmatch.fnmatchcase(path.name, p) for p in DUMP_PATTERNS)
         if is_dump and "migrations" not in path.parts[:-1]:
-            size = (root / f).stat().st_size
+            try:
+                size = (root / f).stat().st_size
+            except OSError:   # broken symbolic link or file gone: nothing to protect
+                continue
             dumps.append({"path": f, "tracked": f in tracked_set, "bytes": size})
     log_dirs = [{"path": d, "tracked": any(t.startswith(d + "/") for t in tracked)}
                 for d in dirs if PurePosixPath(d).name in LOG_DIRS]   # storage/logs included

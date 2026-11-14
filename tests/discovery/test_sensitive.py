@@ -132,6 +132,12 @@ def test_sens_data_dumps(tmp_path):
                                                  {"path": "dump.sql", "tracked": False, "bytes": 10}]
 
 
+
+def test_sens_data_dumps_broken_link_ignored(tmp_path):
+    write(tmp_path, {"dump.sql": "x"})
+    (tmp_path / "gone.sql").symlink_to("missing.sql")
+    assert sensitive(tmp_path)["data_dumps"] == [{"path": "dump.sql", "tracked": False, "bytes": 1}]
+
 def test_sens_log_dirs(tmp_path):
     write(tmp_path, {"logs/a.log": "x", "api/log/x": "x", "storage/logs/b.log": "x"})
     assert sensitive(tmp_path, run=tracked("logs/a.log"))["log_dirs"] == [

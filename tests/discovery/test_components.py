@@ -193,6 +193,11 @@ def test_backend_kind(tmp_path):
     assert disc(tmp_path)["components"][0]["kind"] == "backend"
 
 
+def test_flask_is_a_server_stack(tmp_path):
+    write(tmp_path, {"pyproject.toml": '[project]\nname = "x"\ndependencies = ["flask>=3"]\n'})
+    assert disc(tmp_path)["components"][0]["kind"] == "backend"
+
+
 def test_python_dependencies(tmp_path):
     write(tmp_path, {"pyproject.toml": '[project]\nname = "x"\ndependencies = ["FastAPI>=0.110", "Django==5.0"]\n'
                                        '[dependency-groups]\ndev = ["pytest>=8"]\n'})
