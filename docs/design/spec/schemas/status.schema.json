@@ -23,6 +23,7 @@
         "S-VERSION-DRIFT",
         "X-CANARY-MISSED",
         "X-CANARY-UNVERIFIABLE",
+        "X-COVERAGE-NOT-SHARED",
         "X-DATA-READABLE",
         "X-DATA-STORE",
         "X-HOOK-FAIL-OPEN",
@@ -97,16 +98,37 @@
         },
         "reason": {
           "enum": [
-            "bare-tool",
-            "case-only",
+            "symlink",
+            "untested-version",
             "untested-scope",
             "untested-form",
+            "case-only",
+            "bare-tool",
             "source-unreadable"
-          ]
+          ],
+          "description": "First applicable in this order (spec 14 section 3.5); the others go to evidence."
         },
         "suggested_rule": {
           "type": "string",
-          "pattern": "^Read\\(\\./[^()]+\\)$"
+          "pattern": "^Read\\(\\./[^()*?\\[\\]{}]+\\)$",
+          "description": "Omitted when the path holds a pattern character or a parenthesis (spec 15 section 7.1)."
+        },
+        "plugin_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     }
@@ -129,14 +151,14 @@
       "items": {
         "$ref": "#/$defs/finding"
       },
-      "description": "S-* findings, sorted by code, path, source."
+      "description": "S-* findings, sorted by code, path, source, plugin_index, index, evidence."
     },
     "rules_evaluated": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/code"
       },
-      "description": "Sorted codes evaluated in this run (the Etape column of spec 15)."
+      "description": "Sorted codes evaluated in this run: the rule set of this PEO version (Etape column of spec 15)."
     },
     "limits": {
       "type": "array",
@@ -144,10 +166,13 @@
         "enum": [
           "L-DISCOVERY-DEPTH",
           "L-GREP-GLOB",
+          "L-HTTP-HOOK",
           "L-LAUNCH-ROOT",
           "L-MCP-APPROVAL",
+          "L-MCP-LOCAL-USER",
           "L-SETTINGS-CLI",
-          "L-SETTINGS-MANAGED-OTHER"
+          "L-SETTINGS-MANAGED-OTHER",
+          "L-SYMLINK-DIR"
         ]
       },
       "description": "Sorted; what this run could not see (spec 15 section 7.4)."
@@ -164,7 +189,7 @@
           "items": {
             "$ref": "#/$defs/finding"
           },
-          "description": "X-* findings, sorted by code, path, source."
+          "description": "X-* findings, same order."
         }
       }
     }

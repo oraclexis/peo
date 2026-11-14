@@ -273,7 +273,11 @@
       }
     ],
     "data_dumps": [],
-    "log_dirs": []
+    "log_dirs": [],
+    "walk": {
+      "depth_pruned": false,
+      "linked_dirs": []
+    }
   },
   "intent_from_docs": [
     {

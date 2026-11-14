@@ -155,15 +155,15 @@ Voir document 11, section 4.3. Contenu : identifiant du travail, piste, étape, 
 
 ## 6. `peo status` (F11)
 
-La colonne **Étape** (ajout du 2026-11-14, R3) fait foi pour le jeu de règles : un code n'est évalué qu'à partir de l'étape indiquée (document 07, section 7). Un code d'une étape non atteinte **n'est pas évalué** : il n'apparaît ni dans les constats ni dans `rules_evaluated`. `skipped` reste réservé à un code évalué dont le contexte est inapplicable (CI, source illisible).
+La colonne **Étape** (ajout du 2026-11-14, R3) fait foi pour le jeu de règles. L'étape est une propriété de la **version de PEO** (jeu de règles embarqué), pas un état du projet : la version qui livre R3 évalue les codes marqués R3, et ainsi de suite (document 07, section 7). Un code d'une étape non livrée **n'est pas évalué** : il n'apparaît ni dans les constats ni dans `rules_evaluated`. `skipped` reste réservé à un code évalué que l'état d'une source empêche de calculer (principe ci-dessous).
 
 | Code | Sévérité | Étape | Constat |
 |---|---|---|---|
 | `S-LOCK-MISSING` | error | R5 | Outil du lock absent de l'inventaire |
 | `S-VERSION-DRIFT` | warning | R5 | Version installée différente de la version du lock |
 | `S-PLUGIN-ERROR` | error | R3 | `errors` non vide dans `claude plugin list --json` |
-| `S-HOOK-UNDECLARED` | warning | R3 | Hook actif dont le propriétaire est un outil dont la fiche ne le déclare pas dans `surface.hooks`. En R3, seules les fiches du catalogue R3 (spec 13, section 5) sont rapprochées |
-| `S-HOOK-FOREIGN` | info | R3 | Hook actif d'un outil hors catalogue |
+| `S-HOOK-UNDECLARED` | warning | R4 | Hook actif dont le propriétaire est un outil dont la fiche ne le déclare pas dans `surface.hooks` (il lit les fiches, chargées à partir de R4) |
+| `S-HOOK-FOREIGN` | info | R3 | Hook actif d'un propriétaire hors catalogue. Propriétaire (précisé le 2026-11-14) : le plugin pour un hook de plugin ; **la source** (`settings:project`, `settings:local`…) pour un hook écrit dans un fichier de réglages. En R3, sans catalogue chargé, tout hook actif est concerné |
 | `S-MANAGED-MODIFIED` | warning | R5 | Bloc ou clé possédé modifié à la main |
 | `S-CATALOG-EXPIRED` | warning | R4 | Fiche d'un outil actif dont `review_by` est dépassé |
 | `S-BACKBONE-CONFLICT` | error | R5 | Socle alternatif activé à côté du socle du projet (il lit les fiches de socle et le socle retenu) |
@@ -171,51 +171,54 @@ La colonne **Étape** (ajout du 2026-11-14, R3) fait foi pour le jeu de règles 
 | `S-GATE-BYPASS` | error (`--ci`) | R6 | Fichiers de code modifiés sur la branche par rapport à la base, sans les portes `before_code` du travail |
 | `S-GATE-OVERRIDE` | warning | R6 | `flow override` utilisé sur le travail |
 | `S-DOCS-DRIFT` | info | R6 | Nouveaux constats D1 à D4 (il compare à un état précédent, que `status` ne garde pas avant R6) |
-| `S-DEGRADED-INVENTORY` | warning | R3 | Mode dégradé de l'Inventory (spec 14 §3.1) : `claude` absent, trop ancien, version illisible, ou `claude plugin list` en échec ou illisible ; inventaire par les fichiers seulement. Le message cite l'état et la raison de la source `claude` (`absent`, `claude-too-old`, `version-unparsed`, `command-failed`, `timeout-or-missing`, `output-unparsed`) |
-| `S-INSTALLED-UNCONFIGURED` | warning | R5 | Installation R3 réussie sans configuration (apply interrompu) |
+| `S-DEGRADED-INVENTORY` | warning | R3 | Mode dégradé de l'Inventory (spec 14 §3.1) : `claude` absent, trop ancien, version illisible, ou `claude plugin list` en échec ou illisible ; inventaire par les fichiers seulement. Le message cite l'état et la raison de la source `claude` (`absent`, `claude-too-old`, `version-unparsed`, `command-failed`, `timeout-or-missing`, `output-unparsed`). Émis aussi quand `claude` est absent, en CI comme ailleurs (précisé le 2026-11-14) |
+| `S-INSTALLED-UNCONFIGURED` | warning | R5 | Installation de classe de risque R3 (spec 14 §2.1) réussie sans configuration (apply interrompu) |
 | `S-PREREQ` | warning | R5 | Prérequis non bloquant toujours non satisfait (ex. `backend/vendor` absent) |
 
-**Forme d'un constat** (ajout du 2026-11-14, R3) : schéma [schemas/status.schema.json](schemas/status.schema.json), exemple [schemas/examples/status.split-stack.json](schemas/examples/status.split-stack.json). Un constat porte `code`, `severity`, `status` (`applied` ou `skipped`), `confidence` (`fact` ou `likely`), `message`, `evidence` (chaînes : chemins, noms de clés, règles telles qu'écrites, jamais une valeur) et, selon le code, `path`, `source`, `rule`, `reason`, `suggested_rule`. Le schéma fait foi. `data.rules_evaluated` est la liste triée des codes évalués (`S-*` et `X-*`) ; avec la version de PEO, elle suffit à rejouer un résultat (pas de numéro de jeu de règles).
+**Forme d'un constat** (ajout du 2026-11-14, R3) : schéma [schemas/status.schema.json](schemas/status.schema.json), exemple [schemas/examples/status.split-stack.json](schemas/examples/status.split-stack.json). Un constat porte `code`, `severity`, `status` (`applied` ou `skipped`), `confidence` (`fact` ou `likely`), `message`, `evidence` (chaînes : chemins, noms de clés, règles telles qu'écrites, jamais une valeur) et, selon le code, `path`, `source`, `rule`, `reason`, `suggested_rule`, et pour un serveur MCP `plugin_index`, `index`, `name`. Le schéma fait foi. `data.rules_evaluated` est la liste triée des codes évalués (`S-*`, et `X-*` avec `--exposure`) ; avec la version de PEO, elle suffit à rejouer un résultat (pas de numéro de jeu de règles).
 
 **Entrées par code** (ajout du 2026-11-14, R3). Un code ne dépend que des sources qu'il lit :
 
-| Code | Lit |
-|---|---|
-| `S-PLUGIN-ERROR` | source `claude` |
-| `S-HOOK-UNDECLARED`, `S-HOOK-FOREIGN` | familles `hooks` et `flags` de chaque source ; fiches |
-| `S-DEGRADED-INVENTORY` | source `claude` |
-| `X-SECRET-TRACKED` | `sensitive.secret_files` (Discovery) |
-| `X-SECRET-READABLE`, `X-DATA-READABLE` | `sensitive` ; famille `permissions` des sources de réglages |
-| `X-LITERAL-IN-AGENT-CONFIG` | familles `values` et `mcp` de `settings:project`, `settings:local`, `mcp:project` |
-| `X-MASKING-DUPLICATE`, `X-HOOK-FAIL-OPEN` | plugins et hooks actifs ; fiches |
-| `X-NO-SECRET-SCAN` | fichiers de CI du dépôt ; lock ; fiches |
-| `X-SANDBOX-OFF`, `X-SANDBOX-FALLBACK` | famille `flags` des sources de réglages ; `sensitive` ; composants |
-| `X-DATA-STORE` | `sensitive.data_stores` |
-| `X-MCP-UNEVALUATED` | famille `mcp` de chaque source ; fiches |
+| Code | Nature | Lit |
+|---|---|---|
+| `S-PLUGIN-ERROR` | risque présent | source `claude` |
+| `S-HOOK-FOREIGN` | risque présent | familles `hooks` et `flags` de chaque source |
+| `S-DEGRADED-INVENTORY` | — | source `claude` |
+| `X-SECRET-TRACKED` | risque présent | `sensitive.secret_files` (Discovery) |
+| `X-SECRET-READABLE`, `X-DATA-READABLE` | contrôle absent | `sensitive` ; famille `permissions` des sources de réglages ; `allowManagedPermissionRulesOnly` |
+| `X-COVERAGE-NOT-SHARED` | contrôle absent | mêmes entrées que `X-SECRET-READABLE` ; `tracked` des sources |
+| `X-LITERAL-IN-AGENT-CONFIG` | risque présent | familles `values` et `mcp` de `settings:project`, `settings:local`, `mcp:project` |
+| `X-NO-SECRET-SCAN` | contrôle absent | fichiers de CI et `.pre-commit-config.yaml` du dépôt ; lock ; `discovery/detect.toml` |
+| `X-SANDBOX-OFF`, `X-SANDBOX-FALLBACK` | contrôle absent | famille `flags` des sources de réglages (valeur effective, spec 14 §3.6) ; `sensitive` ; composants |
+| `X-DATA-STORE` | risque présent | `sensitive.data_stores` |
+| `X-MCP-UNEVALUATED` | risque présent | famille `mcp` de chaque source |
 
-**Effet des états de l'Inventory sur les constats** (spec 14 §3.1 ; ajout du 2026-11-14, R2 ; précisé le 2026-11-14, R3). L'effet s'applique **source par source**, seulement aux codes qui lisent la source :
+**Principe unique pour les sources illisibles** (ajout du 2026-11-14, R3 ; remplace l'exception de couverture). L'effet dépend de la nature du code :
+
+- **Code de contrôle absent** (`X-SECRET-READABLE`, `X-DATA-READABLE`, `X-COVERAGE-NOT-SHARED`, `X-SANDBOX-OFF`, `X-SANDBOX-FALLBACK`) : **jamais `skipped`** à cause d'une source. Le code est calculé sur les sources lisibles. Si une source illisible pourrait porter le contrôle (une règle `deny`, un réglage du sandbox), et qu'aucune source lisible ne le porte, le constat est émis en confiance `likely`, `reason = "source-unreadable"`, et cite la source illisible dans `evidence`. Une valeur scalaire `unknown` (spec 14 §3.6) compte comme contrôle absent.
+- **Code de risque présent** (`S-PLUGIN-ERROR`, `S-HOOK-FOREIGN`, `X-LITERAL-IN-AGENT-CONFIG`, `X-MCP-UNEVALUATED`) : les sources lisibles donnent leurs constats ; chaque source illisible qu'il lit donne **une** entrée `skipped`, avec `source` et sans `path`.
+
+État d'une source et effet (spec 14 §3.1) :
 
 | État de la source | Effet sur les constats |
 |---|---|
 | `read` | applicable |
 | `absent` | applicable pour un fichier : l'absence de réglage est un fait (aucun hook, aucune règle). Pour la source `claude` : mode dégradé (`S-DEGRADED-INVENTORY`) |
-| `invalid` | `skipped` pour les codes qui lisent cette source |
-| `unavailable` | `skipped` |
-| `not_inspected`, raison `out-of-scope` (`settings:cli`, `settings:managed-other`, par construction) | **ni `skipped` ni applicable** : la source est hors de portée de PEO sur toute machine. Le code est calculé sur les autres sources, et la limite figure dans `data.limits` (section 7.4). Sans cette règle, `X-SECRET-READABLE` serait `skipped` partout |
-| `not_inspected`, autres raisons | `skipped` ; sauf raison `disabled` : les hooks d'un plugin désactivé ne s'exécutent pas, les constats sur ses hooks ne s'appliquent pas |
-| famille nommée dans `invalid_families` | même effet que `invalid`, limité aux codes qui lisent cette famille pour cette source |
-
-**Exception pour les codes de couverture** (`X-SECRET-READABLE`, `X-DATA-READABLE`) : une source de réglages `invalid` ou `unavailable`, ou dont la famille `permissions` est invalide, ne rend pas le code `skipped`. Le matcher tourne sur les autres sources ; un verdict autre que `covered` donne un constat de confiance `likely`, `reason = "source-unreadable"`, qui cite la source illisible (une règle peut s'y trouver). Un `skipped` à cet endroit cacherait le constat principal de l'audit.
+| `invalid`, `unavailable` | source illisible : principe ci-dessus |
+| `not_inspected`, raison `out-of-scope` (toute source ayant cette raison : `settings:cli`, `settings:managed-other`, `mcp:local`, `mcp:user`) | hors de portée de PEO sur toute machine : la source est sautée, sans `skipped` ni `likely`, et la limite figure dans `data.limits` (section 7.4) |
+| `not_inspected`, raison `disabled` | les hooks d'un plugin désactivé ne s'exécutent pas : les constats sur ses hooks ne s'appliquent pas |
+| `not_inspected`, autres raisons (dont `not-provided`, `degraded`) | source illisible : principe ci-dessus |
+| famille nommée dans `invalid_families` | source illisible pour cette famille seulement |
 
 **Drapeaux de hooks.** Pour les constats de hooks (`S-HOOK-*`, `S-GATE-*`, `X-HOOK-FAIL-OPEN`) : si `disableAllHooks` (selon sa portée, spec 10 §5) ou `allowManagedHooksOnly` (lu en managed seulement) rend un hook inerte, le constat le dit. PEO ne dit jamais qu'un hook « s'exécutera » : la source `settings:cli` (`--settings`, `--bare`, `--safe-mode`) est toujours `not_inspected`.
 
-`--ci` : code 3 si au moins un `error`. En CI, l'inventaire des plugins est sauté (pas de Claude Code) : seuls les constats sur fichiers, lock, catalogue et portes s'appliquent ; les autres sont `skipped`.
+`--ci` : code 3 si au moins un `error`. Le mode CI n'est pas détecté (supprimé le 2026-11-14) : sans Claude Code, la source `claude` est `absent`, le tableau ci-dessus s'applique et `S-DEGRADED-INVENTORY` est émis.
 
 Base de comparaison pour `S-GATE-BYPASS` : variable `PEO_BASE_REF`, sinon `CI_MERGE_REQUEST_TARGET_BRANCH_NAME` (GitLab) ou `GITHUB_BASE_REF` (GitHub), sinon `main`.
 
 ## 7. Audit d'exposition (F14, ajout du 2026-11-12)
 
-`peo status --exposure` ajoute aux constats de la section 6 les constats `X-*` ci-dessous. Entrées (précisé le 2026-11-14, R3) : section `sensitive` d'un profil calculé **en mémoire** par Discovery à chaque appel (spec 12, section 7 bis ; `.peo/profile.json` n'est jamais lu : un profil périmé donnerait un faux négatif sur `X-SECRET-READABLE`, et le fichier peut décrire un autre arbre), Inventory (spec 14, section 3 ; vue observée), lock (vide jusqu'en R5) et catalogue. L'effet des états de source et des familles invalides est celui de la section 6. Lecture seule, sans réseau (NF5), sans valeur dans la sortie (NF14), sans cache. Durée : NF3. Gravités fixes (S-8) ; `--ci` : code 3 si au moins un `error`.
+`peo status --exposure` ajoute aux constats de la section 6 les constats `X-*` ci-dessous. Entrées (précisé le 2026-11-14, R3) : section `sensitive` d'un profil calculé **en mémoire** par Discovery à chaque appel avec `--exposure` (spec 12, section 7 bis ; `.peo/profile.json` n'est jamais lu : un profil périmé donnerait un faux négatif sur `X-SECRET-READABLE`, et le fichier peut décrire un autre arbre), Inventory (spec 14, section 3 ; vue observée), tableaux de `conformance/` (spec 14 §3.5), lock (vide jusqu'en R5) et `discovery/detect.toml` (le catalogue n'est pas chargé avant R4). L'effet des états de source est celui de la section 6. Lecture seule, sans réseau dans le processus de PEO (NF5), sans valeur dans la sortie (NF14), sans cache. Durée : NF3. Gravités fixes (S-8) ; `--ci` : code 3 si au moins un `error`.
 
 **Règle de formulation** : un constat décrit un contrôle présent ou absent et sa limite. Aucun message ne dit qu'une donnée est « protégée » (document 17, section 4). Une absence de constat n'est pas une garantie : `data.limits` (section 7.4) dit ce que l'audit n'a pas pu voir.
 
@@ -224,31 +227,30 @@ Base de comparaison pour `S-GATE-BYPASS` : variable `PEO_BASE_REF`, sinon `CI_ME
 | Code | Sévérité | Étape | Constat |
 |---|---|---|---|
 | `X-SECRET-TRACKED` | error | R3 | Fichier de `secret_files` suivi par git |
-| `X-SECRET-READABLE` | error | R3 | Fichier de `secret_files` sans règle `permissions.deny` `Read(...)` qui le couvre, dans aucune portée lue. Verdict du matcher (spec 14, section 3.5) : `not_covered` → constat, confiance `fact` ; `undecidable` → constat, confiance `likely`, `reason` et règle en cause cités, **jamais `skipped`** ; `covered` → pas de constat. Le constat propose `suggested_rule = "Read(./<chemin exact>)"` |
-| `X-LITERAL-IN-AGENT-CONFIG` | error | R3 | Sur une source du projet (`settings:project`, `settings:local`, `mcp:project`) avec `tracked: true`, une entrée de `values` avec `form = literal` et (`sensitive_name` ou `value_hint` non nul), ou une entrée de `mcp_servers` avec `args_hint` non nul (spec 14 §3.3, seule définition). `tracked: null` sur une source du projet donne `skipped` ; les sources user et managed ne sont pas visées. Le message cite le fichier et la clé (ou le serveur), jamais la valeur |
-| `X-MASKING-DUPLICATE` | error | R3 | Deux outils actifs dont la fiche a `surface.data_path = "rewrites-io"`. En R3, aucune fiche du catalogue n'a cette valeur : le code ne se déclenche que sur le catalogue de test |
-| `X-DATA-READABLE` | warning | R3 | Entrée de `data_dumps` ou de `log_dirs` sans règle `deny` qui la couvre, même matcher et mêmes verdicts que `X-SECRET-READABLE` ; pour un dossier, `suggested_rule = "Read(./<dossier>/**)"` |
-| `X-NO-SECRET-SCAN` | warning | R3 | Aucun fournisseur de `secrets.scan.ci` dans le lock, et aucun job de CI ne mentionne un scanner connu du catalogue. Jusqu'en R5, les fournisseurs du lock sont l'ensemble vide : seule la seconde branche compte. Mécanisme : section 7.1 bis. Le message dit quels scanners sont reconnus (R3 : `gitleaks` seulement) |
-| `X-SANDBOX-OFF` | warning | R3 | `secret_files` ou `data_stores` non vide et `sandbox.enabled` absent ou faux. **`info`** si un composant a `runtime = docker:<service>` (le sandbox casserait ses commandes, S-9). Le message liste aussi les fichiers de `secret_files` couverts par une règle `deny Read` : sans sandbox, l'outil Bash les lit quand même (spike du 2026-11-14, spec 10 §5) |
-| `X-SANDBOX-FALLBACK` | warning | R3 | Sandbox actif avec `failIfUnavailable` différent de `true` ou `allowUnsandboxedCommands` différent de `false` : repli possible hors sandbox. Même liste de fichiers couverts par `deny Read` que `X-SANDBOX-OFF` : hors sandbox, Bash les lit |
+| `X-SECRET-READABLE` | error | R3 | Fichier de `secret_files` sans règle `permissions.deny` `Read(...)` qui le couvre, dans aucune portée lue. Verdict du matcher (spec 14, section 3.5) : `not_covered` → constat, confiance `fact` ; `undecidable` → constat, confiance `likely`, `reason`, `rule` et `source` de la règle en cause, **jamais `skipped`** ; `covered` → pas de constat (voir `X-COVERAGE-NOT-SHARED`). Le constat propose `suggested_rule = "Read(./<chemin exact>)"`, sauf si le chemin contient un caractère de motif (`*`, `?`, `[`, `]`, `{`, `}`) ou une parenthèse : pas de suggestion, le message dit d'écrire la règle à la main |
+| `X-COVERAGE-NOT-SHARED` | warning | R3 | Chemin de `secret_files`, `data_dumps` ou `log_dirs` dont le verdict est `covered`, mais dont la règle décisive (spec 14 §3.5, étape 5) ne vient pas d'une source `settings:project` avec `tracked: true` : la couverture ne voyage pas avec le dépôt (règle locale, utilisateur ou managed, ou fichier projet non suivi). Cite le chemin, la règle et la portée décisive. Ajout du 2026-11-14 |
+| `X-LITERAL-IN-AGENT-CONFIG` | error | R3 | Sur une source du projet (`settings:project`, `settings:local`, `mcp:project`) avec `tracked: true`, une entrée de `values` avec `form = literal` et (`sensitive_name` ou `value_hint` non nul), ou une entrée de `mcp_servers` avec `args_hint` non nul (spec 14 §3.3, seule définition). Un constat par entrée en cause. `tracked: null` sur une source du projet donne `skipped` ; les sources user et managed ne sont pas visées. Le message cite le fichier et la clé (ou le serveur), jamais la valeur |
+| `X-MASKING-DUPLICATE` | error | R4 | Deux outils actifs dont la fiche a `surface.data_path = "rewrites-io"` (il lit les fiches ; reporté de R3 le 2026-11-14 : aucun outil réel ne le déclenche sans catalogue) |
+| `X-DATA-READABLE` | warning | R3 | Entrée de `data_dumps` ou de `log_dirs` sans règle `deny` qui la couvre, même matcher et mêmes verdicts que `X-SECRET-READABLE` ; `log_dirs` est passé avec `is_dir` ; pour un dossier, `suggested_rule = "Read(./<dossier>/**)"`, mêmes exclusions |
+| `X-NO-SECRET-SCAN` | warning | R3 | Aucun fournisseur de `secrets.scan.ci` dans le lock, et aucun scanner connu trouvé dans les fichiers de CI ni dans `.pre-commit-config.yaml`. Jusqu'en R5, les fournisseurs du lock sont l'ensemble vide : seule la seconde branche compte. Mécanisme : section 7.1 bis. Le message dit quels scanners sont reconnus (R3 : jetons `gitleaks` et `Secret-Detection`) |
+| `X-SANDBOX-OFF` | warning | R3 | `secret_files` ou `data_stores` non vide et `sandbox.enabled` absent, faux ou `unknown` (valeur effective, spec 14 §3.6). Si un composant a `runtime = docker:<service>` (le sandbox casserait ses commandes, S-9) : **`warning`** si `secret_files` est non vide, **`info`** sinon (révisé le 2026-11-14). Le message liste les fichiers de `secret_files` couverts par une règle `deny Read` : sans sandbox, l'outil Bash les lit quand même (spike du 2026-11-14, spec 10 §5). Avec un composant docker, il recommande le sandbox avec `sandbox.excludedCommands = ["docker"]`, et sa limite : une commande `docker compose exec` lit le dossier monté par le démon Docker, hors des règles de Claude Code |
+| `X-SANDBOX-FALLBACK` | warning | R3 | Sandbox actif avec `failIfUnavailable` différent de `true` ou `allowUnsandboxedCommands` différent de `false` (valeurs effectives ; `unknown` compte comme différent) : repli possible hors sandbox. Même liste de fichiers couverts par `deny Read` que `X-SANDBOX-OFF` : hors sandbox, Bash les lit |
 | `X-DATA-STORE` | info | R3 | Entrée de `data_stores` : rappel que l'agent ne doit travailler que sur des données de test (base anonymisée, rôle en lecture seule) |
-| `X-MCP-UNEVALUATED` | info | R3 | Serveur MCP dont `tool_ref` est `null` (hors catalogue), ou dont la fiche a `data_path = "reads-sensitive"` ; cité par (`source`, `plugin_index`, `index`) et par `name` s'il n'est pas `null`. En R3, aucune fiche du catalogue ne décrit un serveur MCP : le code se déclenche sur **tout** serveur MCP |
-| `X-HOOK-FAIL-OPEN` | info | R3 | Hook d'un outil `data_path = "rewrites-io"` sans `onFailure: "block"`. Comme `X-MASKING-DUPLICATE`, catalogue de test seulement en R3 |
+| `X-MCP-UNEVALUATED` | info | R3 | Serveur MCP dont `tool_ref` est `null` (hors catalogue), ou dont la fiche a `data_path = "reads-sensitive"` ; cité par `source`, `plugin_index`, `index` et `name` s'il n'est pas `null`. En R3, sans catalogue chargé, le code se déclenche sur **tout** serveur MCP lu |
+| `X-HOOK-FAIL-OPEN` | info | R4 | Hook d'un outil `data_path = "rewrites-io"` sans `onFailure: "block"` (il lit les fiches ; reporté de R3 le 2026-11-14) |
 | `X-CANARY-MISSED` | error | R3.1 | `--canary` : un détecteur installé n'a pas détecté le canari |
 | `X-CANARY-UNVERIFIABLE` | warning | R3.1 | `--canary` : commande absente, en échec pour une autre raison, ou fiche avec `surface.network = "runtime"` (non lancée) |
 
-« Couvre » est défini en un seul endroit : le matcher de la spec 14, section 3.5 (remplace le 2026-11-14 la définition par correspondance de motifs). Une règle `deny` de portée utilisateur compte, mais le constat le précise : elle ne voyage pas avec le dépôt. `sandbox.filesystem.denyRead` ne compte pas comme couverture : le sandbox ne couvre pas l'outil Read (document 17, section 3.5).
+« Couvre » est défini en un seul endroit : le matcher de la spec 14, section 3.5 (remplace le 2026-11-14 la définition par correspondance de motifs). Une règle `deny` hors d'un `settings:project` suivi compte, mais `X-COVERAGE-NOT-SHARED` le signale. `sandbox.filesystem.denyRead` ne compte pas comme couverture : le sandbox ne couvre pas l'outil Read (document 17, section 3.5).
 
-En CI (pas de Claude Code, pas de `.env`), seuls les constats calculables sur les fichiers suivis s'appliquent ; les autres sont `skipped`.
+### 7.1 bis Mécanisme de `X-NO-SECRET-SCAN` (ajout du 2026-11-14, R3 ; simplifié après la revue Goldfish)
 
-### 7.1 bis Mécanisme de `X-NO-SECRET-SCAN` (ajout du 2026-11-14, R3)
+1. Fichiers lus, comme texte, ligne par ligne, sans analyse YAML : `.gitlab-ci.yml`, **tous** les `.github/workflows/*.yml` et `*.yaml` suivis par git (pas seulement `ci.file` de Discovery), et `.pre-commit-config.yaml`.
+2. Lignes exclues : commentaires (`#` en début de ligne, après les espaces) ; lignes qui ne sont qu'une clé (`gitleaks:`) ; valeur d'une clé `name:` sans `/` (nom de job ou d'étape ; une valeur avec `/` est une référence d'image, lue, sans suivre l'indentation).
+3. Jetons : champ `ci` des entrées de `discovery/detect.toml` (R3 ; il passe dans `[detect]` des fiches en R4), comparés sans casse et en mot entier (bornes : début, fin, ou caractère hors `[A-Za-z0-9_-]`). R3 : `ci = ["gitleaks", "Secret-Detection"]` pour `ci-check:gitleaks`. Reconnus, par exemple : `run: gitleaks detect --redact`, `uses: gitleaks/gitleaks-action@v2`, `image: zricethezav/gitleaks:latest`, `name: ghcr.io/gitleaks/gitleaks:v8` dans un bloc `image:` (valeur avec `/`), `- template: Jobs/Secret-Detection.gitlab-ci.yml`, `id: gitleaks` dans `.pre-commit-config.yaml`.
+4. Un jeton trouvé → pas de constat ; aucun → constat, preuve = fichiers lus. Aucun fichier → constat, preuve `"no CI file"`.
 
-1. Fichiers lus : `.gitlab-ci.yml` et **tous** les `.github/workflows/*.yml` et `*.yaml` suivis par git (pas seulement `ci.file` de Discovery), lus comme texte, ligne par ligne, sans analyse YAML.
-2. Lignes retenues : la valeur d'une clé `run:` ou `script:` (sur la même ligne, ou bloc indenté qui la suit, y compris les éléments de liste de `script:`), la valeur d'une clé `uses:` (action GitHub), et l'image d'un job GitLab : valeur de `image:` sur la même ligne, ou de `name:` dans un bloc `image:`. Les `services:` ne sont pas lus : un service tourne à côté du job et n'analyse pas le dépôt. Commentaires (`#` en début de ligne) exclus.
-3. Jetons : champ optionnel `[detect].ci` des fiches (spec 13, section 4), comparés sans casse et en mot entier (bornes : début, fin, ou caractère hors `[A-Za-z0-9_-]`). Exemple : `ci = ["gitleaks"]` reconnaît `run: gitleaks detect --redact`, `uses: gitleaks/gitleaks-action@v2`, `image: zricethezav/gitleaks:latest` et `image: ghcr.io/gitleaks/gitleaks:v8` (le `/` borne le mot).
-4. Un jeton trouvé → pas de constat ; aucun → constat, preuve = fichiers lus. Aucun fichier de CI → constat, preuve `"no CI file"`.
-
-Limite écrite dans le message : seuls les scanners dont une fiche porte `[detect].ci` sont reconnus ; un autre scanner, ou un appel par script intermédiaire (`make scan`), donne un faux positif.
+Limites écrites dans le message : seuls les scanners dont une entrée porte `ci` sont reconnus ; un autre scanner, ou un appel par script intermédiaire (`make scan`), donne un faux positif. Faux négatif accepté : une ligne qui ne fait que citer le jeton (`run: echo "TODO gitleaks"`) supprime le constat.
 
 ### 7.2 Canari (`--canary`, étape R3.1)
 
@@ -265,17 +267,22 @@ Résultat par outil : `detected`, `missed` ou `unverifiable`. La sortie standard
 
 ### 7.3 Sortie
 
-`data` de `peo status [--exposure] --json` (schéma [schemas/status.schema.json](schemas/status.schema.json)) : `inventory` (spec 14, section 3.2), `findings` (constats `S-*`), `rules_evaluated`, `limits` et, avec `--exposure`, `exposure` : `{ "findings": [constats X-*] }`, plus `canary` à partir de R3.1 : liste `{ "tool": "<ref>", "path": "<binaire résolu>", "result": "detected|missed|unverifiable" }` triée par `tool`. Constats triés par `code`, puis `path`, puis `source`.
+`data` de `peo status [--exposure] --json` (schéma [schemas/status.schema.json](schemas/status.schema.json)) : `inventory` (spec 14, section 3.2), `findings` (constats `S-*`), `rules_evaluated`, `limits` et, avec `--exposure`, `exposure` : `{ "findings": [constats X-*] }`, plus `canary` à partir de R3.1 : liste `{ "tool": "<ref>", "path": "<binaire résolu>", "result": "detected|missed|unverifiable" }` triée par `tool`. Constats triés par `code`, `path`, `source`, `plugin_index`, `index`, puis `evidence` (ordre lexicographique de la liste) : l'ordre est total.
 
 ### 7.4 Limites déclarées (`data.limits`, ajout du 2026-11-14, R3)
 
-Liste triée de codes fixes : ce que l'audit n'a pas pu voir sur cette exécution. Une limite n'est pas un constat (pas de gravité, pas d'effet sur `--ci`).
+Liste triée de codes fixes : ce que l'audit n'a pas pu voir sur cette exécution. Une limite n'est pas un constat (pas de gravité, pas d'effet sur `--ci`). Une limite n'est émise que quand elle s'applique à l'exécution (révisé le 2026-11-14).
 
-| Limite | Quand | Sens |
+| Limite | Émise quand | Sens |
 |---|---|---|
-| `L-LAUNCH-ROOT` | toujours avec `--exposure` | Un verdict `covered` ne vaut que si Claude Code est lancé depuis la racine du projet : lancé depuis un sous-dossier, les réglages de la racine ne sont pas chargés (spike du 2026-11-14) |
+| `L-LAUNCH-ROOT` | au moins un verdict `covered` | Un verdict `covered` ne vaut que si Claude Code est lancé depuis la racine du projet : lancé depuis un sous-dossier, les réglages de la racine ne sont pas chargés (spike du 2026-11-14) |
+| `L-GREP-GLOB` | au moins un verdict `covered` | La couverture des outils Grep et Glob par une règle `deny Read` n'est pas vérifiée (spike : outils différés en 2.1.325) |
 | `L-SETTINGS-CLI` | toujours | `settings:cli` (`--settings`, `--bare`, `--safe-mode`) n'est jamais lu |
-| `L-SETTINGS-MANAGED-OTHER` | toujours | Réglages managed hors des emplacements connus (MDM, registre) non lus |
-| `L-GREP-GLOB` | avec `--exposure` | La couverture des outils Grep et Glob par une règle `deny Read` n'est pas vérifiée (spike : outils différés en 2.1.325) |
-| `L-DISCOVERY-DEPTH` | avec `--exposure` | Fichiers sensibles cherchés jusqu'à la profondeur 3, hors exclusions fixes (spec 12, section 1) : un secret plus profond n'est pas audité |
+| `L-SETTINGS-MANAGED-OTHER` | toujours | Réglages managed hors des emplacements connus (MDM, registre, profil) non lus |
+| `L-MCP-LOCAL-USER` | toujours, avec `--exposure` | Serveurs MCP des portées local et user (`~/.claude.json`, écrits par défaut par `claude mcp add`) non lus : `X-MCP-UNEVALUATED` ne les voit pas |
 | `L-MCP-APPROVAL` | un serveur MCP de projet est lu | Les réglages d'approbation des serveurs MCP de projet ne sont pas lus : « actif » est une borne haute (spec 14 §3.4) |
+| `L-DISCOVERY-DEPTH` | le parcours de Discovery a coupé à la profondeur 3 (`sensitive.walk.depth_pruned`, spec 12, section 7 bis) | Un fichier sensible plus profond n'est pas audité |
+| `L-SYMLINK-DIR` | le parcours a rencontré un dossier lié non suivi (`sensitive.walk.linked_dirs` non vide) | Les fichiers sous un dossier lié ne sont pas audités ; les dossiers sont cités dans la sortie humaine |
+| `L-HTTP-HOOK` | un hook actif de type `http` est lu | Un hook `http` envoie des données hors du poste ; sa destination n'est pas auditée (URL jamais lue, NF14) |
+
+Angle mort sans code (ajout du 2026-11-14) : les réglages managed distribués par le serveur (console d'administration) ne sont lisibles par aucun fichier du poste. PEO ne peut ni les lire ni savoir s'ils existent.

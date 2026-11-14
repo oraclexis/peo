@@ -1,0 +1,24 @@
+{
+  "exposure": {
+    "findings": [
+      {
+        "code": "X-SECRET-READABLE",
+        "confidence": "fact",
+        "evidence": [
+          "no deny rule"
+        ],
+        "message": "backend/.env: no deny rule covers it",
+        "path": "backend/.env",
+        "severity": "error",
+        "status": "applied",
+        "suggested_rule": "Read(backend/.env)"
+      }
+    ]
+  },
+  "findings": [],
+  "inventory": {},
+  "limits": [],
+  "rules_evaluated": [
+    "X-SECRET-READABLE"
+  ]
+}

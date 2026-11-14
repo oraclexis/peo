@@ -209,7 +209,8 @@
               "sandbox.failIfUnavailable",
               "sandbox.allowUnsandboxedCommands",
               "disableAllHooks",
-              "allowManagedHooksOnly"
+              "allowManagedHooksOnly",
+              "allowManagedPermissionRulesOnly"
             ]
           },
           "value": {

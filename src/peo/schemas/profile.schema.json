@@ -359,6 +359,13 @@
                   "type": "string",
                   "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
                 }
+              },
+              "link_target": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Present only when path is a symbolic link: resolved target relative to the project root, null when it is outside (spec 12 section 7 bis)."
               }
             },
             "required": [
@@ -414,6 +421,13 @@
               "bytes": {
                 "type": "integer",
                 "minimum": 0
+              },
+              "link_target": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Present only when path is a symbolic link: resolved target relative to the project root, null when it is outside (spec 12 section 7 bis)."
               }
             },
             "required": [
@@ -434,6 +448,13 @@
               },
               "tracked": {
                 "type": "boolean"
+              },
+              "link_target": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Present only when path is a symbolic link: resolved target relative to the project root, null when it is outside (spec 12 section 7 bis)."
               }
             },
             "required": [
@@ -442,6 +463,26 @@
             ],
             "additionalProperties": false
           }
+        },
+        "walk": {
+          "type": "object",
+          "required": [
+            "depth_pruned",
+            "linked_dirs"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "depth_pruned": {
+              "type": "boolean"
+            },
+            "linked_dirs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "What the sensitive walk did not visit (spec 12 section 7 bis, spec 15 section 7.4)."
         }
       },
       "required": [

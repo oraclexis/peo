@@ -15,9 +15,26 @@
         "code": "X-LITERAL-IN-AGENT-CONFIG",
         "confidence": "fact",
         "evidence": [
+          ".mcp.json mcp#0.env GITHUB_TOKEN"
+        ],
+        "index": 0,
+        "message": "Tracked .mcp.json: key GITHUB_TOKEN of server github holds a literal value; value not shown",
+        "name": "github",
+        "plugin_index": null,
+        "severity": "error",
+        "source": "mcp:project",
+        "status": "applied"
+      },
+      {
+        "code": "X-LITERAL-IN-AGENT-CONFIG",
+        "confidence": "fact",
+        "evidence": [
           ".mcp.json mcpServers.github args"
         ],
+        "index": 0,
         "message": "Tracked .mcp.json: server github has credentials in an argument (url-userinfo); value not shown",
+        "name": "github",
+        "plugin_index": null,
         "severity": "error",
         "source": "mcp:project",
         "status": "applied"
@@ -26,9 +43,12 @@
         "code": "X-MCP-UNEVALUATED",
         "confidence": "fact",
         "evidence": [
-          "claude plugin 0 mcp 0 serena"
+          "claude plugin 0 mcp#0 serena"
         ],
-        "message": "MCP server serena (plugin 0, index 0) is not described by the catalog: what it reads is not evaluated",
+        "index": 0,
+        "message": "MCP server serena of plugin 0 is not described by the catalog: what it reads is not evaluated",
+        "name": "serena",
+        "plugin_index": 0,
         "severity": "info",
         "source": "claude",
         "status": "applied"
@@ -37,9 +57,23 @@
         "code": "X-MCP-UNEVALUATED",
         "confidence": "fact",
         "evidence": [
-          "mcp:project 0 github"
+          "mcp:managed unavailable permission-denied"
         ],
-        "message": "MCP server github (index 0) is not described by the catalog: what it reads is not evaluated",
+        "message": "MCP servers of mcp:managed not evaluated: file unreadable (permission-denied)",
+        "severity": "info",
+        "source": "mcp:managed",
+        "status": "skipped"
+      },
+      {
+        "code": "X-MCP-UNEVALUATED",
+        "confidence": "fact",
+        "evidence": [
+          "mcp:project mcp#0 github"
+        ],
+        "index": 0,
+        "message": "MCP server github is not described by the catalog: what it reads is not evaluated",
+        "name": "github",
+        "plugin_index": null,
         "severity": "info",
         "source": "mcp:project",
         "status": "applied"
@@ -50,23 +84,41 @@
         "evidence": [
           "no CI file"
         ],
-        "message": "No CI job runs a known secret scanner (recognized: gitleaks)",
+        "message": "No known secret scanner in CI files or .pre-commit-config.yaml (recognized: gitleaks, Secret-Detection)",
         "severity": "warning",
         "status": "applied"
       },
       {
         "code": "X-SANDBOX-FALLBACK",
-        "confidence": "fact",
+        "confidence": "likely",
         "evidence": [
           "settings:managed sandbox.enabled true",
-          "sandbox.failIfUnavailable absent",
-          "settings:project deny Read(./backend/.env)"
+          "settings:project invalid_families flags",
+          "settings:user invalid json"
         ],
-        "message": "Sandbox enabled without failIfUnavailable=true: commands can run outside it, and Bash can then read backend/.env despite its deny Read rule",
-        "path": "backend/.env",
+        "message": "Sandbox enabled (managed) but failIfUnavailable is unknown: settings:project flags and settings:user are unreadable; commands may run outside the sandbox",
+        "reason": "source-unreadable",
         "severity": "warning",
         "source": "settings:managed",
         "status": "applied"
+      },
+      {
+        "code": "X-SECRET-READABLE",
+        "confidence": "likely",
+        "evidence": [
+          "settings:project deny Read(./backend/.env) form dot",
+          "settings:project deny Read: bare-tool",
+          "settings:user invalid json: source-unreadable",
+          "conformance minimum 2.1.325"
+        ],
+        "message": "backend/.env: deny rule Read(./backend/.env) found, but its form is not verified on Claude Code 2.1.300 (table from 2.1.325); write the rule in .claude/settings.json and keep Claude Code up to date",
+        "path": "backend/.env",
+        "reason": "untested-version",
+        "rule": "Read(./backend/.env)",
+        "severity": "error",
+        "source": "settings:project",
+        "status": "applied",
+        "suggested_rule": "Read(./backend/.env)"
       }
     ]
   },
@@ -75,11 +127,55 @@
       "code": "S-HOOK-FOREIGN",
       "confidence": "fact",
       "evidence": [
-        "plugin:#0 PreToolUse#0.0"
+        "plugin:#0 PreToolUse#0.0 command"
       ],
-      "message": "PreToolUse hook of plugin egm@egm: tool outside the catalog",
+      "message": "PreToolUse hook of plugin egm@egm: owner outside the catalog",
       "severity": "info",
       "source": "plugin:#0",
+      "status": "applied"
+    },
+    {
+      "code": "S-HOOK-FOREIGN",
+      "confidence": "fact",
+      "evidence": [
+        "settings:local invalid_families hooks"
+      ],
+      "message": "Hooks of settings:local not evaluated: family hooks invalid",
+      "severity": "info",
+      "source": "settings:local",
+      "status": "skipped"
+    },
+    {
+      "code": "S-HOOK-FOREIGN",
+      "confidence": "fact",
+      "evidence": [
+        "settings:project PostToolUse#0.0 http"
+      ],
+      "message": "PostToolUse http hook written in .claude/settings.json: owner settings:project, outside the catalog",
+      "severity": "info",
+      "source": "settings:project",
+      "status": "applied"
+    },
+    {
+      "code": "S-HOOK-FOREIGN",
+      "confidence": "fact",
+      "evidence": [
+        "settings:user invalid json"
+      ],
+      "message": "Hooks of settings:user not evaluated: file invalid (json)",
+      "severity": "info",
+      "source": "settings:user",
+      "status": "skipped"
+    },
+    {
+      "code": "S-PLUGIN-ERROR",
+      "confidence": "fact",
+      "evidence": [
+        "claude plugin 1 errors 1"
+      ],
+      "message": "Plugin 1 of claude plugin list reports errors; error text not shown",
+      "severity": "error",
+      "source": "claude",
       "status": "applied"
     }
   ],
@@ -373,23 +469,20 @@
     ]
   },
   "limits": [
-    "L-DISCOVERY-DEPTH",
-    "L-GREP-GLOB",
-    "L-LAUNCH-ROOT",
+    "L-HTTP-HOOK",
     "L-MCP-APPROVAL",
+    "L-MCP-LOCAL-USER",
     "L-SETTINGS-CLI",
     "L-SETTINGS-MANAGED-OTHER"
   ],
   "rules_evaluated": [
     "S-DEGRADED-INVENTORY",
     "S-HOOK-FOREIGN",
-    "S-HOOK-UNDECLARED",
     "S-PLUGIN-ERROR",
+    "X-COVERAGE-NOT-SHARED",
     "X-DATA-READABLE",
     "X-DATA-STORE",
-    "X-HOOK-FAIL-OPEN",
     "X-LITERAL-IN-AGENT-CONFIG",
-    "X-MASKING-DUPLICATE",
     "X-MCP-UNEVALUATED",
     "X-NO-SECRET-SCAN",
     "X-SANDBOX-FALLBACK",

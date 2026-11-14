@@ -24,7 +24,7 @@ Conventions des exemples :
 - Les empreintes `sha256` sont au bon format mais **factices** (dérivées d'un libellé), sauf `plan_id` qui est réellement calculé sur les actions de l'exemple selon la règle du document 14 (section 2.2).
 - `plan.split-stack.json` est un **extrait** de 13 actions représentatives (toutes les classes de risque, tous les groupes sauf `mcp`).
 
-`invalid/` contient des contre-exemples qui doivent être rejetés : fiche sans `surface`, fiche sans `review_by`, `runtime` invalide, possession incomplète, autonomie `autonomous` (interdite au MVP, H12), entrée `values` d'Inventory avec un champ `value` (NF14), `[detect].mcp` d'une fiche sous l'ancienne forme de chaînes.
+`invalid/` contient des contre-exemples qui doivent être rejetés : fiche sans `surface`, fiche sans `review_by`, `runtime` invalide, possession incomplète, autonomie `autonomous` (interdite au MVP, H12), entrée `values` d'Inventory avec un champ `value` (NF14), `[detect].mcp` d'une fiche sous l'ancienne forme de chaînes, constat de `status` dont `suggested_rule` n'est pas ancrée par `./`.
 
 ## Vérification
 
@@ -32,4 +32,4 @@ Conventions des exemples :
 python3 check_examples.py .     # nécessite jsonschema (dépendance de développement uniquement)
 ```
 
-Résultat au 2026-11-14 : 10 exemples valides, 7 contre-exemples rejetés pour la seule raison attendue. Contrôles croisés effectués en plus : chacune des 21 fiches apparaît exactement une fois dans la sélection de `fx-split-stack` ; chaque exigence est couverte par un outil retenu ou réutilisé ; `cost_total` égale la somme des coûts.
+Résultat au 2026-11-14 : 10 exemples valides, 8 contre-exemples rejetés pour la seule raison attendue. Contrôles croisés effectués en plus : chacune des 21 fiches apparaît exactement une fois dans la sélection de `fx-split-stack` ; chaque exigence est couverte par un outil retenu ou réutilisé ; `cost_total` égale la somme des coûts.
