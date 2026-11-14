@@ -15,5 +15,6 @@
 - H27: selection reads only the tracked project declarations; the Planner vetoes an alternative backbone or a `privacy.masking` provider active elsewhere (`E_BACKBONE_CONFLICT`, exit 6).
 - Catalog entry schema change: `[detect].mcp` is now an array of `{kind = "package" | "host" | "command", value}` objects instead of strings.
 - Profile schema: `present_tools[].via` is restricted to `dev-dependency` and `file`, the only values Discovery emits.
+- Discovery fixes: a dump that is a broken symbolic link no longer makes `peo discover` fail (it is ignored); `flask` is now listed as a server stack in spec 12, as the code already did.
 - Known debt: `Schema.from_dict` keeps a deep copy of the schema; unit tests for the Go, Rust, JVM, Ruby and `requirements*.txt` manifest readers.
 - CI/CD: `ci`, `release` (GitHub release, PyPI trusted publishing behind a switch), `codeql`, Dependabot; `tools/release.py` for version consistency and release notes.
