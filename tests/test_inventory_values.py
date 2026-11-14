@@ -6,6 +6,7 @@ autouse included.
 
 import json
 import re
+import time
 
 import pytest
 from hypothesis import given
@@ -195,3 +196,12 @@ def test_values_property_no_value_leaks(env, header, arg, url, launcher):
                       values.args_hint(server), entries])
     for secret in (env, header, arg, url):
         assert secret not in out
+
+
+@pytest.mark.parametrize("value", ["a" * 1_048_576, "${a:-" * 200_000, "x://" + "b" * 1_048_576])
+def test_values_linear_on_large_values(value):
+    start = time.perf_counter()
+    values.value_hint(value)
+    values.value_form(value)
+    values.args_hint({"args": [value]})
+    assert time.perf_counter() - start < 1

@@ -188,6 +188,7 @@ def test_a3_3_hooks_cuj3_local_hook(project, fake_run, user_config, managed):
     (Result(127, b"", b""), "absent", None, None),
     (Result(0, b"2.1.284 (Claude Code)\n", b""), "unavailable", "claude-too-old", "2.1.284"),
     (Result(0, b"fixture-not-a-secret-version\n", b""), "unavailable", "version-unparsed", None),
+    (Result(0, b"2.1." + b"9" * 5000 + b"\n", b""), "unavailable", "version-unparsed", None),
     (Result(1, b"fixture-not-a-secret-out", b"fixture-not-a-secret-err"), "unavailable",
      "command-failed", None),
 ])
@@ -269,7 +270,11 @@ def test_a3_5_file_too_large(project, fake_run, user_config, managed, monkeypatc
         def __exit__(self, *exc):
             self.f.close()
 
-    monkeypatch.setattr(pathlib.Path, "open", lambda self, *a, **k: Spy(real_open(self, *a, **k)))
+    def spy_open(self, *a, **k):  # only the settings file: check() also reads the schema
+        f = real_open(self, *a, **k)
+        return Spy(f) if self.name == "settings.json" else f
+
+    monkeypatch.setattr(pathlib.Path, "open", spy_open)
     assert _user_state(fake_run, project(), user_config, managed) == ("invalid", "too-large")
     assert sum(read) <= 1_048_577
 
@@ -873,3 +878,13 @@ def test_hygiene_duration(project, fake_run, user_config, managed, tmp_path):
     out = inv.inventory(root, run=run, user_config=user_config, managed=managed)
     assert time.perf_counter() - start < 1
     check(out)
+
+
+@pytest.mark.parametrize("bad", ["a\u0000b", "\ud800x"])
+def test_a3_5_unreadable_install_path(project, fake_run, user_config, managed, tmp_path, bad):
+    root = project()
+    run = one_plugin(fake_run, root, {"id": "a@b", "scope": "user", "enabled": True,
+                                      "installPath": f"{tmp_path}/{bad}"})
+    out = check(inv.inventory(root, run=run, user_config=user_config, managed=managed))
+    s = source(out, "plugin:#0")
+    assert (s["status"], s["reason"]) == ("unavailable", "read-error")
