@@ -13,7 +13,7 @@ PKG = ROOT / "src" / "peo" / "schemas"
 
 PREFIX_TO_SCHEMA = [("profile", "profile"), ("selection", "selection"), ("plan", "plan"),
                     ("lock", "lock"), ("history", "history-event"), ("peo.", "peo-config"),
-                    ("tool.", "tool-entry")]
+                    ("tool.", "tool-entry"), ("inventory", "inventory")]
 
 
 def schema_for(name: str) -> dict:

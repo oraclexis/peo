@@ -8,7 +8,7 @@ def load(p):
     if p.suffix == ".ndjson": return [json.loads(l) for l in p.read_text().splitlines() if l]
     return [json.loads(p.read_text())]
 def schema_for(name):
-    for k, key in [("profile","profile"),("selection","selection"),("plan","plan"),("lock","lock"),("history","history-event"),("peo.","peo-config"),("tool.","tool-entry")]:
+    for k, key in [("profile","profile"),("selection","selection"),("plan","plan"),("lock","lock"),("history","history-event"),("peo.","peo-config"),("tool.","tool-entry"),("inventory","inventory")]:
         if name.startswith(k): return key
 ok = True
 for sub, expect_valid in [("examples", True), ("invalid", False)]:

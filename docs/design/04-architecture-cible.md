@@ -52,7 +52,7 @@ flowchart TB
 
     CLI --> DIS --> SEL
     CAT --> SEL
-    INV --> SEL
+    INV -- déclarations suivies --> SEL
     SEL --> PLN
     INV --> PLN
     PLN --> INS
@@ -73,8 +73,8 @@ flowchart TB
 |---|---|---|---|---|
 | **Discovery** | Construire le profil du projet | Dépôt, poste | `profile.json` (faits + hypothèses avec niveau de confiance) | Non |
 | **Catalog** | Charger et valider les fiches d'outils | Dépôt du catalogue (versionné) + surcharges locales | Fiches validées | Non |
-| **Inventory** | Lire l'état réel | Settings Claude des trois portées, `.mcp.json`, outils CLI, fichiers | État installé, activé, versions, hooks actifs | Non |
-| **Selector** | Calculer l'ensemble minimal d'outils | Profil + réponses + catalogue + inventaire | État désiré, justifications, alternatives écartées | Non (règles + optimisation) |
+| **Inventory** | Lire l'état réel | Réglages Claude des portées managed, local, project et user, `.mcp.json`, `claude plugin list` | État installé, activé, versions, hooks actifs | Non |
+| **Selector** | Calculer l'ensemble minimal d'outils | Profil + réponses + catalogue + déclarations suivies du projet (H27) | État désiré, justifications, alternatives écartées | Non (règles + optimisation) |
 | **Planner** | Différence désiré / réel → actions ordonnées | État désiré, état réel | Plan (`+ ~ = ! ✗`) | Non |
 | **Installers** | Exécuter une action d'un type donné en déléguant | Une action du plan | Résultat, artefacts possédés | Non |
 | **Composer** | Choisir la recette de processus et ses portes | Socle choisi, voie, profil | Recette, portes, configuration de hooks | Non |
@@ -307,7 +307,7 @@ Quinze composants ont été proposés pour l'architecture cible. Aucun n'est ajo
 | Composant | Extension | Référence |
 |---|---|---|
 | Discovery | Signaux `secret_files` (chemins, noms de variables), `data_stores`, `data_dumps`, `log_dirs`, `agent_configs`. **Aucune valeur** lue n'est conservée | Document 17, section 6.1 |
-| Inventory | Règles de permissions, état et options du sandbox, hooks par événement avec `onFailure`, serveurs MCP (commande, transport), forme des valeurs dans les configs d'agent (littéral ou `${VAR}`) | Document 17, section 6.2 |
+| Inventory | Règles de permissions, état et options du sandbox, hooks par événement avec `onFailure`, serveurs MCP (transport, et `tool_ref` calculé par la fonction `identify` de l'appelant ; spec 14 §3.3), forme des valeurs dans les configs d'agent (littéral ou `${VAR}`) | Document 17, section 6.2 |
 | `peo status` | Option `--exposure` (constats gradués) et `--canary` (vérification active des détecteurs installés, jamais par défaut) | Document 17, sections 6.2 et 6.4 |
 | Catalog | Capacités `exposure.native` (fournie par PEO, comme `process.gates`), `secrets.scan.ci`, `secrets.scan.commit`, `privacy.masking` (exclusive) ; champs de fiche `data_path` et `fail_mode` | Document 05, section 8 |
 | Composer | Bloc possédé de `.claude/settings.json` pour `permissions.deny` et les options du sandbox | Document 17, section 5, couche 1 |

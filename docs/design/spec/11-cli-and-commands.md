@@ -89,7 +89,7 @@ sequenceDiagram
 
 | Commande | Rôle |
 |---|---|
-| `peo status [--ci] [--json]` | Constats de santé (document 15, section 6). `--ci` : code 3 si un constat `error` |
+| `peo status [--ci] [--json]` | Constats de santé (document 15, section 6). `--ci` : code 3 si un constat `error`. `data.inventory` de la sortie JSON est défini par `inventory.schema.json` (spec 14, section 3.2 ; ajout du 2026-11-14, R2 : aucune commande nouvelle en R2) |
 | `peo status --exposure [--canary] [--ci] [--json]` | Ajoute l'audit d'exposition (document 15, section 7) ; `--canary` vérifie les détecteurs installés. Ajout du 2026-11-12 |
 | `peo tools list` | Outils du lock, de la sélection et du catalogue applicable, avec état |
 | `peo tools add REF [--reason TEXT]` | Ajoute un outil : calcule un plan limité (mêmes règles de conflit), puis demande l'accord comme `apply` |

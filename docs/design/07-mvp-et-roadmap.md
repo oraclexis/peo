@@ -2,7 +2,7 @@
 
 > **[RECO]** dans tout le document.
 >
-> **Mise à jour du 2026-11-11** : les critères d'acceptation détaillés sont dans [spec/16-test-plan.md](spec/16-test-plan.md). Changements : F1 couvre aussi la dérive documentaire (E2), les conventions git (E3) et l'environnement d'exécution par composant (E5) ; F3 lit les dépendances de dev (E6) ; un cinquième type d'installeur, `ci-check`, entre au MVP (S-4) ; la question « équipe » est retirée faute de consommateur (spec 13, section 7.2).
+> **Mise à jour du 2026-11-11** : les critères d'acceptation détaillés sont dans [spec/16-test-plan.md](spec/16-test-plan.md). Changements : F1 couvre aussi la dérive documentaire (E2), les conventions git (E3) et l'environnement d'exécution par composant (E5) ; F3 lit les dépendances de dev (E6 ; révisé le 2026-11-14 : F3 ne lit plus ni CLI ni dépendances de dev, qui relèvent de `Adapter.detect` et de `present_tools`) ; un cinquième type d'installeur, `ci-check`, entre au MVP (S-4) ; la question « équipe » est retirée faute de consommateur (spec 13, section 7.2).
 >
 > **Révision du 2026-11-12** : la feuille de route est réordonnée, l'audit d'abord (section 7, décision H20). Les sections 1 à 6 restent la référence pour le contenu des fonctionnalités F1 à F13.
 
@@ -29,7 +29,7 @@ Complexité : S (≤ 2 jours), M (≤ 1 semaine), L (> 1 semaine), pour une pers
 |---|---|---|---|---|---|---|
 | F1 | **Discovery** | Profil du projet sans LLM | P0 | M | — | Sur 5 dépôts de test (Laravel, NestJS, Vue, Python, monorepo), stacks et commandes détectées conformes à un fichier attendu. Chaque information a une provenance et une confiance. < 5 s sur 100 000 lignes |
 | F2 | **Catalogue + validation** | Fiches TOML validées par schéma | P0 | S | — | `peo catalog validate` rejette une fiche sans `surface` ou sans `review_by`. 15 fiches valides |
-| F3 | **Inventory** | État réel des trois portées Claude, MCP, CLI | P0 | M | — | Détecte un plugin activé à la main, un MCP, un outil `uv`. Liste les hooks actifs par événement avec leur propriétaire |
+| F3 | **Inventory** | État réel des portées Claude (managed, local, project, user), MCP, plugins | P0 | M | — | Détecte un plugin activé à la main, un MCP, un outil `uv`. Liste les hooks actifs par événement avec leur propriétaire |
 | F4 | **Questionnaire adaptatif** | Ne demander que l'incertain | P0 | M | F1 | Aucune question sur une information `fact`. Au plus 4 tours. Mode reconfiguration pré-rempli. Fonctionne sans interface de questions (texte) |
 | F5 | **Selector** | Ensemble minimal justifié | P0 | M | F2, F3, F4 | Déterministe (mêmes entrées, même sortie, testé). Aucune paire en conflit. Chaque outil retenu et chaque candidat écarté a une raison. Détecte un socle concurrent déjà installé |
 | F6 | **Planner + Installers** | Plan exact puis application | P0 | L | F5 | Plan affiché avant toute écriture. Idempotent (deuxième `apply` = tout `=`). Sauvegarde avant écriture. Aucune installation système exécutée |
@@ -117,7 +117,7 @@ Raison (document 01, section 9) : Discovery et Inventory sont à construire de t
 |---|---|---|---|---|
 | **R0** | Décisions H20 à H26 consignées ; spec modifiée (spec 10, 12, 13, 15, schémas) dans une PR séparée | — | — | Spec relue et acceptée |
 | **R1** | Discovery (P1 en cours) + signaux de surfaces sensibles **sans valeurs** | F1 | R0 | Fichier attendu de `fx-split-stack` enrichi ; test « aucune valeur » au vert |
-| **R2** | Inventory Claude Code : hooks par événement avec propriétaire et `onFailure`, permissions, sandbox, MCP | F3 | R1 | Détecte un hook non déclaré, une valeur littérale dans `.mcp.json`, un sandbox absent |
+| **R2** | Inventory Claude Code : hooks par événement avec propriétaire et `onFailure`, permissions, sandbox, MCP | F3 | R1 | Chaque hook lu est listé avec sa source et `on_failure` ; une valeur littérale d'une clé sensible de `.mcp.json` est classée `literal` sans être émise ; une source illisible a un état explicite (la comparaison aux fiches passe en R3) |
 | **R3** | `peo status --exposure [--ci] [--canary]` + catalogue initial réduit aux fiches qu'il consomme (Gitleaks, Semgrep, réglages natifs) | F2 (partiel), F11 | R2 | **Jalon A′** (mesures ci-dessous) |
 | **R4** | Selector + questionnaire, avec les capacités `privacy.*`, `secrets.*`, `exposure.native` | F4, F5 | R3 | Déterministe ; refuse deux outils `privacy.masking` |
 | **R5** | Planner, installeurs, adaptateur Claude (dont le bloc `permissions` et sandbox), lock, journal, doc générée | F6 à F9 | R4 | Idempotent ; tout affaiblissement d'un contrôle marqué dans le plan |

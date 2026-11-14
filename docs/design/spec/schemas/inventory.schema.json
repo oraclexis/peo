@@ -1,0 +1,456 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peo.dev/schemas/inventory.schema.json",
+  "title": "PEO inventory (data.inventory of peo status)",
+  "description": "Never written to disk. Every string is an enum, an identifier with a grammar ($defs), or one of two free fields: sources[].path and the text inside permission_rules[].rule.",
+  "$defs": {
+    "source_id": {
+      "type": "string",
+      "pattern": "^(settings:(managed|managed-other|cli|local|project|user)|settings:managed\\.d(/#[0-9]+)?|mcp:(managed|local|project|user)|claude|plugin:#[0-9]+|plugin:\\*)$"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$"
+    },
+    "event": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{1,64}$"
+    },
+    "matcher": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_|*.()^$-]{0,200}$"
+    },
+    "plugin_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,128}(@[A-Za-z0-9._-]{1,128})?$"
+    },
+    "tool_ref": {
+      "type": "string",
+      "pattern": "^(claude-plugin|mcp|cli|vendored-skill|framework|ci-check|rule|peo):[a-z0-9][a-z0-9._-]*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "location": {
+      "type": "string",
+      "pattern": "^(env|mcp#([0-9]+/)?[0-9]+\\.(env|headers|url)|hook:[A-Za-z]{1,64}#[0-9]+\\.[0-9]+\\.(url|headers))$"
+    },
+    "rule": {
+      "type": "string",
+      "pattern": "^((Read|Edit|Write)(\\(.*\\))?|WebFetch(\\(domain:.*\\))?)$"
+    },
+    "url_hint": {
+      "enum": [
+        "url-userinfo",
+        null
+      ]
+    }
+  },
+  "type": "object",
+  "required": [
+    "claude_version",
+    "flags",
+    "hooks",
+    "mcp_servers",
+    "permission_rules",
+    "plugins",
+    "schema",
+    "sources",
+    "values"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "claude_version": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/version"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "invalid_families",
+          "path",
+          "reason",
+          "scope",
+          "status",
+          "tracked"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/source_id"
+          },
+          "scope": {
+            "enum": [
+              "managed",
+              "cli",
+              "local",
+              "project",
+              "user",
+              "synced",
+              "other",
+              null
+            ]
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "read",
+              "absent",
+              "invalid",
+              "unavailable",
+              "not_inspected"
+            ]
+          },
+          "reason": {
+            "enum": [
+              "too-large",
+              "binary",
+              "json",
+              "not-object",
+              "not-regular",
+              "permission-denied",
+              "read-error",
+              "claude-too-old",
+              "version-unparsed",
+              "timeout-or-missing",
+              "command-failed",
+              "output-unparsed",
+              "out-of-scope",
+              "not-provided",
+              "degraded",
+              "disabled",
+              null
+            ]
+          },
+          "tracked": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "invalid_families": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "permissions",
+                "flags",
+                "hooks",
+                "plugins",
+                "mcp",
+                "values"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "permission_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "list",
+          "rule",
+          "source"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "$ref": "#/$defs/source_id"
+          },
+          "list": {
+            "enum": [
+              "allow",
+              "ask",
+              "deny"
+            ]
+          },
+          "rule": {
+            "$ref": "#/$defs/rule"
+          }
+        }
+      }
+    },
+    "flags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "source",
+          "value"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "$ref": "#/$defs/source_id"
+          },
+          "key": {
+            "enum": [
+              "sandbox.enabled",
+              "sandbox.failIfUnavailable",
+              "sandbox.allowUnsandboxedCommands",
+              "disableAllHooks",
+              "allowManagedHooksOnly"
+            ]
+          },
+          "value": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "hooks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "event",
+          "group_index",
+          "hook_index",
+          "matcher",
+          "on_failure",
+          "source",
+          "type"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "$ref": "#/$defs/source_id"
+          },
+          "event": {
+            "$ref": "#/$defs/event"
+          },
+          "matcher": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/matcher"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "command",
+              "http",
+              "mcp_tool",
+              "prompt",
+              "agent",
+              "other"
+            ]
+          },
+          "on_failure": {
+            "enum": [
+              "block",
+              "continue",
+              "other",
+              null
+            ]
+          },
+          "group_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "hook_index": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "confidence",
+          "enabled",
+          "error_count",
+          "id",
+          "index",
+          "scope",
+          "source"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "$ref": "#/$defs/source_id"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "id": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/plugin_id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scope": {
+            "enum": [
+              "managed",
+              "local",
+              "project",
+              "user",
+              "synced",
+              "other",
+              null
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "error_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "confidence": {
+            "enum": [
+              "fact",
+              "likely"
+            ]
+          }
+        }
+      }
+    },
+    "mcp_servers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "args_hint",
+          "index",
+          "name",
+          "plugin_index",
+          "source",
+          "tool_ref",
+          "transport"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "$ref": "#/$defs/source_id"
+          },
+          "plugin_index": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "name": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/name"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "transport": {
+            "enum": [
+              "stdio",
+              "http",
+              "sse",
+              "ws",
+              "streamable-http",
+              "other"
+            ]
+          },
+          "tool_ref": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/tool_ref"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "args_hint": {
+            "$ref": "#/$defs/url_hint"
+          }
+        }
+      }
+    },
+    "values": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "form",
+          "key",
+          "location",
+          "sensitive_name",
+          "source",
+          "value_hint"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "$ref": "#/$defs/source_id"
+          },
+          "location": {
+            "$ref": "#/$defs/location"
+          },
+          "key": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/name"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "form": {
+            "enum": [
+              "reference",
+              "interpolated",
+              "literal",
+              "empty"
+            ]
+          },
+          "sensitive_name": {
+            "type": "boolean"
+          },
+          "value_hint": {
+            "$ref": "#/$defs/url_hint"
+          }
+        }
+      }
+    }
+  }
+}

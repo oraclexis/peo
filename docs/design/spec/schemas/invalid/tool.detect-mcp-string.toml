@@ -1,0 +1,58 @@
+id          = "serena"
+kind        = "mcp"
+name        = "Serena"
+description = "Symbol-level IDE tools through language servers"
+status      = "conditional"
+license     = "GPL-3.0-or-later"
+source      = { repo = "https://github.com/oraios/serena", commit = "6e5c377", checked = "2026-11-11" }
+
+[versions]
+tested = "TBD"
+pin    = true
+
+[capabilities]
+provides = ["nav.symbols"]
+
+[relations]
+requires = ["cli:uv"]
+overlaps = ["claude-plugin:typescript-lsp", "claude-plugin:php-lsp"]
+
+[selection]
+when = { any = ["profile.metrics.loc_total > 50000", "answers['q.refactoring'] == true"], not = ["profile.kind.value == 'new'"] }
+
+[detect]
+mcp = ["serena"]
+
+[surface]
+hooks       = []
+mcp_tools   = 20
+write_tools = ["mcp__serena__replace_symbol_body", "mcp__serena__insert_after_symbol",
+               "mcp__serena__insert_before_symbol", "mcp__serena__rename_symbol",
+               "mcp__serena__safe_delete_symbol", "mcp__serena__replace_content",
+               "mcp__serena__replace_in_files"]
+path_arg    = "relative_path"
+writes      = [".serena/"]
+network     = "none"
+data_path   = "none"
+fail_mode   = "open"
+
+[cost]
+context_static_tokens = 3000
+evidence = "estimate"
+
+[install]
+manager = "uv"
+package = "serena-agent"
+python  = "3.13"
+config  = { mcp = { command = "serena", args = ["start-mcp-server", "--context", "claude-code", "--mode", "no-memories", "--project", "{project_dir}"] } }
+verify  = "serena --version"
+
+[uninstall]
+cli    = "uv tool uninstall serena-agent"
+config = "remove-mcp-entry"
+keep   = [".serena/"]
+
+[notes]
+risks     = ["Replaces Edit with its own write tools: gate matcher must include them", "Do not install through a marketplace (Serena README)"]
+evaluated = "2026-11-11"
+review_by = "2027-02-11"

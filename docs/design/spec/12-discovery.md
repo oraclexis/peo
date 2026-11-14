@@ -11,7 +11,6 @@ Discovery lit le dépôt **sans LLM, sans réseau, sans rien écrire** (sauf `--
 | Manifestes | Table 2.1 | JSON et TOML analysés ; YAML lu par motifs ligne à ligne (pas de bibliothèque YAML, NF1) |
 | Docker | `docker-compose*.yml`, `compose*.yaml` | Seuls `services.<nom>.build.context` et `volumes` (forme courte) sont lus |
 | Documentation | `README*`, `CLAUDE.md`, `AGENTS.md`, `HANDOFF*`, `docs/**/*.md` (200 fichiers au plus, 1 Mo au plus chacun) | |
-| Inventaire | Résultat de l'Inventory (document 14, section 3) | Lu, pas recalculé |
 | Surfaces sensibles (ajout du 2026-11-12) | Parcours de l'arbre de travail jusqu'à la profondeur 3, hors exclusions fixes, **fichiers suivis ou non** (un `.env` est presque toujours ignoré par git) ; motifs de la section 7 bis | Noms de fichiers ; contenu lu seulement pour les noms de variables des `.env*` (NF14) |
 
 Taille des fichiers lus : 1 Mo au plus ; au-delà, fichier compté mais non analysé. Fichiers binaires (octet nul dans les 8 premiers ko) ignorés.
@@ -192,7 +191,7 @@ Mesures (`metrics`, toujours calculées, coût négligeable) : `commits` (`git r
 
 ## 7 ter. Outils présents (`present_tools`, ajout du 2026-11-12)
 
-Outils du catalogue déjà présents dans le projet sous une autre forme (E6). Jusqu'à R3, les règles de détection viennent de la table provisoire `discovery/detect.toml` (règles `[detect]` des fiches du catalogue initial, spec 13 §5) ; elle sera remplacée par les fiches. Discovery ne détecte que ce qui se lit dans le dépôt : dépendances déclarées (`npm`, `composer`, `pip`) → `via = "dev-dependency"`, preuve `"<manifeste> <section>: <paquet>"` (ex. `package.json devDependencies: @playwright/test`), et fichiers (`files`) → `via = "file"`, preuve = chemin. Les binaires, plugins et serveurs MCP relèvent de l'Inventory (R2). Une entrée par outil et par composant, triée par `ref` puis `component`.
+Outils du catalogue déjà présents dans le projet sous une autre forme (E6). Jusqu'à R3, les règles de détection viennent de la table provisoire `discovery/detect.toml` (règles `[detect]` des fiches du catalogue initial, spec 13 §5) ; elle sera remplacée par les fiches. Discovery ne détecte que ce qui se lit dans le dépôt : dépendances déclarées (`npm`, `composer`, `pip`) → `via = "dev-dependency"`, preuve `"<manifeste> <section>: <paquet>"` (ex. `package.json devDependencies: @playwright/test`), et fichiers (`files`) → `via = "file"`, preuve = chemin. Les binaires installés relèvent de `Adapter.detect` (R5, spec 14 §4.2) ; les plugins et serveurs MCP, de l'Inventory (R2, spec 14 §3). Discovery ne lit pas l'Inventory (révisé le 2026-11-14). Une entrée par outil et par composant, triée par `ref` puis `component`.
 
 ## 7 bis. Surfaces sensibles (`sensitive`, ajout du 2026-11-12)
 
