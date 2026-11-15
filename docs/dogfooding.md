@@ -24,7 +24,7 @@ Aggregated results only (document 07, section 7.1; spec 16, section 2.3). No fil
 
 | Repository | Stack | Commit | Config | Size (tracked lines) | Duration (PEO) | Duration (`claude`) |
 |---|---|---|---|---|---|---|
-| Pilot 1 (pseudonymized) | Nuxt + Laravel | — | real workstation config | — | — | — |
+| Pilot 1 (pseudonymized) | Nuxt + Laravel | withheld (pseudonymized) | real workstation config | 99 tracked files | 0.89 s (a) | 1.03 s (a) |
 | [brocoders/nestjs-boilerplate](https://github.com/brocoders/nestjs-boilerplate) (MIT) | NestJS | `9620f159eefe38f47747d02ab162852367c5472c` | empty `CLAUDE_CONFIG_DIR` | 35 724 | 0.54 s (a), 0.65 s (b A), 0.68 s (b B) | 0.48 s (a), 1.78 s (b A), 0.49 s (b B) |
 | [odense-rpa/automation-server](https://github.com/odense-rpa/automation-server) (MIT) | FastAPI + Vue | `522d6038378e35ee4b67071db2f672f6a0a38da2` | empty `CLAUDE_CONFIG_DIR` | 52 407 | 0.49 s (a), 0.57 s (b A), 0.58 s (b B) | 0.55 s (a), 0.84 s (b A), 0.49 s (b B) |
 
@@ -76,6 +76,13 @@ Pilot 1 (aggregated counts only, spec 16, section 2.2), real workstation config,
 
 | Repository | Code | Path or source | Verdict (`actionable`, `false-positive`, `already-known`, `test-fixture`) | Gap with the expected findings |
 |---|---|---|---|---|
+| Pilot 1 | `X-DATA-READABLE` | a log directory | `actionable` | none |
+| Pilot 1 | `X-NO-SECRET-SCAN` | no CI file | `actionable` (excluded from the threshold) | none |
+| Pilot 1 | `X-SANDBOX-OFF` (info) | — | `already-known` (`data_stores` only, excluded) | none |
+| Pilot 1 | `X-DATA-STORE` | compose | `already-known` (systematic) | none |
+| Pilot 1 | `S-HOOK-FOREIGN` ×10 | user settings | `already-known` | none |
+| Pilot 1 | `X-MCP-UNEVALUATED` | plugins | **0 emitted, 43 expected**: false negative | **gap**: spec 14 §3.4 reads plugin MCP servers from the `mcpServers` field of `claude plugin list --json`, which Claude Code 2.1.325 does not emit; the servers are declared in the plugins' own files, and no limit tells the reader |
+| Pilot 1 | actionable total | — | 1: threshold (a) met | none |
 | brocoders | (b) A → B | `.env` | `not_covered` → `covered` (`settings:project`, `Read(./.env)`) | none |
 | automation-server | (b) A → B | `.env` | `not_covered` → `covered` (`settings:project`, `Read(./.env)`) | none |
 | both | (b) A → B | — | `X-SANDBOX-OFF` gone, `X-SANDBOX-FALLBACK` appears | none |
