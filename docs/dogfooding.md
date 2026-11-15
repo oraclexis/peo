@@ -25,10 +25,14 @@ Aggregated results only (document 07, section 7.1; spec 16, section 2.3). No fil
 | Repository | Stack | Commit | Config | Size (tracked lines) | Duration (PEO) | Duration (`claude`) |
 |---|---|---|---|---|---|---|
 | Pilot 1 (pseudonymized) | Nuxt + Laravel | — | real workstation config | — | — | — |
-| — | NestJS | — | empty `CLAUDE_CONFIG_DIR` | — | — | — |
-| — | Python | — | empty `CLAUDE_CONFIG_DIR` | — | — | — |
+| [brocoders/nestjs-boilerplate](https://github.com/brocoders/nestjs-boilerplate) (MIT) | NestJS | `9620f159eefe38f47747d02ab162852367c5472c` | empty `CLAUDE_CONFIG_DIR` | 35 724 | — | — |
+| [odense-rpa/automation-server](https://github.com/odense-rpa/automation-server) (MIT) | FastAPI + Vue | `522d6038378e35ee4b67071db2f672f6a0a38da2` | empty `CLAUDE_CONFIG_DIR` | 52 407 | — | — |
 
-Claude Code version, pinned and identical for the 3 audits: —
+Size: lines of the text files tracked by git (`grep -Ic ''` on `git ls-files`), binaries excluded.
+
+Claude Code version, pinned and identical for the 3 audits: `2.1.325` (the only entry of `versions_tested` in `conformance/claude-rules.json`).
+
+Known selection gaps, recorded before the run: brocoders names its env examples `env-example-relational` and `env-example-document`, which are not in Discovery's `ENV_EXAMPLES` and not matched by `secret_files` either (no leading `.env`); for automation-server, expectations on `X-SECRET-TRACKED` and on the file it concerns are kept in the local journal until the disclosure delay ends (document 07, section 7.1).
 
 ## `error` findings with confidence `likely`
 
@@ -39,6 +43,27 @@ Claude Code version, pinned and identical for the 3 audits: —
 
 | Repository | Measure | State | Code | Path or source | Expected |
 |---|---|---|---|---|---|
+| brocoders | (a) | clone | `X-SECRET-*`, `X-DATA-READABLE`, `X-COVERAGE-NOT-SHARED` | — | none: `secret_files`, `data_dumps` and `log_dirs` are empty |
+| brocoders | (a) | clone | `X-LITERAL-IN-AGENT-CONFIG`, `X-MCP-UNEVALUATED` | — | none: no `.claude/settings*.json`, no `.mcp.json`, empty config dir |
+| brocoders | (a) | clone | `X-NO-SECRET-SCAN` | `.github/workflows/*.yml` | warning, 1 (no `gitleaks` token; `.husky/pre-commit` is not read) |
+| brocoders | (a) | clone | `X-SANDBOX-OFF` | — | warning, 1, triggered by `data_stores` only (component runtime `host`): excluded from the threshold |
+| brocoders | (a) | clone | `X-DATA-STORE` | compose files | info, 8 (one per `data_stores` entry; the `mongo-express` service is an admin UI classified `mongodb`, a possible Discovery false positive) |
+| brocoders | (a) | clone | actionable total | — | **0**: threshold "≥ 1 actionable" expected to fail on this repository |
+| brocoders | (b) | A | `X-SECRET-READABLE` | `.env` | error, `fact`, `suggested_rule = "Read(./.env)"`; `audited`: `.env` `not_covered` |
+| brocoders | (b) | A | `X-SANDBOX-OFF` | — | warning, now with `secret_files` non-empty |
+| brocoders | (b) | B | `X-SECRET-READABLE`, `X-COVERAGE-NOT-SHARED` | `.env` | gone; `audited`: `.env` `covered`, source `settings:project` |
+| brocoders | (b) | B | `X-SANDBOX-OFF` → `X-SANDBOX-FALLBACK` | — | `X-SANDBOX-OFF` gone; `X-SANDBOX-FALLBACK` warning (`failIfUnavailable` absent), listing `.env` as covered |
+| automation-server | (a) | clone | `X-SANDBOX-OFF` | — | warning, 1, component `backend` runtime `docker:api`; severity per S-9 |
+| automation-server | (a) | clone | `X-NO-SECRET-SCAN` | `.github/workflows/*.yml` | warning, 1 (Trivy is used, not a recognized token) |
+| automation-server | (a) | clone | `X-DATA-STORE` | `docker-compose.yml` | info, 1 (`db`, postgres) |
+| automation-server | (a) | clone | `X-LITERAL-IN-AGENT-CONFIG`, `X-MCP-UNEVALUATED`, `X-DATA-READABLE`, `X-COVERAGE-NOT-SHARED` | — | none |
+| automation-server | (b) | B | `X-SANDBOX-OFF` → `X-SANDBOX-FALLBACK` | — | `X-SANDBOX-OFF` gone; `X-SANDBOX-FALLBACK` warning, listing `.env` as covered |
+| both | (a), (b) | all | `S-PLUGIN-ERROR`, `S-HOOK-FOREIGN`, `S-DEGRADED-INVENTORY` | — | none (empty config dir, `claude` 2.1.325 present) |
+| both | (a), (b) | all | any | output | no fake value from the generated `.env` in any output (grep on the values) |
+
+Mesure (b), setup: state A = clone + `.env` copied from the repository's example (`env-example-relational` for brocoders, `.env.example` for automation-server), every value replaced by a generated fake; state B = A + a tracked, committed `.claude/settings.json` with `permissions.deny = ["Read(./.env)"]` and `sandbox.enabled = true`, without `failIfUnavailable`.
+
+Pilot 1: expected findings to be written before its run (real workstation config).
 
 ## Verdicts
 
