@@ -12,10 +12,12 @@ JSON Schema 2020-12, limité au sous-ensemble que le validateur interne de PEO i
 | [lock.schema.json](lock.schema.json) | `.peo/peo.lock.json` | `peo apply` |
 | [history-event.schema.json](history-event.schema.json) | chaque ligne de `.peo/history.ndjson` | `peo` |
 | [inventory.schema.json](inventory.schema.json) | `data.inventory` de `peo status` (spec 14, section 3.2) | jamais écrit (Inventory, recalculé à chaque appel) |
+| [status.schema.json](status.schema.json) | `data` de `peo status [--exposure]` (spec 15, sections 6 et 7) | jamais écrit (recalculé à chaque appel) |
+| [claude-rules.schema.json](claude-rules.schema.json) | tableaux de conformité `../conformance/claude-rules*.json` (spec 14, section 3.5) | `tools/spike_claude_rules.py` |
 
 ## Exemples
 
-`examples/` contient les sorties attendues pour la fixture synthétique `fx-split-stack` (document 16, section 2.1), dont les traits reprennent les mesures du pilote n°1 (document 09) sans aucun texte réel. Elles servent de première version des fichiers attendus de `fx-split-stack` et seront régénérées sur la fixture puis relues. `inventory.example.json` fait exception : ce n'est pas une sortie de `fx-split-stack` (l'Inventory dépend de la machine), mais un exemple écrit à la main qui couvre les cinq états de source, deux familles invalides, un chemin managed avec espaces, des hooks `command` et `http`, un plugin de chaque confiance et plusieurs formes de valeur.
+`examples/` contient les sorties attendues pour la fixture synthétique `fx-split-stack` (document 16, section 2.1), dont les traits reprennent les mesures du pilote n°1 (document 09) sans aucun texte réel. Elles servent de première version des fichiers attendus de `fx-split-stack` et seront régénérées sur la fixture puis relues. `inventory.example.json` fait exception : ce n'est pas une sortie de `fx-split-stack` (l'Inventory dépend de la machine), mais un exemple écrit à la main qui couvre les cinq états de source, deux familles invalides, un chemin managed avec espaces, des hooks `command` et `http`, un plugin de chaque confiance et plusieurs formes de valeur. `status.split-stack.json` combine la section `sensitive` de `fx-split-stack`, un dossier de logs `backend/storage/logs` ajouté pour montrer `X-DATA-READABLE` sur un dossier, et cet Inventory écrit à la main : c'est un exemple de forme, pas un fichier attendu.
 
 Conventions des exemples :
 
@@ -23,7 +25,7 @@ Conventions des exemples :
 - Les empreintes `sha256` sont au bon format mais **factices** (dérivées d'un libellé), sauf `plan_id` qui est réellement calculé sur les actions de l'exemple selon la règle du document 14 (section 2.2).
 - `plan.split-stack.json` est un **extrait** de 13 actions représentatives (toutes les classes de risque, tous les groupes sauf `mcp`).
 
-`invalid/` contient des contre-exemples qui doivent être rejetés : fiche sans `surface`, fiche sans `review_by`, `runtime` invalide, possession incomplète, autonomie `autonomous` (interdite au MVP, H12), entrée `values` d'Inventory avec un champ `value` (NF14), `[detect].mcp` d'une fiche sous l'ancienne forme de chaînes.
+`invalid/` contient des contre-exemples qui doivent être rejetés : fiche sans `surface`, fiche sans `review_by`, `runtime` invalide, possession incomplète, autonomie `autonomous` (interdite au MVP, H12), entrée `values` d'Inventory avec un champ `value` (NF14), `[detect].mcp` d'une fiche sous l'ancienne forme de chaînes, constat de `status` dont `suggested_rule` n'est pas ancrée par `./`.
 
 ## Vérification
 
@@ -31,4 +33,4 @@ Conventions des exemples :
 python3 check_examples.py .     # nécessite jsonschema (dépendance de développement uniquement)
 ```
 
-Résultat au 2026-11-14 : 9 exemples valides, 7 contre-exemples rejetés pour la seule raison attendue. Contrôles croisés effectués en plus : chacune des 21 fiches apparaît exactement une fois dans la sélection de `fx-split-stack` ; chaque exigence est couverte par un outil retenu ou réutilisé ; `cost_total` égale la somme des coûts.
+Résultat au 2026-11-15 : 10 exemples valides, 8 contre-exemples rejetés pour la seule raison attendue, 1 tableau de conformité valide. Contrôles croisés effectués en plus : chacune des 21 fiches apparaît exactement une fois dans la sélection de `fx-split-stack` ; chaque exigence est couverte par un outil retenu ou réutilisé ; `cost_total` égale la somme des coûts.

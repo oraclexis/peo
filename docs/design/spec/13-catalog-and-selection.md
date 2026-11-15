@@ -87,7 +87,7 @@ Schéma : [schemas/tool-entry.schema.json](schemas/tool-entry.schema.json). Le d
 |---|---|---|---|
 | `[selection]` | `when.any`, `when.all`, `when.not`, `score` | `any` : au moins une vraie ; `all` : toutes vraies ; `not` : contre-indications, aucune ne doit être vraie. Absence de `when` = toujours candidat si une capacité fournie est requise | Confirmation du pilote (UI UX Pro Max) |
 | `[[prerequisites]]` | `check`, `fix`, `hint`, `blocking` | Ce qui doit être vrai pour que l'outil fonctionne : `bin:<nom>` (sur le poste), `path:<chemin>` (avec `{component:<id>}`), `runtime:host` (le composant visé tourne sur le poste). `fix` : référence d'une autre fiche du catalogue qui satisfait le prérequis (ex. `cli:intelephense`) ; `hint` : étape manuelle affichée | **E5** |
-| `[detect]` | `npm`, `composer`, `pip`, `bin`, `plugin`, `mcp`, `files` | Reconnaître l'outil **déjà présent** sous une autre forme (dépendance de dev, binaire, plugin installé à la main). `mcp` (révisé le 2026-11-14, R2) est un tableau d'objets `{kind = "package" \| "host" \| "command", value = "…"}`, comparés à la projection en mémoire d'un serveur MCP (paquet, hôte, nom de commande ; spec 14 §3.3) par la fonction `identify` que l'appelant (R3, R4, R5) passe à l'Inventory ; exemple : `mcp = [{ kind = "command", value = "serena" }]` | **E6** |
+| `[detect]` | `npm`, `composer`, `pip`, `bin`, `plugin`, `mcp`, `files` | Reconnaître l'outil **déjà présent** sous une autre forme (dépendance de dev, binaire, plugin installé à la main). En R4, un champ `ci` (jetons de la spec 15 §7.1 bis) viendra de `discovery/detect.toml`, où il vit en R3. `mcp` (révisé le 2026-11-14, R2) est un tableau d'objets `{kind = "package" \| "host" \| "command", value = "…"}`, comparés à la projection en mémoire d'un serveur MCP (paquet, hôte, nom de commande ; spec 14 §3.3) par la fonction `identify` que l'appelant (R3, R4, R5) passe à l'Inventory ; exemple : `mcp = [{ kind = "command", value = "serena" }]` | **E6** |
 | `[conventions]` | `branch.final_segment`, `branch.configurable`, `specs_dir` | Conventions imposées par un framework et ce qui en est configurable | **E3** |
 | `[surface]` (ajout du 2026-11-12) | `data_path` (`none`, `reads-sensitive`, `rewrites-io`), `fail_mode` (`open`, `closed`), **obligatoires** | `reads-sensitive` : lit des données hors du code (base, navigateur, e-mails). `rewrites-io` : réécrit les entrées ou sorties d'outils de l'agent. `fail_mode` : comportement de la session quand l'outil est absent ou en panne (`closed` bloque, `open` laisse passer ; `open` pour un outil sans hook) | Document 05, section 8.1 |
 | `[canary]` (ajout du 2026-11-12) | `command` (liste d'arguments, `{dir}` remplacé par le dossier du canari), `detected_exit` | Commande qui doit détecter le canari (spec 15, section 7.2). Optionnelle | Document 17, section 6.4 |
@@ -97,7 +97,7 @@ Exemple de prérequis (`tools/claude-plugin/php-lsp.toml`, extrait) :
 ```toml
 [[prerequisites]]
 check    = "bin:intelephense"
-fix      = "cli:intelephense"              # fiche du catalogue (kind = "cli", manager npm) : action R3
+fix      = "cli:intelephense"              # fiche du catalogue (kind = "cli", manager npm) : action de classe de risque R3
 blocking = true
 
 [[prerequisites]]
@@ -121,6 +121,8 @@ reuse_only = true    # PEO reconnaît et réutilise, n'installe jamais cet outil
 
 ## 5. Catalogue initial (21 fiches)
 
+**Catalogue en R3** (R3, S-14) : R3 ne charge **aucune fiche**. Le chargeur de catalogue, `peo:native-controls` et `ci-check:semgrep` arrivent en R4, avec le Selector : aucun constat de R3 ne lit une fiche, et les codes qui en ont besoin (`S-HOOK-UNDECLARED`, `X-MASKING-DUPLICATE`, `X-HOOK-FAIL-OPEN`) passent en R4 (spec 15). Les jetons de `X-NO-SECRET-SCAN` vivent dans `discovery/detect.toml` (champ `ci`, spec 12 §7 ter), qui reste la source des détections de Discovery jusqu'en R4, comme `discovery/intents.toml` (spec 12, sections 5 et 7 ter). `tool-entry.schema.json` n'est pas modifié en R3.
+
 | Référence | Statut | Fournit | Condition résumée | Installé par PEO au MVP |
 |---|---|---|---|---|
 | `framework:spec-kit` | core | `spec.authoring`, `plan.tasks` | socle par défaut | oui (`specify init`) |
@@ -129,10 +131,10 @@ reuse_only = true    # PEO reconnaît et réutilise, n'installe jamais cet outil
 | `claude-plugin:mattpocock-skills` | core | `clarify.interview`, `tdd.discipline`, `review.code`, `debug.diagnosis` | socle par défaut | oui |
 | `peo:gates` | core | `process.gates` | toujours | oui (hooks du projet) |
 | `peo:native-controls` | core | `exposure.native` | exigence présente (fichier de secrets, dump ou logs) | oui : règles `permissions.deny` ; sandbox recommandé seulement (S-9). Ajout du 2026-11-12 |
-| `ci-check:gitleaks` | conditional | `secrets.scan.ci` | toujours candidat | oui (bloc CI, valeurs masquées dans les journaux de CI avec `--redact`). `[canary]` : `gitleaks dir {dir}`, détecté = code 1 [À VÉRIFIER sur la version épinglée à l'écriture de la fiche]. Ajout du 2026-11-12 |
+| `ci-check:gitleaks` | conditional | `secrets.scan.ci` | toujours candidat | oui (bloc CI, valeurs masquées dans les journaux de CI avec `--redact`). Jetons `ci = ["gitleaks", "Secret-Detection"]` dans `discovery/detect.toml` en R3 (spec 12 §7 ter). `[canary]` (R4.1) : `gitleaks dir {dir}`, détecté = code 1 [À VÉRIFIER sur la version épinglée à l'écriture de la fiche]. Ajout du 2026-11-12 |
 | `claude-plugin:typescript-lsp` | conditional | `nav.lsp.typescript` | composant TypeScript ou Vue | oui |
 | `claude-plugin:php-lsp` | conditional | `nav.lsp.php` | composant PHP | oui, avec prérequis |
-| `cli:intelephense` | conditional | — (prérequis de `php-lsp`) | requis par `php-lsp` | oui (`npm install -g`, R3) |
+| `cli:intelephense` | conditional | — (prérequis de `php-lsp`) | requis par `php-lsp` | oui (`npm install -g`, classe de risque R3) |
 | `claude-plugin:pyright-lsp` | conditional | `nav.lsp.python` | composant Python | oui |
 | `mcp:serena` | conditional | `nav.symbols` | `loc_total > 50000` ou refonte prévue ; pas sur un projet neuf | oui |
 | `cli:graphify` | conditional | `nav.graph` | `loc_total > 100000` | oui |

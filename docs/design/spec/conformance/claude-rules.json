@@ -1,0 +1,1339 @@
+{
+  "case_sensitive_fs": false,
+  "cases": [
+    {
+      "denied_tools": [],
+      "id": "control-read",
+      "observed": "read",
+      "options": {},
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "marker"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "control-grep",
+      "observed": "not-called",
+      "options": {},
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Grep"
+          ]
+        }
+      },
+      "target": "backend",
+      "tool": "Grep",
+      "tool_results": [
+        [
+          "ToolSearch",
+          "no-marker"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "control-glob",
+      "observed": "not-called",
+      "options": {},
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Glob"
+          ]
+        }
+      },
+      "target": "backend",
+      "tool": "Glob",
+      "tool_results": [
+        [
+          "ToolSearch",
+          "no-marker"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "control-sandbox-bash",
+      "observed": "read",
+      "options": {},
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Bash(cat:*)"
+          ]
+        },
+        "sandbox": {
+          "autoAllowBashIfSandboxed": true,
+          "enabled": true
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Bash",
+      "tool_results": [
+        [
+          "Bash",
+          "marker"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "dot",
+      "id": "dot-exact",
+      "observed": "denied",
+      "options": {},
+      "relation": "exact",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "relative",
+      "id": "bare-relative",
+      "observed": "denied",
+      "options": {},
+      "relation": "exact",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "root",
+      "id": "slash-anchor",
+      "observed": "denied",
+      "options": {},
+      "relation": "exact",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(/backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "slash-anchor-claude-dir",
+      "observed": "read",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(/backend/.env)"
+          ]
+        }
+      },
+      "target": ".claude/backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "marker"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "absolute",
+      "id": "double-slash-abs",
+      "observed": "denied",
+      "options": {},
+      "relation": "exact",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(/<root>/backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "home",
+      "id": "tilde",
+      "observed": "denied",
+      "options": {},
+      "relation": "exact",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(~/<root-name>/backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "name",
+      "id": "bare-name-at-depth",
+      "observed": "denied",
+      "options": {},
+      "relation": "exact",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "name",
+      "id": "bare-name-at-root",
+      "observed": "denied",
+      "options": {},
+      "relation": "exact",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(.env)"
+          ]
+        }
+      },
+      "target": ".env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "any-depth",
+      "id": "doublestar-name",
+      "observed": "denied",
+      "options": {},
+      "relation": "exact",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(**/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "dot",
+      "id": "dir-doublestar",
+      "observed": "denied",
+      "options": {},
+      "relation": "folder",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/**)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "id": "dir-star-nested",
+      "observed": "denied",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/*)"
+          ]
+        }
+      },
+      "target": "backend/sub/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "id": "dir-star-direct",
+      "observed": "denied",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/*)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "dot",
+      "id": "dir-trailing-slash",
+      "observed": "denied",
+      "options": {},
+      "relation": "folder",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "dot",
+      "id": "dir-no-slash",
+      "observed": "denied",
+      "options": {},
+      "relation": "under",
+      "role": "reference",
+      "scope": "project",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "bare-tool",
+      "observed": "inconclusive",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "error"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "bare-tool-deny-only",
+      "observed": "inconclusive",
+      "options": {
+        "no_allow": true
+      },
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [],
+          "deny": [
+            "Read"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "error"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "id": "case-differs",
+      "observed": "denied",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/.ENV)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "id": "question-mark",
+      "observed": "denied",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/.en?)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "id": "brackets",
+      "observed": "denied",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/.[e]nv)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "id": "symlink",
+      "observed": "denied",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/.env)"
+          ]
+        }
+      },
+      "target": "link.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "grep",
+      "observed": "inconclusive",
+      "options": {},
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Grep"
+          ],
+          "deny": [
+            "Read(./backend/.env)"
+          ]
+        }
+      },
+      "target": "backend",
+      "tool": "Grep",
+      "tool_results": [
+        [
+          "Grep",
+          "error"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "glob",
+      "observed": "not-called",
+      "options": {},
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Glob"
+          ],
+          "deny": [
+            "Read(./backend/**)"
+          ]
+        }
+      },
+      "target": "backend",
+      "tool": "Glob",
+      "tool_results": [
+        [
+          "ToolSearch",
+          "no-marker"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "id": "allow-specific-vs-deny",
+      "observed": "denied",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Read(./backend/.env)"
+          ],
+          "deny": [
+            "Read(./backend/**)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "dot",
+      "id": "local-scope",
+      "observed": "denied",
+      "options": {
+        "scope": "local"
+      },
+      "relation": "exact",
+      "role": "reference",
+      "scope": "local",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "relative",
+      "id": "local-bare-relative",
+      "observed": "denied",
+      "options": {
+        "scope": "local"
+      },
+      "relation": "exact",
+      "role": "reference",
+      "scope": "local",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "root",
+      "id": "local-slash-anchor",
+      "observed": "denied",
+      "options": {
+        "scope": "local"
+      },
+      "relation": "exact",
+      "role": "reference",
+      "scope": "local",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(/backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "absolute",
+      "id": "local-double-slash-abs",
+      "observed": "denied",
+      "options": {
+        "scope": "local"
+      },
+      "relation": "exact",
+      "role": "reference",
+      "scope": "local",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(/<root>/backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "home",
+      "id": "local-tilde",
+      "observed": "denied",
+      "options": {
+        "scope": "local"
+      },
+      "relation": "exact",
+      "role": "reference",
+      "scope": "local",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(~/<root-name>/backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "name",
+      "id": "local-bare-name",
+      "observed": "denied",
+      "options": {
+        "scope": "local"
+      },
+      "relation": "exact",
+      "role": "reference",
+      "scope": "local",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "any-depth",
+      "id": "local-doublestar-name",
+      "observed": "denied",
+      "options": {
+        "scope": "local"
+      },
+      "relation": "exact",
+      "role": "reference",
+      "scope": "local",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(**/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "form": "dot",
+      "id": "local-dir-doublestar",
+      "observed": "denied",
+      "options": {
+        "scope": "local"
+      },
+      "relation": "folder",
+      "role": "reference",
+      "scope": "local",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/**)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "id": "symlink-deny-link-read-link",
+      "observed": "denied",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./link.env)"
+          ]
+        }
+      },
+      "target": "link.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "symlink-deny-link-read-target",
+      "observed": "read",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./link.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "marker"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "id": "symlink-dir",
+      "observed": "denied",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/.env)"
+          ]
+        }
+      },
+      "target": "linkdir/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "symlink-dir-deny-linkdir",
+      "observed": "read",
+      "options": {},
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./linkdir/**)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "marker"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "sandbox-excluded-command",
+      "observed": "os-denied",
+      "options": {},
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Bash(cat:*)"
+          ],
+          "deny": [
+            "Read(./backend/.env)"
+          ]
+        },
+        "sandbox": {
+          "autoAllowBashIfSandboxed": true,
+          "enabled": true,
+          "excludedCommands": [
+            "cat"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Bash",
+      "tool_results": [
+        [
+          "Bash",
+          "os-denied"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "cwd-subfolder",
+      "observed": "read",
+      "options": {
+        "cwd": "backend"
+      },
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/.env)"
+          ]
+        }
+      },
+      "target": ".env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "marker"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "cwd-subfolder-abs",
+      "observed": "read",
+      "options": {
+        "cwd": "backend"
+      },
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(/<root>/backend/.env)"
+          ]
+        }
+      },
+      "target": ".env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "marker"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [
+        "Read"
+      ],
+      "id": "bypass-mode",
+      "observed": "denied",
+      "options": {
+        "mode": "bypassPermissions"
+      },
+      "role": "off-list",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ],
+          "deny": [
+            "Read(./backend/.env)"
+          ]
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Read",
+      "tool_results": [
+        [
+          "Read",
+          "permission"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "sandbox-bash-deny-read",
+      "observed": "os-denied",
+      "options": {},
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Bash(cat:*)"
+          ],
+          "deny": [
+            "Read(./backend/.env)"
+          ]
+        },
+        "sandbox": {
+          "autoAllowBashIfSandboxed": true,
+          "enabled": true
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Bash",
+      "tool_results": [
+        [
+          "Bash",
+          "os-denied"
+        ]
+      ]
+    },
+    {
+      "denied_tools": [],
+      "id": "sandbox-bash-denyread",
+      "observed": "os-denied",
+      "options": {},
+      "role": "other-condition",
+      "setting_sources": "project,local",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Bash(cat:*)"
+          ]
+        },
+        "sandbox": {
+          "autoAllowBashIfSandboxed": true,
+          "enabled": true,
+          "filesystem": {
+            "denyRead": [
+              "./backend/.env"
+            ]
+          }
+        }
+      },
+      "target": "backend/.env",
+      "tool": "Bash",
+      "tool_results": [
+        [
+          "Bash",
+          "os-denied"
+        ]
+      ]
+    }
+  ],
+  "claude_version": "2.1.325 (Claude Code)",
+  "date": "2026-11-14",
+  "model": "haiku",
+  "note": "managed settings of the machine that ran the spike still applied",
+  "platform": "Darwin",
+  "setting_sources": "project,local",
+  "versions_tested": [
+    "2.1.325"
+  ]
+}

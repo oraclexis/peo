@@ -6,7 +6,7 @@ Discovery lit le dépôt **sans LLM, sans réseau, sans rien écrire** (sauf `--
 
 | Source | Comment | Limites |
 |---|---|---|
-| Fichiers suivis | `git ls-files -z` ; hors git : parcours avec exclusions | Exclusions fixes : `.git`, `.peo`, `node_modules`, `vendor`, `dist`, `build`, `.nuxt`, `.output`, `.venv`, `target`, `coverage` (`.peo` ajouté le 2026-11-12, P1.7 : le profil écrit ne change pas le profil suivant). Un fichier dont le chemin résolu sort de la racine, ou un lien symbolique en boucle, est ignoré |
+| Fichiers suivis | `git ls-files -z` ; hors git : parcours avec exclusions | Exclusions fixes : `.git`, `.peo`, `node_modules`, `vendor`, `dist`, `build`, `.nuxt`, `.output`, `.venv`, `target`, `coverage` (`.peo` ajouté le 2026-11-12, P1.7 : le profil écrit ne change pas le profil suivant). Un fichier dont le chemin résolu sort de la racine, ou un lien symbolique en boucle, est ignoré, sauf pour les surfaces sensibles (section 7 bis, précisé le 2026-11-14) |
 | Historique | `git rev-list --count HEAD`, `git for-each-ref refs/heads refs/remotes`, `git log -200 --format=%s` | Pas de lecture du contenu des commits |
 | Manifestes | Table 2.1 | JSON et TOML analysés ; YAML lu par motifs ligne à ligne (pas de bibliothèque YAML, NF1) |
 | Docker | `docker-compose*.yml`, `compose*.yaml` | Seuls `services.<nom>.build.context` et `volumes` (forme courte) sont lus |
@@ -142,7 +142,7 @@ Précisions du 2026-11-12 (P1.4) : `style = free` sous 80 %, `unknown` sans aucu
 | `docs.agents_md` | booléen |
 | `docs.handoff` | chemin d'un `HANDOFF*.md` s'il existe |
 | `docs.adr` | premier de `docs/adr/`, `docs/decisions/`, `adr/` qui contient un fichier suivi ; valeur = chemin sans `/` final (`docs/adr`), sinon `null` |
-| `intent_from_docs` | Outils dont un nom de `discovery/intents.toml` est cité dans `README*` ou `docs/**/*.md` (comparaison sans casse, mot entier) : `tool` = identifiant de fiche, confiance `likely`, preuve `"<fichier>:<ligne> mentions <nom>"` à la première citation ; un outil une seule fois ; liste triée par `tool`. La table est limitée aux outils du catalogue initial (spec 13 §5) et sera remplacée par les noms des fiches en R3 (précisé le 2026-11-12, P1.5) |
+| `intent_from_docs` | Outils dont un nom de `discovery/intents.toml` est cité dans `README*` ou `docs/**/*.md` (comparaison sans casse, mot entier) : `tool` = identifiant de fiche, confiance `likely`, preuve `"<fichier>:<ligne> mentions <nom>"` à la première citation ; un outil une seule fois ; liste triée par `tool`. La table est limitée aux outils du catalogue initial (spec 13 §5) et sera remplacée par les noms des fiches en R4, avec le Selector (précisé le 2026-11-12, P1.5 ; report de R3 en R4 le 2026-11-14 : R3 ne charge aucune fiche, la remplacer ferait perdre des détections) |
 
 ## 6. Dérive documentaire (E2)
 
@@ -189,22 +189,23 @@ Précisions du 2026-11-12 (P1.6) :
 
 Mesures (`metrics`, toujours calculées, coût négligeable) : `commits` (`git rev-list --count HEAD`), `tracked_files`, `loc` **par extension** (clé = extension sans point, lignes non vides des fichiers de code suivis dont l'extension est dans la table des langages ; précisé le 2026-11-12 : le fichier attendu et A0.1 comptent par extension) et `loc_total`, `contributors` (adresses d'auteur distinctes, `git log --format=%ae`). Hors git : `commits` et `contributors` valent 0. `loc_total` est lu par `mcp:serena` et `cli:graphify`.
 
-## 7 ter. Outils présents (`present_tools`, ajout du 2026-11-12)
-
-Outils du catalogue déjà présents dans le projet sous une autre forme (E6). Jusqu'à R3, les règles de détection viennent de la table provisoire `discovery/detect.toml` (règles `[detect]` des fiches du catalogue initial, spec 13 §5) ; elle sera remplacée par les fiches. Discovery ne détecte que ce qui se lit dans le dépôt : dépendances déclarées (`npm`, `composer`, `pip`) → `via = "dev-dependency"`, preuve `"<manifeste> <section>: <paquet>"` (ex. `package.json devDependencies: @playwright/test`), et fichiers (`files`) → `via = "file"`, preuve = chemin. Les binaires installés relèvent de `Adapter.detect` (R5, spec 14 §4.2) ; les plugins et serveurs MCP, de l'Inventory (R2, spec 14 §3). Discovery ne lit pas l'Inventory (révisé le 2026-11-14). Une entrée par outil et par composant, triée par `ref` puis `component`.
-
-## 7 bis. Surfaces sensibles (`sensitive`, ajout du 2026-11-12)
+## 7 bis. Surfaces sensibles (`sensitive`)
 
 Section toujours calculée : `peo status --exposure` (F14) la consomme (S-5 élargie). Elle décrit **où** sont les données à protéger, jamais **ce qu'elles contiennent** (NF14, H24). `data_stores` est trié par `source` puis `service`, les autres listes par `path`. Motifs et correspondances d'images dans `discovery/sensitive.toml`.
+
+**Fichiers examinés.** Les motifs de `secret_files`, `data_dumps` et `nested_claude_settings` s'appliquent à l'**union** de deux listes : les fichiers du parcours (profondeur 3, exclusions fixes, voir plus bas) et **tous les chemins suivis par git** (`git ls-files`, déjà lu par Discovery), sans limite de profondeur ni exclusion. Un secret suivi est donc vu à toute profondeur, y compris sous `build/` ou `vendor/` ; seuls les fichiers non suivis dépendent du parcours (`L-DISCOVERY-DEPTH`).
 
 | Champ | Motifs | Ce qui est lu | Champs produits |
 |---|---|---|---|
 | `secret_files` | `.env`, `.env.*` **sauf** `.env.example`, `.env.sample`, `.env.template`, `.env.dist` ; `*.pem`, `*.key`, `*.p12`, `*.pfx`, `credentials*.json`, `id_rsa*`, `id_ed25519*` | `.env*` : pour chaque ligne `[export ]NOM=…`, le seul `NOM` s'il respecte `^[A-Za-z_][A-Za-z0-9_]*$` ; le reste de la ligne est ignoré dès la lecture. Autres motifs : rien (nom de fichier seulement) ; au plus 200 noms par fichier | `path`, `tracked` (`git ls-files --error-unmatch`), `variables` (triés, uniques ; liste vide hors `.env*`) |
 | `data_stores` | Services de `docker-compose*.yml`, `compose*.yaml` dont `image` commence par `postgres`, `postgis/postgis` (→ `postgres`), `mysql`, `mariadb`, `mongo` (→ `mongodb`), `redis`, `valkey/valkey` (→ `redis`), `mcr.microsoft.com/mssql/server` (→ `sqlserver`), `elasticsearch`, `docker.elastic.co/elasticsearch` (→ `elasticsearch`) | La clé `image` seulement. **`environment` n'est jamais lu** (décision S-10) | `kind`, `source` (fichier compose), `service` |
 | `data_dumps` | `*.sql`, `*.dump`, `*.bak`, `*.sqlite`, `*.sqlite3`, `*.db` hors dossiers de migrations (`migrations/`, `database/migrations/`) | Taille seulement ; un fichier dont la taille ne se lit pas (lien symbolique cassé, fichier disparu) est ignoré (précisé le 2026-11-14) | `path`, `tracked`, `bytes` |
+| `nested_claude_settings` | `*/.claude/settings.json` et `*/.claude/settings.local.json` **hors** de la racine (ajout R3) | Existence seulement, jamais le contenu | liste triée de chemins (lue par `L-NESTED-SETTINGS` et par la confiance de `X-SECRET-READABLE`, spec 15 §7.1 et §7.4) |
 | `log_dirs` | Dossiers nommés `logs` ou `log`, et `storage/logs` (un fichier `*.log` isolé n'est pas un dossier de logs : un chemin `.` donnerait une règle `deny` sur tout le dépôt ; précisé le 2026-11-12) | Existence seulement | `path`, `tracked` (au moins un fichier suivi dedans) |
 
 Confiance : ces informations sont des `fact` (existence d'un fichier, clé d'un compose) ; elles ne portent pas de champ `confidence` ni d'`evidence` : le chemin est la preuve.
+
+**Liens symboliques et parcours** (R3, pour le comparateur de règles de la spec 14 §3.5). Une entrée de `secret_files`, `data_dumps` ou `log_dirs` dont le chemin est un lien symbolique porte en plus `link_target` : la cible résolue (`os.path.realpath`), relative à la racine du projet résolue, ou `null` si elle est hors du projet ; le champ est absent pour un chemin ordinaire. **Exception à la règle de la section 1** pour cette section seulement : un lien dont le nom correspond à un motif de `secret_files`, `data_dumps` ou `log_dirs` et dont la cible sort de la racine **n'est pas ignoré** ; il est gardé avec `link_target = null`, et sa cible n'est **jamais ouverte** ni citée (pas de lecture des variables, `variables = []`, `bytes = 0`). La section porte aussi `walk` : `depth_pruned` (le parcours a laissé des dossiers au-delà de la profondeur 3) et `linked_dirs` (dossiers liés rencontrés et non suivis, triés). Seuls des chemins du projet sortent (NF14).
 
 Valeur attendue pour `fx-split-stack` :
 
@@ -214,9 +215,15 @@ Valeur attendue pour `fx-split-stack` :
                       "variables": ["APP_KEY", "DB_DATABASE", "DB_HOST", "DB_PASSWORD", "DB_USERNAME"] } ],
   "data_stores": [ { "kind": "postgres", "source": "docker-compose.yml", "service": "db" } ],
   "data_dumps": [],
-  "log_dirs": []
+  "log_dirs": [],
+  "nested_claude_settings": [],
+  "walk": { "depth_pruned": false, "linked_dirs": [] }
 }
 ```
+
+## 7 ter. Outils présents (`present_tools`)
+
+Outils du catalogue déjà présents dans le projet sous une autre forme (E6). Jusqu'à R4 (report du 2026-11-14), les règles de détection viennent de la table provisoire `discovery/detect.toml` (règles `[detect]` des fiches du catalogue initial, spec 13 §5) ; elle sera remplacée par les fiches. Elle porte aussi, depuis R3 (2026-11-14), un champ `ci` par outil : jetons cherchés par `X-NO-SECRET-SCAN` (spec 15 §7.1 bis) ; `ci-check:gitleaks` : `ci = ["gitleaks", "Secret-Detection"]`. Discovery ne lit pas ce champ. Discovery ne détecte que ce qui se lit dans le dépôt : dépendances déclarées (`npm`, `composer`, `pip`) → `via = "dev-dependency"`, preuve `"<manifeste> <section>: <paquet>"` (ex. `package.json devDependencies: @playwright/test`), et fichiers (`files`) → `via = "file"`, preuve = chemin. Les binaires installés relèvent de `Adapter.detect` (R5, spec 14 §4.2) ; les plugins et serveurs MCP, de l'Inventory (R2, spec 14 §3). Discovery ne lit pas l'Inventory (révisé le 2026-11-14). Une entrée par outil et par composant, triée par `ref` puis `component`.
 
 ## 8. Confiance
 

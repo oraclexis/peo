@@ -89,8 +89,8 @@ sequenceDiagram
 
 | Commande | Rôle |
 |---|---|
-| `peo status [--ci] [--json]` | Constats de santé (document 15, section 6). `--ci` : code 3 si un constat `error`. `data.inventory` de la sortie JSON est défini par `inventory.schema.json` (spec 14, section 3.2 ; ajout du 2026-11-14, R2 : aucune commande nouvelle en R2) |
-| `peo status --exposure [--canary] [--ci] [--json]` | Ajoute l'audit d'exposition (document 15, section 7) ; `--canary` vérifie les détecteurs installés. Ajout du 2026-11-12 |
+| `peo status [--ci] [--json]` | Constats de santé (document 15, section 6) : seuls les codes de la livraison atteinte sont évalués (colonne « Livraison »). `--ci` : code 3 si un constat `error`. `data` est défini par `status.schema.json` (`inventory`, `findings`, `rules_evaluated`, `limits`) ; `data.inventory` par `inventory.schema.json` (spec 14, section 3.2 ; ajout du 2026-11-14, R2 : aucune commande nouvelle en R2). Sortie humaine : document 15, section 7.3 (une ligne par constat, échappement des chemins issus du dépôt). Ne lit jamais `.peo/profile.json`. Sans `--exposure`, Discovery n'est pas lancé : aucun code `S-*` de R3 ne le lit (précisé le 2026-11-14) |
+| `peo status --exposure [--canary] [--ci] [--json]` | Ajoute l'audit d'exposition (document 15, section 7) dans `data.exposure` ; relance Discovery en mémoire. Ajout du 2026-11-12. `--canary` (vérifie les détecteurs installés) arrive en R4.1, après le chargeur de catalogue : avant, l'option n'existe pas (erreur d'utilisation, code 2) |
 | `peo tools list` | Outils du lock, de la sélection et du catalogue applicable, avec état |
 | `peo tools add REF [--reason TEXT]` | Ajoute un outil : calcule un plan limité (mêmes règles de conflit), puis demande l'accord comme `apply` |
 | `peo tools remove REF` | Plan de retrait limité aux possessions inchangées ; recettes impactées listées |

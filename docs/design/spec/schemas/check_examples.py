@@ -8,7 +8,7 @@ def load(p):
     if p.suffix == ".ndjson": return [json.loads(l) for l in p.read_text().splitlines() if l]
     return [json.loads(p.read_text())]
 def schema_for(name):
-    for k, key in [("profile","profile"),("selection","selection"),("plan","plan"),("lock","lock"),("history","history-event"),("peo.","peo-config"),("tool.","tool-entry"),("inventory","inventory")]:
+    for k, key in [("profile","profile"),("selection","selection"),("plan","plan"),("lock","lock"),("history","history-event"),("peo.","peo-config"),("tool.","tool-entry"),("inventory","inventory"),("status","status")]:
         if name.startswith(k): return key
 ok = True
 for sub, expect_valid in [("examples", True), ("invalid", False)]:
@@ -20,4 +20,9 @@ for sub, expect_valid in [("examples", True), ("invalid", False)]:
         print(("PASS" if good else "FAIL"), sub, p.name, "->", key, "" if expect_valid else f"({len(errs)} error(s): {errs[0].message[:80] if errs else '-'})")
         if expect_valid and errs:
             for e in errs[:5]: print("   ", list(e.path), e.message[:150])
+for p in sorted((D.parent/"conformance").glob("claude-rules*.json")):
+    errs = list(Draft202012Validator(S["claude-rules"]).iter_errors(json.loads(p.read_text())))
+    ok &= not errs
+    print(("PASS" if not errs else "FAIL"), "conformance", p.name, "-> claude-rules")
+    for e in errs[:5]: print("   ", list(e.path), e.message[:150])
 sys.exit(0 if ok else 1)

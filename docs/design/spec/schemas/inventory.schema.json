@@ -146,6 +146,13 @@
               "null"
             ]
           },
+          "modified": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Present on settings:project only: true when the working tree differs from HEAD (git diff --quiet HEAD), null outside git or on failure (spec 14 section 3.1)."
+          },
           "invalid_families": {
             "type": "array",
             "items": {
@@ -209,7 +216,8 @@
               "sandbox.failIfUnavailable",
               "sandbox.allowUnsandboxedCommands",
               "disableAllHooks",
-              "allowManagedHooksOnly"
+              "allowManagedHooksOnly",
+              "allowManagedPermissionRulesOnly"
             ]
           },
           "value": {
