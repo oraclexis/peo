@@ -191,7 +191,7 @@ Mesures (`metrics`, toujours calculées, coût négligeable) : `commits` (`git r
 
 ## 7 bis. Surfaces sensibles (`sensitive`)
 
-Section toujours calculée : `peo status --exposure` (F14) la consomme (S-5 élargie). Elle décrit **où** sont les données à protéger, jamais **ce qu'elles contiennent** (NF14, H24). `data_stores` est trié par `source` puis `service`, les autres listes par `path`. Motifs et correspondances d'images dans `discovery/sensitive.toml`.
+Section toujours calculée : `peo status --exposure` (F14) la consomme (S-5 élargie). Elle décrit **où** sont les données à protéger, jamais **ce qu'elles contiennent** (NF14, H24). `data_stores` est trié par `source` puis `service`, les autres listes par `path`. Motifs et correspondances d'images : constantes de `src/peo/discovery/sensitive.py`.
 
 **Fichiers examinés.** Les motifs de `secret_files`, `data_dumps` et `nested_claude_settings` s'appliquent à l'**union** de deux listes : les fichiers du parcours (profondeur 3, exclusions fixes, voir plus bas) et **tous les chemins suivis par git** (`git ls-files`, déjà lu par Discovery), sans limite de profondeur ni exclusion. Un secret suivi est donc vu à toute profondeur, y compris sous `build/` ou `vendor/` ; seuls les fichiers non suivis dépendent du parcours (`L-DISCOVERY-DEPTH`).
 
