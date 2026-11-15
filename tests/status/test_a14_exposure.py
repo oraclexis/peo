@@ -106,6 +106,18 @@ def test_a14_3_rule_not_committed(split_stack, run_status):
     assert "modified true" in one(out, "X-COVERAGE-NOT-SHARED")["evidence"]
 
 
+def test_a14_5_repository_filter_never_runs(split_stack, run_status, tmp_path):
+    settings(split_stack, ["Read(./backend/.env)"], tracked=True, committed=True)
+    marker = tmp_path / "filter-ran"
+    write(split_stack, {".gitattributes": ".claude/settings.json filter=fixture\n"})
+    git(split_stack, "config", "filter.fixture.clean", f"touch {marker}; cat")
+    settings(split_stack, ["Read(./backend/.env)", "Read(./x)"], tracked=False, committed=False)
+    out = run_status(split_stack)
+    assert not marker.exists()
+    project = next(s for s in out["inventory"]["sources"] if s["id"] == "settings:project")
+    assert project["modified"] is True
+
+
 def test_a14_24_covered_path_is_audited(split_stack, run_status):
     settings(split_stack, ["Read(./backend/.env)"], tracked=True, committed=True)
     out = run_status(split_stack)
@@ -282,6 +294,15 @@ def test_a14_1_literal_tracked_null_is_skipped(tmp_path, run_status):
     assert (f["status"], f["source"]) == ("skipped", "mcp:project") and "path" not in f
 
 
+def test_a14_1_literal_args_kept_when_values_invalid(tmp_path, run_status):
+    mcp = {"mcpServers": {"a": {"command": "x", "args": [f"postgres://u:{DECOY}pw@h/db"],
+                                "env": "not an object"}}}
+    root = make_repo(tmp_path / "project", {".mcp.json": mcp}, track=[".mcp.json"])
+    found = findings(run_status(root), "X-LITERAL-IN-AGENT-CONFIG")
+    assert sorted(f["status"] for f in found) == ["applied", "skipped"]
+    assert next(f for f in found if f["status"] == "applied")["index"] == 0
+
+
 def test_a14_1_mcp_unevaluated(tmp_path, run_status):
     root = make_repo(tmp_path / "project", {".mcp.json": MCP}, track=[".mcp.json"])
     found = findings(run_status(root), "X-MCP-UNEVALUATED")
@@ -308,6 +329,23 @@ def test_a14_9_secret_scan_tokens(tmp_path, run_status, folder, case, dest, foun
     assert ("X-NO-SECRET-SCAN" in codes(out)) is found
     if found:
         assert one(out, "X-NO-SECRET-SCAN")["evidence"] == [dest]
+
+
+@pytest.mark.parametrize("kind", ["outside-link", "too-large", "nul"])
+def test_a14_9_unreadable_ci_file_is_likely(tmp_path, run_status, kind):
+    dest = ".github/workflows/ci.yml"
+    root = make_repo(tmp_path / "project", {"README.md": "x\n"})
+    if kind == "outside-link":
+        outside = write(tmp_path / "elsewhere", {"ci.yml": "run: gitleaks detect\n"})
+        (root / ".github" / "workflows").mkdir(parents=True)
+        (root / dest).symlink_to(outside / "ci.yml")
+    else:
+        write(root, {dest: b"run: x\n" * 200_000 if kind == "too-large" else b"run: \0gitleaks\n"})
+    git(root, "add", "-f", dest)
+    git(root, "commit", "-q", "-m", "ci")
+    f = one(run_status(root), "X-NO-SECRET-SCAN")
+    assert (f["confidence"], f["reason"], f["evidence"]) == (
+        "likely", "source-unreadable", [f"{dest} unreadable"])
 
 
 def test_a14_9_untracked_workflow_is_ignored(tmp_path, run_status):

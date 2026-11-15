@@ -210,6 +210,14 @@ def test_decisive_rule_prefers_shared_project_rule():
     assert out["source"] == "settings:local"
 
 
+def test_covered_wins_over_undecidable():
+    rules = [{"source": "settings:project", "list": "deny", "rule": "Read(./backend/.ENV)"},
+             {"source": "settings:project", "list": "deny", "rule": "Read(./backend/.env)"}]
+    out = claude_rules.covers("backend/.env", False, False, rules, [source("settings:project")],
+                              None, "2.1.325", "Darwin", DARWIN, ROOT, HOME)
+    assert (out["verdict"], out["rule"]) == ("covered", "Read(./backend/.env)")
+
+
 def test_first_reason_kept_others_in_evidence():
     rules = [{"source": "settings:project", "list": "deny", "rule": "Read"},
              {"source": "settings:project", "list": "deny", "rule": "Read(./backend/.env)"}]

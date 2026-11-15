@@ -9,6 +9,7 @@ from __future__ import annotations
 import fnmatch
 import os
 import re
+import stat
 from pathlib import Path, PurePosixPath
 
 from peo.discovery.compose import Service
@@ -79,7 +80,8 @@ def is_secret_file(rel: str) -> bool:
 def env_names(path: Path) -> list[str]:
     """Variable names only: the text after '=' is dropped at once (NF14)."""
     try:
-        if path.stat().st_size > MAX_BYTES:
+        info = path.stat()
+        if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_BYTES:   # a FIFO would block
             return []
         data = path.read_bytes()
     except OSError:

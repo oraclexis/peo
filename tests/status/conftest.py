@@ -30,8 +30,8 @@ DECOY = "fixture-not-a-secret-"  # noqa: S105 - marker of every fake value plant
 VERSION = b"2.1.325 (Claude Code)\n"
 PLUGIN_LIST = ("claude", "plugin", "list", "--json")
 # A14.5: git subcommands of Discovery, of the Inventory and of cli.py
-ALLOWED_GIT = {"ls-files", "log", "rev-list", "for-each-ref", "remote", "symbolic-ref", "rev-parse",
-               "diff"}
+ALLOWED_GIT = {"ls-files", "log", "rev-list", "for-each-ref", "remote", "symbolic-ref", "rev-parse"}
+REV_PARSE = {("rev-parse", "--show-toplevel"), ("rev-parse", "HEAD:.claude/settings.json")}
 GIT_ENV = {"GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1",
            "GIT_AUTHOR_NAME": "Fixture Author", "GIT_AUTHOR_EMAIL": "author@example.test",
            "GIT_COMMITTER_NAME": "Fixture Author", "GIT_COMMITTER_EMAIL": "author@example.test",
@@ -83,9 +83,8 @@ class FakeRunner:
         if args[:1] == ("git",):
             if args[:5] != GIT or args[5] not in ALLOWED_GIT:
                 raise UnexpectedMachineAccess(f"git command off the list: {args}")
-            if args[5] == "diff" and args[5:] != ("diff", "--quiet", "HEAD", "--",
-                                                  ".claude/settings.json"):
-                raise UnexpectedMachineAccess(f"git diff off the list: {args}")
+            if args[5] == "rev-parse" and args[5:] not in REV_PARSE:
+                raise UnexpectedMachineAccess(f"git rev-parse off the list: {args}")
             return REAL_RUN(list(args), cwd)
         if args == ("claude", "--version"):
             if timeout != 10:

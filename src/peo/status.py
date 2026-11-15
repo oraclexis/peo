@@ -7,6 +7,7 @@ X-* findings. Never reads .peo/profile.json, writes nothing, opens no socket.
 
 from __future__ import annotations
 
+import unicodedata
 from pathlib import Path
 
 from peo import runner
@@ -30,20 +31,18 @@ LIMITS = {
     "L-SETTINGS-MANAGED-OTHER": "managed settings outside the known files (MDM) are not read",
     "L-SYMLINK-DIR": "files under these linked folders are not audited:",
 }
-# NF13 (spec 10): invisible and bidirectional characters, written \u{NNNN} in human output.
-_BIDI = frozenset([*range(0x200B, 0x2010), *range(0x202A, 0x202F), *range(0x2066, 0x206A), 0xFEFF])
 _FIELDS = ("path", "source", "rule", "reason", "suggested_rule", "index")   # omitted when None
 
 
 def escape(text: str) -> str:
-    """C0, DEL and C1 as \\xNN, NF13 characters as \\u{NNNN}; anything else unchanged."""
+    """NF13: Cc (C0, DEL, C1) as \\xNN, Cf, Zl and Zp as \\u{NNNN}; anything else unchanged."""
     out = []
     for ch in text:
-        cp = ord(ch)
-        if cp < 0x20 or 0x7F <= cp <= 0x9F:
-            out.append(f"\\x{cp:02x}")
-        elif cp in _BIDI:
-            out.append(f"\\u{{{cp:04x}}}")
+        category = unicodedata.category(ch)
+        if category == "Cc":
+            out.append(f"\\x{ord(ch):02x}")
+        elif category in ("Cf", "Zl", "Zp"):
+            out.append(f"\\u{{{ord(ch):04x}}}")
         else:
             out.append(ch)
     return "".join(out)
@@ -136,9 +135,12 @@ def _inert(hook_src: dict, sources: list[dict], flags: list[dict]) -> tuple[list
                        ("allowManagedHooksOnly", effective("allowManagedHooksOnly", sources, flags,
                                                            managed_only=True))):
         if value["value"] == "unknown":
-            ids = value["unreadable"]
-            notes.append(f"whether {key} makes it inert is unknown ({', '.join(ids)} unreadable)")
-            evidence += [f"{why(by_id[i], 'flags')}: {key} unknown, hook may be inert" for i in ids]
+            ids = value["unreadable"] + value["conflict"]
+            notes.append(f"whether {key} makes it inert is unknown ({', '.join(ids)})")
+            evidence += [f"{why(by_id[i], 'flags')}: {key} unknown, hook may be inert"
+                         for i in value["unreadable"]]
+            evidence += [f"{i} {key} disagrees with another managed source: hook may be inert"
+                         for i in value["conflict"]]
             continue
         if value["value"] is not True:
             continue
@@ -211,10 +213,10 @@ def status(root: Path, *, exposure: bool, run: runner.Runner | None = None,
     if exposure:
         # Imported here: peo.exposure imports this module, and Discovery is only for --exposure.
         from peo import exposure as ex
-        from peo.discovery import discover, list_files
+        from peo.discovery import discover, tracked_files
 
         profile = discover(root, run=run, warnings=[])
-        tracked, _ = list_files(root, run)
+        tracked = tracked_files(root, run) or []   # raw: a workflow link leaving the root counts
         data["exposure"], more = ex.audit(profile, inv, tracked, root=root, home=home,
                                           platform=platform, table=ex.load_table(platform))
         data["rules_evaluated"] = sorted(S_CODES + ex.X_CODES)

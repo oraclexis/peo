@@ -1,6 +1,7 @@
 """Discovery, sensitive surfaces (spec 12, section 7 bis) and the no-value rule (NF14, A14.2)."""
 
 import json
+import os
 import secrets
 from pathlib import Path
 
@@ -261,3 +262,10 @@ def test_sens_tracked_paths_at_any_depth(tmp_path):
     assert [(s["path"], s["tracked"]) for s in out["secret_files"]] == [
         ("a/b/c/d/.env", True), ("build/.env", True)]
     assert out["walk"]["depth_pruned"] is True
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="no FIFO on this platform")
+def test_sens_fifo_env_is_not_read(tmp_path):
+    os.mkfifo(tmp_path / ".env")
+    os.mkfifo(tmp_path / "package.json")
+    assert sensitive(tmp_path)["secret_files"] == [{"path": ".env", "tracked": False, "variables": []}]

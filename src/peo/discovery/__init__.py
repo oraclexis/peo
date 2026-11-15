@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import tomllib
 from collections.abc import Callable
 from importlib import resources
@@ -95,7 +96,8 @@ def read_text(root: Path, rel: str) -> str | None:
     """Text of a file; None when absent, larger than 1 MB or binary (spec 12, section 1)."""
     try:
         path = root / rel
-        if path.stat().st_size > MAX_BYTES:
+        info = path.stat()
+        if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_BYTES:   # a FIFO would block
             return None
         data = path.read_bytes()
     except OSError:

@@ -144,10 +144,12 @@ def _literals(inv, by_id):
             found.append(st.finding("X-LITERAL-IN-AGENT-CONFIG", "error",
                                     f"Literal values of {sid} not evaluated: {text}", evidence,
                                     status="skipped", source=sid))
-            continue
+            if src["tracked"] is None:
+                continue
+        # A readable subject family still gives its findings (spec 15 §6).
         servers = {m["index"]: m for m in inv["mcp_servers"]
                    if m["source"] == sid and m["plugin_index"] is None}
-        for val in inv["values"]:
+        for val in ([] if "values" in broken else inv["values"]):
             if val["source"] != sid or val["form"] != "literal" or not (
                     val["sensitive_name"] or val["value_hint"]):
                 continue
@@ -161,7 +163,7 @@ def _literals(inv, by_id):
                 "X-LITERAL-IN-AGENT-CONFIG", "error",
                 f"Tracked {src['path']}: key {key} ({val['location']}) holds a literal value; "
                 "value not shown", [f"{src['path']} {val['location']} {key}"], source=sid, **extra))
-        for m in servers.values():
+        for m in ([] if "mcp" in broken else servers.values()):
             if m["args_hint"] is None:
                 continue
             name = m["name"] or f"#{m['index']}"
@@ -238,8 +240,11 @@ def _state(value: dict) -> str:
 
 
 def _unknown(values: list[dict], by_id: dict) -> list[str]:
-    ids = dict.fromkeys(i for v in values if v["value"] == "unknown" for i in v["unreadable"])
-    return [f"{st.why(by_id[i], 'flags')}: source-unreadable" for i in ids]
+    unknown = [v for v in values if v["value"] == "unknown"]
+    ids = dict.fromkeys(i for v in unknown for i in v["unreadable"])
+    conflicts = dict.fromkeys(i for v in unknown for i in v["conflict"])
+    return ([f"{st.why(by_id[i], 'flags')}: source-unreadable" for i in ids]
+            + [f"{i}: disagrees with another managed source" for i in conflicts])
 
 
 def _sandbox(profile, inv, covered, by_id):

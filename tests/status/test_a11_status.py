@@ -251,7 +251,8 @@ def test_a11_11_flags_invalid_hook_still_applied(tmp_path, run_status):
 @pytest.mark.parametrize(("text", "expected"), [
     ("a\nb", "a\\x0ab"), ("\x1b[31m", "\\x1b[31m"), ("\x7f", "\\x7f"), ("\x85\x9f", "\\x85\\x9f"),
     ("‮exe.txt", "\\u{202e}exe.txt"), ("a​b⁦c﻿", "a\\u{200b}b\\u{2066}c\\u{feff}"),
-    ("backend/.env Read(./x/**) é", "backend/.env Read(./x/**) é")])
+    ("a\u2028b\u2029c", "a\\u{2028}b\\u{2029}c"), ("a\u061cb\u00adc\u2060", "a\\u{061c}b\\u{00ad}c\\u{2060}"),
+    ("\t", "\\x09"), ("backend/.env Read(./x/**) é", "backend/.env Read(./x/**) é")])
 def test_escape(text, expected):
     assert st.escape(text) == expected
 
@@ -296,12 +297,13 @@ def test_a14_5_only_listed_commands(split_stack, capsys, monkeypatch):
     assert all(t == 10 for c, _, t in runner.calls if c[0] == "claude")
 
 
-def test_a14_5_diff_is_listed(tmp_path, run_status):
+def test_a14_5_head_blob_is_listed(tmp_path, run_status):
     root = make_repo(tmp_path / "p", {})
     settings(root, ["Read(./x)"], tracked=True, committed=True)
     runner = FakeRunner()
     run_status(root, runner)
-    assert (*GIT, "diff", "--quiet", "HEAD", "--", ".claude/settings.json") in [c[0] for c in runner.calls]
+    assert (*GIT, "rev-parse", "HEAD:.claude/settings.json") in [c[0] for c in runner.calls]
+    assert not [c for c, _, _ in runner.calls if c[5:6] == ("diff",)]
 
 
 def test_status_deterministic(split_stack, run_status):

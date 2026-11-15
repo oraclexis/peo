@@ -37,7 +37,7 @@ def test_precedence_managed_first():
     flags = [flag("settings:managed", "sandbox.enabled", True),
              flag("settings:project", "sandbox.enabled", False)]
     assert value("sandbox.enabled", sources(), flags) == {
-        "value": True, "source": "settings:managed", "unreadable": []}
+        "value": True, "source": "settings:managed", "unreadable": [], "conflict": []}
 
 
 def test_rule_1_local_over_project_over_user():
@@ -49,14 +49,14 @@ def test_rule_1_local_over_project_over_user():
 
 def test_rule_2_out_of_scope_is_skipped():
     out = value("k", sources(), [flag("settings:user", "k", False)])
-    assert out == {"value": False, "source": "settings:user", "unreadable": []}
+    assert out == {"value": False, "source": "settings:user", "unreadable": [], "conflict": []}
 
 
 @pytest.mark.parametrize("state", [("invalid", "json"), ("unavailable", "permission-denied"),
                                    ("not_inspected", "not-provided")])
 def test_rule_3_stronger_unreadable_gives_unknown(state):
     out = value("k", sources(settings_local=state), [flag("settings:project", "k", True)])
-    assert out == {"value": "unknown", "source": "settings:project", "unreadable": ["settings:local"]}
+    assert out == {"value": "unknown", "source": "settings:project", "unreadable": ["settings:local"], "conflict": []}
 
 
 def test_rule_3_invalid_flags_family_gives_unknown():
@@ -68,12 +68,12 @@ def test_rule_3_invalid_flags_family_gives_unknown():
 
 def test_rule_3_weaker_unreadable_does_not_matter():
     out = value("k", sources(settings_user=("invalid", "json")), [flag("settings:local", "k", True)])
-    assert out == {"value": True, "source": "settings:local", "unreadable": []}
+    assert out == {"value": True, "source": "settings:local", "unreadable": [], "conflict": []}
 
 
 def test_rule_4_absent_everywhere():
     assert value("k", sources(settings_user=("absent", None)), []) == {
-        "value": None, "source": None, "unreadable": []}
+        "value": None, "source": None, "unreadable": [], "conflict": []}
 
 
 def test_a3_13_managed_only_ignores_other_scopes():
@@ -96,12 +96,32 @@ def test_a3_13_managed_other_out_of_scope_is_not_unknown():
     assert out["value"] is None
 
 
-def test_managed_d_files_keep_their_order():
+def managed_d(n: int) -> list[dict]:
     srcs = [s for s in sources() if s["id"] != "settings:managed.d"]
-    for n in (0, 1):
-        srcs.insert(1 + n, {**srcs[0], "id": f"settings:managed.d/#{n}"})
-    flags = [flag("settings:managed.d/#1", "k", False), flag("settings:managed.d/#0", "k", True)]
-    assert value("k", srcs, flags)["source"] == "settings:managed.d/#0"
+    for i in range(n):
+        srcs.insert(1 + i, {**srcs[0], "id": f"settings:managed.d/#{i}"})
+    return srcs
+
+
+def test_managed_sources_agreeing_give_the_value():
+    flags = [flag("settings:managed.d/#1", "k", True), flag("settings:managed", "k", True)]
+    assert value("k", managed_d(2), flags) == {
+        "value": True, "source": "settings:managed", "unreadable": [], "conflict": []}
+
+
+def test_managed_sources_disagreeing_give_unknown():
+    flags = [flag("settings:managed.d/#1", "k", False), flag("settings:managed.d/#0", "k", True),
+             flag("settings:local", "k", True)]
+    assert value("k", managed_d(2), flags) == {
+        "value": "unknown", "source": "settings:managed.d/#0", "unreadable": [],
+        "conflict": ["settings:managed.d/#0", "settings:managed.d/#1"]}
+
+
+def test_unreadable_managed_file_after_a_managed_value_gives_unknown():
+    srcs = managed_d(1)
+    srcs[1]["status"], srcs[1]["reason"] = "invalid", "json"
+    out = value("k", srcs, [flag("settings:managed", "k", True)], managed_only=True)
+    assert (out["value"], out["unreadable"]) == ("unknown", ["settings:managed.d/#0"])
 
 
 def imports(module: str) -> set[str]:

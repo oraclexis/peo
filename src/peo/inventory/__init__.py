@@ -5,6 +5,7 @@ returns a dict that conforms to inventory.schema.json. Writes nothing, opens no 
 emits no value: every emitted string goes through an enum, `values.identifier` or a path field.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -25,6 +26,7 @@ _HOOK_TYPES = ("command", "http", "mcp_tool", "prompt", "agent")
 _LISTS = ("allow", "ask", "deny")
 _SANDBOX_FLAGS = ("enabled", "failIfUnavailable", "allowUnsandboxedCommands")
 _MANAGED_FLAGS = ("allowManagedHooksOnly", "allowManagedPermissionRulesOnly")  # ignored elsewhere
+_HEX = re.compile(r"[0-9a-f]+")
 _CLAUDE_TIMEOUT = 10  # seconds per claude command (spec 15 §7)
 
 
@@ -359,15 +361,38 @@ def _tracked(run, root, project_sources):
         s["tracked"] = s["path"].encode() in listed
 
 
+def _bytes(path: Path, root: Path) -> bytes | None:
+    """Raw bytes of a project file, with the checks of _read (regular, under the root, 1 MiB)."""
+    try:
+        resolved = path.resolve(strict=True)
+        if not resolved.is_relative_to(root) or not resolved.is_file():
+            return None
+        with resolved.open("rb") as f:
+            raw = f.read(_LIMIT + 1)
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return raw if len(raw) <= _LIMIT else None
+
+
 def _modified(run, root, project):
-    """settings:project differs from HEAD (spec 14 §3.1): 0 -> false, 1 -> true, else null."""
+    """settings:project differs from its HEAD blob (spec 14 §3.1); git never reads the work tree.
+
+    `git diff` would run a clean filter the repository defines; the blob hash is computed here.
+    """
     if project["tracked"] is not True:
         return
     try:
-        done = run([*runner.GIT, "diff", "--quiet", "HEAD", "--", project["path"]], root)
+        done = run([*runner.GIT, "rev-parse", f"HEAD:{project['path']}"], root)
     except OSError:
         return
-    project["modified"] = {0: False, 1: True}.get(done.returncode)
+    head = done.stdout.strip().decode("ascii", "replace")
+    algorithm = {40: "sha1", 64: "sha256"}.get(len(head))
+    if done.returncode != 0 or algorithm is None or not _HEX.fullmatch(head):
+        return
+    raw = _bytes(root / project["path"], root.resolve())
+    if raw is not None:
+        blob = hashlib.new(algorithm, b"blob %d\0" % len(raw) + raw).hexdigest()
+        project["modified"] = blob != head
 
 
 def _null_first(value):
