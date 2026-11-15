@@ -1,0 +1,8 @@
+name: ci
+on: [push]
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: gitleaks
+        run: make test

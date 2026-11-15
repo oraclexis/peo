@@ -1,4 +1,4 @@
-"""Sensitive surfaces: where data to protect lives, never its content (spec 12, section 7 bis).
+"""Sensitive surfaces: where sensitive data lives, never its content (spec 12, section 7 bis).
 
 NF14: the right-hand side of a .env line is never kept, returned or logged; compose
 `environment` blocks are never read.
@@ -9,6 +9,7 @@ from __future__ import annotations
 import fnmatch
 import os
 import re
+import stat
 from pathlib import Path, PurePosixPath
 
 from peo.discovery.compose import Service
@@ -24,6 +25,7 @@ SECRET_PATTERNS = ("*.pem", "*.key", "*.p12", "*.pfx", "credentials*.json", "id_
                    "id_ed25519*")
 DUMP_PATTERNS = ("*.sql", "*.dump", "*.bak", "*.sqlite", "*.sqlite3", "*.db")
 LOG_DIRS = {"logs", "log"}
+NESTED_SETTINGS = {"settings.json", "settings.local.json"}
 IMAGES = (("postgis/postgis", "postgres"), ("postgres", "postgres"), ("mysql", "mysql"),
           ("mariadb", "mariadb"), ("mongo", "mongodb"), ("valkey/valkey", "redis"),
           ("redis", "redis"),
@@ -32,23 +34,38 @@ IMAGES = (("postgis/postgis", "postgres"), ("postgres", "postgres"), ("mysql", "
           ("elasticsearch", "elasticsearch"))
 
 
-def walk(root: Path) -> tuple[list[str], list[str]]:
-    """Files and directories down to depth 3, tracked or not, fixed exclusions, no outbound link."""
-    files, dirs = [], []
-    real_root = root.resolve()
+def walk(root: Path) -> tuple[list[str], list[str], bool, list[str]]:
+    """(files, dirs, depth_pruned, linked_dirs) down to depth 3, fixed exclusions, no link followed.
+
+    A file link is listed whatever its target; the caller never opens one that leaves the root.
+    """
+    files, dirs, linked = [], [], []
+    pruned = False
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         base = Path(dirpath).relative_to(root)
         depth = 0 if base == Path(".") else len(base.parts)
-        dirnames[:] = sorted(d for d in dirnames if d not in EXCLUDED and depth < MAX_DEPTH)
-        dirs += [(base / d).as_posix() for d in dirnames]
-        for name in filenames:
-            try:
-                inside = (Path(dirpath) / name).resolve().is_relative_to(real_root)
-            except (OSError, RuntimeError):   # symlink loop: RuntimeError before Python 3.13
-                inside = False
-            if inside:
-                files.append((base / name).as_posix())
-    return sorted(files), sorted(dirs)
+        kept = sorted(d for d in dirnames if d not in EXCLUDED)
+        is_link = {d: os.path.islink(os.path.join(dirpath, d)) for d in kept}
+        if depth >= MAX_DEPTH:
+            pruned = pruned or not all(is_link.values())
+            kept = []
+        dirs += [(base / d).as_posix() for d in kept]
+        linked += [(base / d).as_posix() for d in kept if is_link[d]]
+        dirnames[:] = kept
+        files += [(base / name).as_posix() for name in filenames]
+    return sorted(files), sorted(dirs), pruned, sorted(linked)
+
+
+def link_target(root: Path, real_root: str, rel: str) -> str | None | bool:
+    """False for an ordinary path; else the resolved target relative to the root, None outside.
+
+    os.path.realpath only reads links (lstat, readlink): the target is never opened.
+    """
+    real = os.path.realpath(root / rel)
+    if real == os.path.join(real_root, rel):
+        return False
+    inside = real.startswith(real_root + os.sep)
+    return os.path.relpath(real, real_root).replace(os.sep, "/") if inside else None
 
 
 def is_secret_file(rel: str) -> bool:
@@ -63,7 +80,8 @@ def is_secret_file(rel: str) -> bool:
 def env_names(path: Path) -> list[str]:
     """Variable names only: the text after '=' is dropped at once (NF14)."""
     try:
-        if path.stat().st_size > MAX_BYTES:
+        info = path.stat()
+        if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_BYTES:   # a FIFO would block
             return []
         data = path.read_bytes()
     except OSError:
@@ -94,27 +112,39 @@ def store_kind(image: str) -> str | None:
     return next((kind for start, kind in IMAGES if name.startswith(start)), None)
 
 
+def _with_link(entry: dict, target: str | None | bool) -> dict:
+    return entry if target is False else entry | {"link_target": target}
+
+
 def sensitive(root: Path, tracked: list[str], services: list[Service]) -> dict:
-    """spec 12, section 7 bis."""
+    """spec 12, section 7 bis: the walk united with every tracked path, at any depth."""
     tracked_set = set(tracked)
-    files, dirs = walk(root)
-    secret_files = []
-    for f in files:
-        if is_secret_file(f):
-            is_env = PurePosixPath(f).name.startswith(".env")
-            secret_files.append({"path": f, "tracked": f in tracked_set,
-                                 "variables": env_names(root / f) if is_env else []})
-    dumps = []
-    for f in files:
+    real_root = os.path.realpath(root)
+    files, dirs, depth_pruned, linked_dirs = walk(root)
+    candidates = sorted(set(files) | tracked_set)
+    secret_files, dumps, nested = [], [], []
+    for f in candidates:
         path = PurePosixPath(f)
         is_dump = any(fnmatch.fnmatchcase(path.name, p) for p in DUMP_PATTERNS)
-        if is_dump and "migrations" not in path.parts[:-1]:
+        if not (is_secret_file(f) or is_dump):
+            if path.name in NESTED_SETTINGS and len(path.parts) > 2 and path.parts[-2] == ".claude":
+                nested.append(f)
+            continue
+        target = link_target(root, real_root, f)
+        if is_secret_file(f):
+            is_env = path.name.startswith(".env") and target is not None
+            secret_files.append(_with_link({"path": f, "tracked": f in tracked_set,
+                                            "variables": env_names(root / f) if is_env else []},
+                                           target))
+        elif "migrations" not in path.parts[:-1]:
             try:
-                size = (root / f).stat().st_size
-            except OSError:   # broken symbolic link or file gone: nothing to protect
+                size = 0 if target is None else (root / f).stat().st_size
+            except OSError:   # broken symbolic link or file gone: nothing to audit
                 continue
-            dumps.append({"path": f, "tracked": f in tracked_set, "bytes": size})
-    log_dirs = [{"path": d, "tracked": any(t.startswith(d + "/") for t in tracked)}
+            entry = {"path": f, "tracked": f in tracked_set, "bytes": size}
+            dumps.append(_with_link(entry, target))
+    log_dirs = [_with_link({"path": d, "tracked": any(t.startswith(d + "/") for t in tracked)},
+                           link_target(root, real_root, d))
                 for d in dirs if PurePosixPath(d).name in LOG_DIRS]   # storage/logs included
     stores = []
     for service in services:
@@ -123,4 +153,5 @@ def sensitive(root: Path, tracked: list[str], services: list[Service]) -> dict:
             stores.append({"kind": kind, "source": service.file, "service": service.name})
     return {"secret_files": secret_files,
             "data_stores": sorted(stores, key=lambda s: (s["source"], s["service"])),
-            "data_dumps": dumps, "log_dirs": sorted(log_dirs, key=lambda d: d["path"])}
+            "data_dumps": dumps, "log_dirs": log_dirs, "nested_claude_settings": nested,
+            "walk": {"depth_pruned": depth_pruned, "linked_dirs": linked_dirs}}

@@ -1,6 +1,7 @@
 """Discovery, sensitive surfaces (spec 12, section 7 bis) and the no-value rule (NF14, A14.2)."""
 
 import json
+import os
 import secrets
 from pathlib import Path
 
@@ -9,6 +10,7 @@ import pytest
 from peo.discovery import discover
 from peo.discovery.compose import read_services
 from peo.runner import Result
+from tests.gitcmd import GIT
 
 
 def no_git(args, cwd):
@@ -19,7 +21,7 @@ def tracked(*paths):
     listing = "".join(f"{p}\0" for p in paths).encode()
 
     def run(args, cwd):
-        return Result(0, listing, b"") if list(args) == ["git", "ls-files", "-z"] else Result(128, b"", b"")
+        return Result(0, listing, b"") if list(args) == [*GIT, "ls-files", "-z"] else Result(128, b"", b"")
     return run
 
 
@@ -177,3 +179,93 @@ def test_a1_8_compose_environment_never_read(tmp_path):
     profile = discover(tmp_path, run=no_git, which=lambda name: None)
     assert decoy not in json.dumps(profile)
     assert decoy not in repr(read_services(tmp_path, ["docker-compose.yml"]))
+
+
+# --- R3: links, walk, nested settings, union with tracked paths (spec 12 §7 bis) ---------------
+
+@pytest.fixture
+def opened(monkeypatch):
+    """Every path opened by any means during the test."""
+    import builtins
+    import io
+    import pathlib
+    seen: list[str] = []
+    real_open, real_io_open, real_path_open = builtins.open, io.open, pathlib.Path.open
+
+    def spy(fn):
+        def wrapper(file, *args, **kwargs):
+            seen.append(str(file))
+            return fn(file, *args, **kwargs)
+        return wrapper
+    monkeypatch.setattr(builtins, "open", spy(real_open))
+    monkeypatch.setattr(io, "open", spy(real_io_open))
+    monkeypatch.setattr(pathlib.Path, "open", spy(real_path_open))
+    return seen
+
+
+def test_sens_link_target_inside(tmp_path):
+    write(tmp_path, {"backend/real.env": "A=1\n"})
+    (tmp_path / "backend" / ".env").symlink_to("real.env")
+    assert sensitive(tmp_path)["secret_files"] == [
+        {"path": "backend/.env", "tracked": False, "variables": ["A"], "link_target": "backend/real.env"}]
+
+
+def test_sens_link_target_outside_never_opened(tmp_path, opened):
+    root, outside = tmp_path / "root", tmp_path / "outside"
+    write(outside, {"secret.env": "OUTSIDE_NAME=1\n", "dump.sql": "x"})
+    write(root, {"package.json": {"name": "x"}})
+    (root / ".env").symlink_to(outside / "secret.env")
+    (root / "db.sql").symlink_to(outside / "dump.sql")
+    opened.clear()
+    out = sensitive(root)
+    assert out["secret_files"] == [{"path": ".env", "tracked": False, "variables": [],
+                                    "link_target": None}]
+    assert out["data_dumps"] == [{"path": "db.sql", "tracked": False, "bytes": 0, "link_target": None}]
+    links = (str(outside), str(root / ".env"), str(root / "db.sql"))
+    assert not [p for p in opened if p.startswith(links)]
+    assert str(outside) not in json.dumps(out) and "OUTSIDE_NAME" not in json.dumps(out)
+
+
+def test_sens_ordinary_path_has_no_link_target(tmp_path):
+    write(tmp_path, {".env": "A=1\n", "logs/a.log": "x"})
+    out = sensitive(tmp_path)
+    assert "link_target" not in out["secret_files"][0] and "link_target" not in out["log_dirs"][0]
+
+
+def test_sens_walk_depth_pruned(tmp_path):
+    write(tmp_path, {"a/b/c/x.txt": "x"})
+    assert sensitive(tmp_path)["walk"] == {"depth_pruned": False, "linked_dirs": []}
+    write(tmp_path, {"a/b/c/d/x.txt": "x"})
+    assert sensitive(tmp_path)["walk"]["depth_pruned"] is True
+
+
+def test_sens_walk_linked_dirs(tmp_path):
+    write(tmp_path, {"backend/.env": "A=1\n"})
+    (tmp_path / "linkdir").symlink_to("backend")
+    (tmp_path / "logs").symlink_to("backend")
+    out = sensitive(tmp_path)
+    assert out["walk"]["linked_dirs"] == ["linkdir", "logs"]
+    assert [s["path"] for s in out["secret_files"]] == ["backend/.env"]   # linkdir/.env not walked
+    assert out["log_dirs"] == [{"path": "logs", "tracked": False, "link_target": "backend"}]
+
+
+def test_sens_nested_claude_settings(tmp_path):
+    write(tmp_path, {".claude/settings.json": {}, "backend/.claude/settings.json": {},
+                     "web/.claude/settings.local.json": {}, "web/.claude/other.json": {}})
+    assert sensitive(tmp_path)["nested_claude_settings"] == [
+        "backend/.claude/settings.json", "web/.claude/settings.local.json"]
+
+
+def test_sens_tracked_paths_at_any_depth(tmp_path):
+    write(tmp_path, {"a/b/c/d/.env": "A=1\n", "build/.env": "B=1\n", "x/y/z/w/.env.local": "C=1\n"})
+    out = sensitive(tmp_path, run=tracked("a/b/c/d/.env", "build/.env"))
+    assert [(s["path"], s["tracked"]) for s in out["secret_files"]] == [
+        ("a/b/c/d/.env", True), ("build/.env", True)]
+    assert out["walk"]["depth_pruned"] is True
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="no FIFO on this platform")
+def test_sens_fifo_env_is_not_read(tmp_path):
+    os.mkfifo(tmp_path / ".env")
+    os.mkfifo(tmp_path / "package.json")
+    assert sensitive(tmp_path)["secret_files"] == [{"path": ".env", "tracked": False, "variables": []}]

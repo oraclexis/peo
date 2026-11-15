@@ -109,23 +109,23 @@ def read_history(root: Path, run: runner.Runner, is_git: bool) -> dict:
                 "conventions": {"branches": None, "commits": dict(UNKNOWN_COMMITS)}}
 
     def out(*args: str) -> str | None:
-        result = run(list(args), root)
+        result = run([*runner.GIT, *args], root)
         return result.stdout.decode("utf-8", "replace") if result.returncode == 0 else None
 
-    count = (out("git", "rev-list", "--count", "HEAD") or "").strip()
+    count = (out("rev-list", "--count", "HEAD") or "").strip()
     n = int(count) if count.isdigit() else 0
     kind = {"value": "new" if n <= 1 else "existing", "confidence": "fact",
             "evidence": f"{n} commits"}
-    refs = (out("git", "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes")
+    refs = (out("for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes")
             or "").splitlines()
-    log = (out("git", "log", "-200", "--format=%P%x1f%s") or "").splitlines()
-    remotes = (out("git", "remote") or "").split()
-    origin_head = out("git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+    log = (out("log", "-200", "--format=%P%x1f%s") or "").splitlines()
+    remotes = (out("remote") or "").split()
+    origin_head = out("symbolic-ref", "--short", "refs/remotes/origin/HEAD")
     if origin_head:
         default = origin_head.strip().split("/", 1)[-1]
     else:
-        default = (out("git", "symbolic-ref", "--short", "HEAD") or "").strip() or None
-    authors = (out("git", "log", "--format=%ae") or "").split()
+        default = (out("symbolic-ref", "--short", "HEAD") or "").strip() or None
+    authors = (out("log", "--format=%ae") or "").split()
     git: dict = {"remote": bool(remotes)}
     if default:
         git["default_branch"] = default

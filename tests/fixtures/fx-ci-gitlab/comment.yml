@@ -1,0 +1,4 @@
+test:
+  # gitleaks dir . would scan the tree
+  script:
+    - make test

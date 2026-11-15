@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import platform
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -73,6 +74,15 @@ def build_parser() -> argparse.ArgumentParser:
                            help="print the JSON envelope on stdout")
             p.add_argument("--write", action="store_true", help="write .peo/profile.json")
             continue
+        if name == "status":
+            p = sub.add_parser(name, help="health and exposure findings (spec 11, section 2.2)")
+            p.add_argument("--project", metavar="DIR", default=argparse.SUPPRESS,
+                           help="project root")
+            p.add_argument("--json", action="store_true", default=argparse.SUPPRESS,
+                           help="print the JSON envelope on stdout")
+            p.add_argument("--exposure", action="store_true", help="add the exposure audit")
+            p.add_argument("--ci", action="store_true", help="exit 3 on an error finding")
+            continue
         p = sub.add_parser(name, help=f"(not implemented yet, phase {phase})")
         p.add_argument("rest", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
     return parser
@@ -100,7 +110,7 @@ def _project_root(project: str | None) -> Path | None:
     """--project as given if it is a directory; otherwise the git root of cwd, else cwd."""
     if project is not None:
         return Path(project) if Path(project).is_dir() else None
-    done = runner.run(["git", "rev-parse", "--show-toplevel"], Path.cwd())
+    done = runner.run([*runner.GIT, "rev-parse", "--show-toplevel"], Path.cwd())
     return Path(os.fsdecode(done.stdout.rstrip(b"\n"))) if done.returncode == 0 else Path.cwd()
 
 
@@ -172,6 +182,33 @@ def discover_command(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def status_command(args: argparse.Namespace) -> int:
+    root = _project_root(args.project)
+    if root is None:
+        error = {"code": "E_PROJECT_NOT_FOUND",
+                 "message": f"project directory not found: {args.project}"}
+        _emit(args, envelope("status", False, errors=[error]), None)
+        return EXIT_ERROR
+    from peo.inventory import default_managed
+    from peo.status import render, status
+
+    # The only place that reads the machine for status (research R5).
+    config = os.environ.get("CLAUDE_CONFIG_DIR")
+    user_config = Path(config) if config else Path.home() / ".claude"
+    try:
+        data = status(Path(os.path.realpath(root)), exposure=args.exposure, run=runner.run,
+                      user_config=user_config, managed=default_managed(), home=Path.home(),
+                      platform=platform.system())
+    except Exception as exc:  # noqa: BLE001 - reported in the envelope, exit 1 (spec 11 §1.3)
+        error = {"code": "E_STATUS_FAILED", "message": f"status failed: {type(exc).__name__}"}
+        _emit(args, envelope("status", False, errors=[error]), None)
+        return EXIT_ERROR
+    _emit(args, envelope("status", True, data), render(data))
+    found = data["findings"] + data.get("exposure", {}).get("findings", [])
+    failing = any(f["severity"] == "error" and f["status"] == "applied" for f in found)
+    return EXIT_STATUS_FINDINGS if args.ci and failing else EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):   # file names that are not UTF-8 print escaped
@@ -183,6 +220,8 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_USAGE
     if args.command == "discover":
         return discover_command(args)
+    if args.command == "status":
+        return status_command(args)
     phase = COMMANDS[args.command]
     message = f"'peo {args.command}' is specified but not implemented yet (phase {phase})"
     error = {"code": "E_NOT_IMPLEMENTED", "message": message}

@@ -18,7 +18,11 @@ class Result(NamedTuple):
     stderr: bytes
 
 
-Runner = Callable[[Sequence[str], Path], Result]
+# Callable with (args, cwd) and an optional timeout in seconds.
+Runner = Callable[..., Result]
+
+# Prefix of every git call: a repository under audit cannot run code through git (S28, A14.5).
+GIT = ("git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null")
 
 
 def run(args: Sequence[str], cwd: Path, timeout: float = 30) -> Result:

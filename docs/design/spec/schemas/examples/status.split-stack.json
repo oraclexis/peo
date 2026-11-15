@@ -502,7 +502,9 @@
     ]
   },
   "limits": [
+    "L-DISCOVERY-DEPTH",
     "L-HTTP-HOOK",
+    "L-LAUNCH-ROOT",
     "L-MCP-APPROVAL",
     "L-MCP-LOCAL-USER",
     "L-SERVER-MANAGED",

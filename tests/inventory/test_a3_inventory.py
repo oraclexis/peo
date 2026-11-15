@@ -1,5 +1,6 @@
 """A3.1 to A3.11 and the cross-cutting Inventory tests; spec 14 §3, spec 16 F3."""
 
+import hashlib
 import json
 import os
 import pathlib
@@ -12,18 +13,30 @@ import pytest
 import peo.inventory as inv
 from peo.runner import Result
 from peo.validate import load_schema, validate
+from tests.gitcmd import GIT
 from tests.inventory.conftest import MISSING, VERSION_OK, UnexpectedMachineAccess, plugin_list
 
 DECOY = "fixture-not-a-secret-"  # noqa: S105 - marker of every fake value planted by a test
 NO_CLAUDE = {("claude", "--version"): MISSING}
 PLUGIN_LIST = ("claude", "plugin", "list", "--json")
 NOT_INSPECTED_FIXED = {"settings:managed-other", "settings:cli", "mcp:local", "mcp:user"}
+HEAD_BLOB = (*GIT, "rev-parse", "HEAD:.claude/settings.json")
+
+
+def blob(content: bytes, algorithm: str = "sha1") -> bytes:
+    """Object id of a git blob, as `git rev-parse HEAD:<path>` prints it."""
+    return hashlib.new(algorithm, b"blob %d\0" % len(content) + content).hexdigest().encode() + b"\n"
+
+
+def unchanged(root) -> dict:
+    """`git rev-parse` answer that matches .claude/settings.json as written by the test."""
+    return {HEAD_BLOB: Result(0, blob((root / ".claude" / "settings.json").read_bytes()), b"")}
 
 
 def git(*files, tracked=(), rc=0):
     """Response of `git ls-files -z -- <files>` listing `tracked`."""
     out = b"".join(f.encode() + b"\0" for f in tracked)
-    return {("git", "ls-files", "-z", "--", *files): Result(rc, out, b"")}
+    return {(*GIT, "ls-files", "-z", "--", *files): Result(rc, out, b"")}
 
 
 def check(out):
@@ -365,8 +378,8 @@ def test_a3_5_empty_user_config_is_absent(project, fake_run, user_config, manage
 def test_a3_5_cuj2_ci_without_claude(project, fake_run, user_config):
     root = project({".claude/settings.json": {"enabledPlugins": {"egm@egm": True}},
                     ".mcp.json": {"mcpServers": {"github": {"command": "npx", "args": ["x"]}}}})
-    run = fake_run({**NO_CLAUDE, **git(".claude/settings.json", ".mcp.json",
-                                       tracked=[".claude/settings.json", ".mcp.json"])})
+    run = fake_run({**NO_CLAUDE, **unchanged(root), **git(".claude/settings.json", ".mcp.json",
+                                                    tracked=[".claude/settings.json", ".mcp.json"])})
     out = check(inv.inventory(root, run=run, user_config=user_config, managed=None))
     assert source(out, "settings:project")["status"] == "read"
     assert source(out, "mcp:project")["status"] == "read"
@@ -556,13 +569,14 @@ def test_a3_7_value_forms(project, fake_run, user_config, managed):
 # A3.8: tracked
 
 PROJECT_FILES = {".claude/settings.local.json": {}, ".claude/settings.json": {}, ".mcp.json": {}}
-GIT_KEY = ("git", "ls-files", "-z", "--", ".claude/settings.local.json", ".claude/settings.json",
+GIT_KEY = (*GIT, "ls-files", "-z", "--", ".claude/settings.local.json", ".claude/settings.json",
            ".mcp.json")
 
 
 def test_a3_8_tracked_true_and_false(project, fake_run, user_config, managed):
     root = project(PROJECT_FILES)
-    run = fake_run({**NO_CLAUDE, GIT_KEY: Result(0, b".claude/settings.json\0.mcp.json\0", b"")})
+    run = fake_run({**NO_CLAUDE, **unchanged(root),
+                    GIT_KEY: Result(0, b".claude/settings.json\0.mcp.json\0", b"")})
     out = check(inv.inventory(root, run=run, user_config=user_config, managed=managed))
     assert [source(out, s)["tracked"] for s in ("settings:local", "settings:project", "mcp:project")] == [
         False, True, True]
@@ -593,6 +607,59 @@ def test_a3_8_no_git_call_without_project_source(project, fake_run, user_config,
     run = fake_run(NO_CLAUDE)
     check(inv.inventory(root, run=run, user_config=user_config, managed=managed))
     assert [c[0][0] for c in run.calls] == ["claude"]
+
+
+# A3.8 (R3): modified, settings:project only
+
+@pytest.mark.parametrize(("answer", "expected"), [
+    (Result(0, blob(b"{}"), b""), False), (Result(0, blob(b"{}", "sha256"), b""), False),
+    (Result(0, blob(b'{"a": 1}'), b""), True), (Result(128, b"", b"fatal"), None),
+    (Result(0, b"fixture-not-a-secret-garbage\n", b""), None),
+    (OSError("fixture-not-a-secret-git"), None)])
+def test_a3_8_modified(project, fake_run, user_config, managed, answer, expected):
+    root = project({".claude/settings.json": "{}", ".mcp.json": {}})
+    run = fake_run({**NO_CLAUDE, **git(".claude/settings.json", ".mcp.json",
+                                       tracked=[".claude/settings.json", ".mcp.json"]),
+                    HEAD_BLOB: answer})
+    out = check(inv.inventory(root, run=run, user_config=user_config, managed=managed))
+    assert source(out, "settings:project")["modified"] is expected
+    assert [s["id"] for s in out["sources"] if "modified" in s] == ["settings:project"]
+    assert (HEAD_BLOB, root) in run.calls
+
+
+@pytest.mark.parametrize("listing", [b"", None])
+def test_a3_8_modified_null_without_diff_when_not_tracked(project, fake_run, user_config, managed,
+                                                          listing):
+    files = {".claude/settings.json": {}} if listing is not None else {}
+    root = project(files)
+    answers = git(".claude/settings.json", tracked=[]) if listing is not None else {}
+    run = fake_run({**NO_CLAUDE, **answers})
+    out = check(inv.inventory(root, run=run, user_config=user_config, managed=managed))
+    assert source(out, "settings:project")["modified"] is None
+    assert all(c[0] != HEAD_BLOB for c in run.calls)
+
+
+# A3.13 (R3): allowManagedPermissionRulesOnly read in managed sources only
+
+def test_a3_13_managed_rules_only_read_in_managed_only(project, fake_run, user_config, managed):
+    (managed / "managed-settings.json").write_text('{"allowManagedPermissionRulesOnly": true}')
+    (user_config / "settings.json").write_text('{"allowManagedPermissionRulesOnly": true}')
+    root = project({".claude/settings.json": {"allowManagedPermissionRulesOnly": True}})
+    run = fake_run({**NO_CLAUDE, **git(".claude/settings.json", tracked=[])})
+    out = check(inv.inventory(root, run=run, user_config=user_config, managed=managed))
+    assert [(f["source"], f["key"], f["value"]) for f in out["flags"]] == [
+        ("settings:managed", "allowManagedPermissionRulesOnly", True)]
+
+
+def test_a3_claude_timeout(project, user_config, managed):
+    calls = []
+
+    def run(args, cwd, timeout=None):
+        calls.append((tuple(args), timeout))
+        return VERSION_OK if args[1] == "--version" else Result(0, b"[]", b"")
+
+    check(inv.inventory(project(), run=run, user_config=user_config, managed=managed))
+    assert calls == [(("claude", "--version"), 10), (PLUGIN_LIST, 10)]
 
 
 # A3.9: decoys never leave the Inventory
@@ -733,7 +800,7 @@ def test_a3_11_declared(project, fake_run, user_config, managed, tmp_path):
                     ".mcp.json": {"mcpServers": {"github": {"command": "npx", "args": ["x"]}}}})
     run = full(fake_run, root, tmp_path / "plugins", git(
         ".claude/settings.local.json", ".claude/settings.json", ".mcp.json",
-        tracked=[".claude/settings.local.json", ".claude/settings.json", ".mcp.json"]))
+        tracked=[".claude/settings.local.json", ".claude/settings.json", ".mcp.json"]) | unchanged(root))
     out = check(inv.inventory(root, run=run, user_config=user_config, managed=managed))
     declared = inv.declared(out)
     assert declared == {"plugins": of(out, "plugins", "settings:project"),
@@ -746,7 +813,7 @@ def test_a3_11_declared(project, fake_run, user_config, managed, tmp_path):
 def test_a3_11_declared_requires_tracked_true(project, fake_run, user_config, managed, answer):
     root = project({".claude/settings.json": {"enabledPlugins": {"a@m": True}},
                     ".mcp.json": {"mcpServers": {"github": {"command": "npx"}}}})
-    run = fake_run({**NO_CLAUDE, ("git", "ls-files", "-z", "--", ".claude/settings.json",
+    run = fake_run({**NO_CLAUDE, (*GIT, "ls-files", "-z", "--", ".claude/settings.json",
                                   ".mcp.json"): answer})
     out = check(inv.inventory(root, run=run, user_config=user_config, managed=managed))
     assert inv.declared(out) == {"plugins": [], "mcp_servers": []}
@@ -822,7 +889,7 @@ def test_hygiene_commands(project, fake_run, user_config, managed, tmp_path):
     check(inv.inventory(root, run=run, user_config=user_config, managed=managed))
     assert run.calls == [
         (("claude", "--version"), root), (PLUGIN_LIST, root),
-        (("git", "ls-files", "-z", "--", ".claude/settings.local.json", ".claude/settings.json",
+        ((*GIT, "ls-files", "-z", "--", ".claude/settings.local.json", ".claude/settings.json",
           ".mcp.json"), root)]
 
 

@@ -19,6 +19,8 @@ import peo.runner
 from peo import cli
 from peo.runner import Result
 from peo.validate import load_schema, validate
+from tests.fxlarge import build_large
+from tests.gitcmd import GIT
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "tests" / "fixtures" / "fx-split-stack"
@@ -500,30 +502,13 @@ def test_a1_6_only_local_git_commands(split_stack_repo, monkeypatch, capsys):
     assert code == 0
     assert calls
     for args in calls:
-        assert args[0] == "git" and args[1] in LOCAL_GIT, args
-    assert ["git", "rev-parse", "--show-toplevel"] in calls
+        assert tuple(args[:5]) == GIT and args[5] in LOCAL_GIT, args
+    assert [*GIT, "rev-parse", "--show-toplevel"] in calls
 
 
 @pytest.fixture(scope="module")
 def large_repo(tmp_path_factory):
-    target = tmp_path_factory.mktemp("fx-large")
-    (target / "package.json").write_text('{"name": "fx-large", "version": "1.0.0"}\n')
-    body = "".join(f"// line {n}\n" for n in range(100))
-    exts = ("ts", "vue", "php", "py")
-    for i in range(1000):
-        d = target / "src" / f"m{i // 100}"
-        d.mkdir(parents=True, exist_ok=True)
-        (d / f"f{i}.{exts[i % 4]}").write_text(body)
-    env = {k: v for k, v in os.environ.items()
-           if k not in {"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_CONFIG_COUNT",
-                        "GIT_CONFIG_PARAMETERS"}}
-    env.update(GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_NOSYSTEM="1",
-               GIT_AUTHOR_NAME="Fixture Author", GIT_COMMITTER_NAME="Fixture Author",
-               GIT_AUTHOR_EMAIL="author@example.test", GIT_COMMITTER_EMAIL="author@example.test",
-               GIT_AUTHOR_DATE="@1772438400 +0000", GIT_COMMITTER_DATE="@1772438400 +0000")
-    git = ["git", "-C", str(target), "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
-    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "feat: large"]):
-        subprocess.run(git + args, check=True, capture_output=True, env=env)
+    target = build_large(tmp_path_factory.mktemp("fx-large"))
     yield target
     shutil.rmtree(target, ignore_errors=True)
 

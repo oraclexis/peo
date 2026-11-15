@@ -1,0 +1,5 @@
+repos:
+  - repo: https://example.test/hooks/scanner
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
