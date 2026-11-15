@@ -117,19 +117,19 @@ def handoff_drift(root: Path, handoff: str, text: str, files: list[str],
                   run: runner.Runner) -> dict | None:
     """D4: the handoff document was last changed more than 20 commits before a file it cites."""
     def out(*args: str) -> str | None:
-        result = run(list(args), root)
+        result = run([*runner.GIT, *args], root)
         return result.stdout.decode("utf-8", "replace").strip() if result.returncode == 0 else None
 
-    last = out("git", "log", "-1", "--format=%H", "--", handoff)
+    last = out("log", "-1", "--format=%H", "--", handoff)
     if not last:
         return None
     tree = Tree(files, [])
     cited = [path for line in text.splitlines() for _, _, path in tree.citations(line)]
     for path in dict.fromkeys(p for p in cited if p in tree.files and p != handoff):
-        changed = out("git", "log", "-1", "--format=%H", "--", path)
-        count = out("git", "rev-list", "--count", f"{last}..{changed}") if changed else None
+        changed = out("log", "-1", "--format=%H", "--", path)
+        count = out("rev-list", "--count", f"{last}..{changed}") if changed else None
         if count and count.isdigit() and int(count) > D4_THRESHOLD:
-            behind = out("git", "rev-list", "--count", f"{last}..HEAD")
+            behind = out("rev-list", "--count", f"{last}..HEAD")
             if behind and behind.isdigit():
                 return _finding("D4", handoff, None, f"Last changed {behind} commits before HEAD "
                                                      "while files it cites changed since")

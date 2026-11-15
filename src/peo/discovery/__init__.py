@@ -65,19 +65,30 @@ def _excluded(rel: str) -> bool:
     return any(part in EXCLUDED for part in PurePosixPath(rel).parts[:-1])
 
 
-def list_files(root: Path, run: runner.Runner) -> tuple[list[str], bool]:
-    """Tracked files (or a walk outside git) and whether root is a git repository."""
-    result = run(["git", "ls-files", "-z"], root)
-    is_git = result.returncode == 0
-    if is_git:
-        rels = [p for p in result.stdout.decode("utf-8", "surrogateescape").split("\0") if p]
+def tracked_files(root: Path, run: runner.Runner) -> list[str] | None:
+    """Every path git tracks, without exclusion (spec 12 §7 bis); None outside git."""
+    result = run([*runner.GIT, "ls-files", "-z"], root)
+    if result.returncode != 0:
+        return None
+    return sorted(p for p in result.stdout.decode("utf-8", "surrogateescape").split("\0") if p)
+
+
+def _files(root: Path, tracked: list[str] | None) -> list[str]:
+    if tracked is not None:
+        rels = tracked
     else:
         rels = []
         for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
             dirnames[:] = [d for d in dirnames if d not in EXCLUDED]
             base = Path(dirpath).relative_to(root)
             rels += [(base / f).as_posix() for f in filenames]
-    return sorted(r for r in rels if not _excluded(r) and _inside(root, r)), is_git
+    return sorted(r for r in rels if not _excluded(r) and _inside(root, r))
+
+
+def list_files(root: Path, run: runner.Runner) -> tuple[list[str], bool]:
+    """Tracked files (or a walk outside git) and whether root is a git repository."""
+    tracked = tracked_files(root, run)
+    return _files(root, tracked), tracked is not None
 
 
 def read_text(root: Path, rel: str) -> str | None:
@@ -340,7 +351,8 @@ def discover(root: Path, *, run: runner.Runner = runner.run,
     """Components part of the profile (spec 12, sections 1 and 2). Reads only."""
     root = Path(root)
     warnings = [] if warnings is None else warnings
-    files, is_git = list_files(root, run)
+    tracked = tracked_files(root, run)
+    files, is_git = _files(root, tracked), tracked is not None
 
     manifests: list[Manifest] = []
     for rel in files:
@@ -432,7 +444,7 @@ def discover(root: Path, *, run: runner.Runner = runner.run,
             "monorepo": multi and workspace_tool, "multi_component": multi, "commands": commands,
             "conventions": history["conventions"], "git": history["git"], "ci": ci, "docs": docs,
             "intent_from_docs": intents(files, read), "docs_drift": drift,
-            "sensitive": sensitive(root, files if is_git else [], services),
+            "sensitive": sensitive(root, tracked or [], services),
             "signals": signals(files, manifests, read, code, loc),
             "present_tools": present_tools(files, manifests, component_of),
             "metrics": _metrics(files, code, loc, history["counts"]),

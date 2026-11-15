@@ -24,6 +24,8 @@ _PLUGIN_SCOPES = ("user", "managed", "project", "local", "synced")
 _HOOK_TYPES = ("command", "http", "mcp_tool", "prompt", "agent")
 _LISTS = ("allow", "ask", "deny")
 _SANDBOX_FLAGS = ("enabled", "failIfUnavailable", "allowUnsandboxedCommands")
+_MANAGED_FLAGS = ("allowManagedHooksOnly", "allowManagedPermissionRulesOnly")  # ignored elsewhere
+_CLAUDE_TIMEOUT = 10  # seconds per claude command (spec 15 §7)
 
 
 class _Invalid(Exception):
@@ -130,7 +132,7 @@ def _permissions(sid, data):
 
 def _flags(sid, data, is_managed):
     found = {f"sandbox.{k}": v for k, v in _object(data, "sandbox").items() if k in _SANDBOX_FLAGS}
-    keys = ("disableAllHooks", "allowManagedHooksOnly") if is_managed else ("disableAllHooks",)
+    keys = ("disableAllHooks", *(_MANAGED_FLAGS if is_managed else ()))
     found.update({k: data[k] for k in keys if k in data})
     if not all(isinstance(v, bool) for v in found.values()):
         raise _Invalid
@@ -283,7 +285,7 @@ def _claude(run, root):
     """(claude source, claude_version, plugin listing or None for the degraded mode)."""
     src = _source("claude", None)
     try:
-        done = run(["claude", "--version"], root)
+        done = run(["claude", "--version"], root, timeout=_CLAUDE_TIMEOUT)
     except OSError:
         src.update(status="unavailable", reason="command-failed")
         return src, None, None
@@ -303,7 +305,7 @@ def _claude(run, root):
         src.update(status="unavailable", reason="claude-too-old")
         return src, version, None
     try:
-        done = run(["claude", "plugin", "list", "--json"], root)
+        done = run(["claude", "plugin", "list", "--json"], root, timeout=_CLAUDE_TIMEOUT)
     except OSError:
         src.update(status="unavailable", reason="command-failed")
         return src, version, None
@@ -347,7 +349,7 @@ def _tracked(run, root, project_sources):
     if not present:
         return
     try:
-        done = run(["git", "ls-files", "-z", "--", *[s["path"] for s in present]], root)
+        done = run([*runner.GIT, "ls-files", "-z", "--", *[s["path"] for s in present]], root)
     except OSError:
         return
     if done.returncode != 0:
@@ -355,6 +357,17 @@ def _tracked(run, root, project_sources):
     listed = set(done.stdout.split(b"\0"))
     for s in present:
         s["tracked"] = s["path"].encode() in listed
+
+
+def _modified(run, root, project):
+    """settings:project differs from HEAD (spec 14 §3.1): 0 -> false, 1 -> true, else null."""
+    if project["tracked"] is not True:
+        return
+    try:
+        done = run([*runner.GIT, "diff", "--quiet", "HEAD", "--", project["path"]], root)
+    except OSError:
+        return
+    project["modified"] = {0: False, 1: True}.get(done.returncode)
 
 
 def _null_first(value):
@@ -433,6 +446,9 @@ def inventory(root: Path, *, run: runner.Runner | None = None, user_config: Path
             plugin_servers.append((n, plugin["mcpServers"]))
 
     _tracked(run, root, [s for s in sources if s["id"] in _PROJECT_IDS])
+    project = next(s for s in sources if s["id"] == "settings:project")
+    project["modified"] = None
+    _modified(run, root, project)
 
     out = _Output()
     out.lists["plugins"] += plugins
