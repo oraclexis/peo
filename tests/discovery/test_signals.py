@@ -7,6 +7,7 @@ import pytest
 
 from peo.discovery import discover
 from peo.runner import Result
+from tests.gitcmd import GIT
 
 
 def no_git(args, cwd):
@@ -166,8 +167,8 @@ def test_metrics_contributors(tmp_path):
     write(tmp_path, {"a.ts": "x\n"})
 
     def run(args, cwd):
-        answers = {("git", "ls-files", "-z"): "a.ts\0", ("git", "rev-list", "--count", "HEAD"): "3\n",
-                   ("git", "log", "--format=%ae"): "a@x.test\nb@x.test\na@x.test\n"}
+        answers = {(*GIT, "ls-files", "-z"): "a.ts\0", (*GIT, "rev-list", "--count", "HEAD"): "3\n",
+                   (*GIT, "log", "--format=%ae"): "a@x.test\nb@x.test\na@x.test\n"}
         out = answers.get(tuple(args))
         return Result(0, out.encode(), b"") if out else Result(128, b"", b"")
 

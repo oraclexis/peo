@@ -1,0 +1,5 @@
+stages: [test]
+secrets:
+  stage: test
+  script:
+    - gitleaks dir .

@@ -1,0 +1,4 @@
+secrets:
+  image: zricethezav/gitleaks:latest
+  script:
+    - make scan

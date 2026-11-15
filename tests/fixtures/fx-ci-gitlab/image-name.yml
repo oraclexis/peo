@@ -1,0 +1,6 @@
+secrets:
+  image:
+    name: ghcr.io/gitleaks/gitleaks:v8
+    entrypoint: [""]
+  script:
+    - make scan

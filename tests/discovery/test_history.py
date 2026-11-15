@@ -8,6 +8,7 @@ import pytest
 from peo.discovery import discover
 from peo.discovery.history import branch_names, branches, commits, read_history
 from peo.runner import Result
+from tests.gitcmd import GIT
 
 
 def git_fake(answers: dict):
@@ -25,13 +26,13 @@ def git_fake(answers: dict):
     return run
 
 
-LS = ("git", "ls-files", "-z")
-COUNT = ("git", "rev-list", "--count", "HEAD")
-REFS = ("git", "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes")
-LOG = ("git", "log", "-200", "--format=%P%x1f%s")
-REMOTE = ("git", "remote")
-ORIGIN_HEAD = ("git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD")
-HEAD = ("git", "symbolic-ref", "--short", "HEAD")
+LS = (*GIT, "ls-files", "-z")
+COUNT = (*GIT, "rev-list", "--count", "HEAD")
+REFS = (*GIT, "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes")
+LOG = (*GIT, "log", "-200", "--format=%P%x1f%s")
+REMOTE = (*GIT, "remote")
+ORIGIN_HEAD = (*GIT, "symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+HEAD = (*GIT, "symbolic-ref", "--short", "HEAD")
 
 
 def write(root: Path, files: dict) -> None:

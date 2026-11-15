@@ -8,6 +8,7 @@ import pytest
 from peo.discovery import discover
 from peo.discovery.drift import handoff_drift
 from peo.runner import Result
+from tests.gitcmd import GIT
 
 
 def no_git(args, cwd):
@@ -127,9 +128,9 @@ def git_fake(counts: dict):
 
     def run(args, cwd):
         calls.append(list(args))
-        answers = {("git", "log", "-1", "--format=%H", "--", "HANDOFF.md"): "h\n",
-                   ("git", "log", "-1", "--format=%H", "--", "src/x.vue"): "f\n"}
-        answers |= {("git", "rev-list", "--count", k): f"{v}\n" for k, v in counts.items()}
+        answers = {(*GIT, "log", "-1", "--format=%H", "--", "HANDOFF.md"): "h\n",
+                   (*GIT, "log", "-1", "--format=%H", "--", "src/x.vue"): "f\n"}
+        answers |= {(*GIT, "rev-list", "--count", k): f"{v}\n" for k, v in counts.items()}
         out = answers.get(tuple(args))
         return Result(0, out.encode(), b"") if out else Result(128, b"", b"")
 
@@ -158,7 +159,7 @@ def test_drift_d4_outside_git(tmp_path):
         return Result(128, b"", b"")
 
     discover(tmp_path, run=run, which=lambda name: None)
-    assert all(c[:2] != ["git", "log"] or "-1" not in c for c in calls)
+    assert all(c[:6] != [*GIT, "log"] or "-1" not in c for c in calls)
 
 
 # --- order -----------------------------------------------------------------------------------

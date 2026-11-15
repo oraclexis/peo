@@ -273,7 +273,12 @@
       }
     ],
     "data_dumps": [],
-    "log_dirs": []
+    "log_dirs": [],
+    "nested_claude_settings": [],
+    "walk": {
+      "depth_pruned": true,
+      "linked_dirs": []
+    }
   },
   "intent_from_docs": [
     {
