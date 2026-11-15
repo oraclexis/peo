@@ -59,7 +59,18 @@ Measure (b), setup: state A = clone + `.env` copied from the repository's exampl
 
 These expected findings were first pushed on 2026-11-15, before any run; the original commits are referenced in the local journal.
 
-Pilot 1: expected findings to be written before its run (real workstation config).
+Pilot 1 (aggregated counts only, spec 16, section 2.2), real workstation config, written on 2026-11-16 before its run:
+
+| Repository | Measure | Code | Expected |
+|---|---|---|---|
+| Pilot 1 | (a) | `X-DATA-READABLE` | warning, 1 (a log directory without a `deny Read` rule) |
+| Pilot 1 | (a) | `X-NO-SECRET-SCAN` | warning, 1 (no CI file) |
+| Pilot 1 | (a) | `X-SANDBOX-OFF` | info, 1 (`data_stores` only, a component runs in docker) |
+| Pilot 1 | (a) | `X-DATA-STORE` | info, 1 |
+| Pilot 1 | (a) | `X-MCP-UNEVALUATED` | info, one per MCP server of the enabled plugins (about 40) |
+| Pilot 1 | (a) | `S-HOOK-FOREIGN` | info, 10 from the user settings, plus any plugin hook |
+| Pilot 1 | (a) | `X-SECRET-*`, `X-COVERAGE-NOT-SHARED`, `X-LITERAL-IN-AGENT-CONFIG`, `S-PLUGIN-ERROR`, `S-DEGRADED-INVENTORY` | none |
+| Pilot 1 | (a) | actionable total | 1, from `X-DATA-READABLE` |
 
 ## Verdicts
 
