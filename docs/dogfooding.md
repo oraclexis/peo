@@ -17,18 +17,18 @@ Aggregated results only (document 07, section 7.1; spec 16, section 2.3). No fil
 | (a) and (b) Gaps with the expected findings | each one recorded below | — |
 | "Protected" or equivalent shown wrongly | 0 | — |
 | Sensitive value in a PEO output | 0 | — |
-| Duration of `peo status --exposure` | < 5 s per repository, `claude` subprocess time excluded (noted separately) | — |
-| Network access by the PEO process | 0 (limit: `claude` subprocesses not covered, S20) | — |
+| Duration of `peo status --exposure` | < 5 s per repository, `claude` subprocess time excluded (noted separately) | met on the 2 open source repositories and their 4 A/B copies: at most 0.68 s without `claude` (pilot 1 pending) |
+| Network access by the PEO process | 0 (limit: `claude` subprocesses not covered, S20) | 0 on the same 6 runs (spec 16 §2.3 test, sockets refused in the PEO process; pilot 1 pending) |
 
 ## Repositories
 
 | Repository | Stack | Commit | Config | Size (tracked lines) | Duration (PEO) | Duration (`claude`) |
 |---|---|---|---|---|---|---|
 | Pilot 1 (pseudonymized) | Nuxt + Laravel | — | real workstation config | — | — | — |
-| [brocoders/nestjs-boilerplate](https://github.com/brocoders/nestjs-boilerplate) (MIT) | NestJS | `9620f159eefe38f47747d02ab162852367c5472c` | empty `CLAUDE_CONFIG_DIR` | 35 724 | 1.74 s (a), 1.41 s (b A), 1.32 s (b B) | included, not measured apart |
-| [odense-rpa/automation-server](https://github.com/odense-rpa/automation-server) (MIT) | FastAPI + Vue | `522d6038378e35ee4b67071db2f672f6a0a38da2` | empty `CLAUDE_CONFIG_DIR` | 52 407 | 1.04 s (a), 1.19 s (b A), 1.17 s (b B) | included, not measured apart |
+| [brocoders/nestjs-boilerplate](https://github.com/brocoders/nestjs-boilerplate) (MIT) | NestJS | `9620f159eefe38f47747d02ab162852367c5472c` | empty `CLAUDE_CONFIG_DIR` | 35 724 | 0.54 s (a), 0.65 s (b A), 0.68 s (b B) | 0.48 s (a), 1.78 s (b A), 0.49 s (b B) |
+| [odense-rpa/automation-server](https://github.com/odense-rpa/automation-server) (MIT) | FastAPI + Vue | `522d6038378e35ee4b67071db2f672f6a0a38da2` | empty `CLAUDE_CONFIG_DIR` | 52 407 | 0.49 s (a), 0.57 s (b A), 0.58 s (b B) | 0.55 s (a), 0.84 s (b A), 0.49 s (b B) |
 
-Durations: wall time of `peo status --exposure --json`, `claude` subprocesses included; below the 5 s threshold even with them.
+Durations: measured by the local test of spec 16, section 2.3 (`PEO_AUDIT_PATHS`, `PEO_CLAUDE_VERSION=2.1.325`), which times the `claude` subprocesses apart; the same test found no write in the audited trees, no "protected" wording and no `.env` value in the outputs on these 6 runs.
 
 Size: lines of the text files tracked by git (`grep -Ic ''` on `git ls-files`), binaries excluded.
 
