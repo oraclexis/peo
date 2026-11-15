@@ -121,7 +121,7 @@ reuse_only = true    # PEO reconnaît et réutilise, n'installe jamais cet outil
 
 ## 5. Catalogue initial (21 fiches)
 
-**Catalogue en R3** (ajout du 2026-11-14 ; révisé après la revue Goldfish) : R3 ne charge **aucune fiche**. Le chargeur de catalogue, `peo:native-controls` et `ci-check:semgrep` arrivent en R4, avec le Selector : aucun constat de R3 ne lit une fiche, et les codes qui en ont besoin (`S-HOOK-UNDECLARED`, `X-MASKING-DUPLICATE`, `X-HOOK-FAIL-OPEN`) passent en R4 (spec 15). Les jetons de `X-NO-SECRET-SCAN` vivent dans `discovery/detect.toml` (champ `ci`, spec 12 §7 ter), qui reste la source des détections de Discovery jusqu'en R4, comme `discovery/intents.toml` (spec 12, sections 5 et 7 ter). `tool-entry.schema.json` n'est pas modifié en R3.
+**Catalogue en R3** (R3, S-14) : R3 ne charge **aucune fiche**. Le chargeur de catalogue, `peo:native-controls` et `ci-check:semgrep` arrivent en R4, avec le Selector : aucun constat de R3 ne lit une fiche, et les codes qui en ont besoin (`S-HOOK-UNDECLARED`, `X-MASKING-DUPLICATE`, `X-HOOK-FAIL-OPEN`) passent en R4 (spec 15). Les jetons de `X-NO-SECRET-SCAN` vivent dans `discovery/detect.toml` (champ `ci`, spec 12 §7 ter), qui reste la source des détections de Discovery jusqu'en R4, comme `discovery/intents.toml` (spec 12, sections 5 et 7 ter). `tool-entry.schema.json` n'est pas modifié en R3.
 
 | Référence | Statut | Fournit | Condition résumée | Installé par PEO au MVP |
 |---|---|---|---|---|
@@ -131,7 +131,7 @@ reuse_only = true    # PEO reconnaît et réutilise, n'installe jamais cet outil
 | `claude-plugin:mattpocock-skills` | core | `clarify.interview`, `tdd.discipline`, `review.code`, `debug.diagnosis` | socle par défaut | oui |
 | `peo:gates` | core | `process.gates` | toujours | oui (hooks du projet) |
 | `peo:native-controls` | core | `exposure.native` | exigence présente (fichier de secrets, dump ou logs) | oui : règles `permissions.deny` ; sandbox recommandé seulement (S-9). Ajout du 2026-11-12 |
-| `ci-check:gitleaks` | conditional | `secrets.scan.ci` | toujours candidat | oui (bloc CI, valeurs masquées dans les journaux de CI avec `--redact`). jetons `ci = ["gitleaks", "Secret-Detection"]` dans `discovery/detect.toml` en R3 (spec 12 §7 ter). `[canary]` (R4.1) : `gitleaks dir {dir}`, détecté = code 1 [À VÉRIFIER sur la version épinglée à l'écriture de la fiche]. Ajout du 2026-11-12 |
+| `ci-check:gitleaks` | conditional | `secrets.scan.ci` | toujours candidat | oui (bloc CI, valeurs masquées dans les journaux de CI avec `--redact`). Jetons `ci = ["gitleaks", "Secret-Detection"]` dans `discovery/detect.toml` en R3 (spec 12 §7 ter). `[canary]` (R4.1) : `gitleaks dir {dir}`, détecté = code 1 [À VÉRIFIER sur la version épinglée à l'écriture de la fiche]. Ajout du 2026-11-12 |
 | `claude-plugin:typescript-lsp` | conditional | `nav.lsp.typescript` | composant TypeScript ou Vue | oui |
 | `claude-plugin:php-lsp` | conditional | `nav.lsp.php` | composant PHP | oui, avec prérequis |
 | `cli:intelephense` | conditional | — (prérequis de `php-lsp`) | requis par `php-lsp` | oui (`npm install -g`, classe de risque R3) |

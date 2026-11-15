@@ -464,6 +464,13 @@
             "additionalProperties": false
           }
         },
+        "nested_claude_settings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Sorted paths of .claude/settings.json and .claude/settings.local.json below the root (spec 12 section 7 bis, L-NESTED-SETTINGS)."
+        },
         "walk": {
           "type": "object",
           "required": [

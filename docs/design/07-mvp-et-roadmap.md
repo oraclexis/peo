@@ -120,7 +120,7 @@ Raison (document 01, section 9) : Discovery et Inventory sont à construire de t
 | **R2** | Inventory Claude Code : hooks par événement avec propriétaire et `onFailure`, permissions, sandbox, MCP | F3 | R1 | Chaque hook lu est listé avec sa source et `on_failure` ; une valeur littérale d'une clé sensible de `.mcp.json` est classée `literal` sans être émise ; une source illisible a un état explicite (la comparaison aux fiches passe en R3) |
 | **R3** | `peo status [--exposure] [--ci]` avec le jeu de règles R3 (spec 15, colonne « Étape ») ; sans chargement du catalogue (jetons de scanners dans `discovery/detect.toml`) ; matcher des règles `Read` (spec 14 §3.5), précédé du spike de conformité (révisé le 2026-11-14) | F11 (partiel), F14 | R2 | **Jalon A′** (mesures ci-dessous) |
 | **R4** | Selector + questionnaire, chargeur de catalogue et catalogue complet (dont `peo:native-controls`, `ci-check:semgrep`, et les fiches qui remplacent `discovery/detect.toml` et `intents.toml`), codes de `status` qui lisent les fiches (`S-HOOK-UNDECLARED`, `X-MASKING-DUPLICATE`, `X-HOOK-FAIL-OPEN`), avec les capacités `privacy.*`, `secrets.*`, `exposure.native` | F4, F5 | R3 | Déterministe ; refuse deux outils `privacy.masking` |
-| **R4.1** | `--canary` (spec 15 §7.2), après le chargeur de catalogue (il lit `[canary]` et `[detect].bin` des fiches) et la vérification de `gitleaks dir` et `detected_exit` sur la version épinglée (déplacé de R3.1 le 2026-11-14) | F14 | R4 | A14.4, A14.5 ; hors jalon A′ |
+| **R4.1** | `--canary` (spec 15 §7.2), après le chargeur de catalogue (il lit `[canary]` et `[detect].bin` des fiches) et la vérification de `gitleaks dir` et `detected_exit` sur la version épinglée (déplacé de R3.1 le 2026-11-14) | F14 | R4 | A14.4, A14.2 (variante `--canary`) ; hors jalon A′ |
 | **R5** | Planner, installeurs, adaptateur Claude (dont le bloc `permissions` et sandbox), lock, journal, doc générée | F6 à F9 | R4 | Idempotent ; tout affaiblissement d'un contrôle marqué dans le plan |
 | **R6** | Porte + recette `feature`, `peo status --ci` complet | F10, F11 | R5 | Ancien jalon MVP (section 6) |
 | Ensuite | `peo tools` complet, fiche Cloakroom (après spike S5), Inventory Codex (E7), recettes supplémentaires, catalogue partagé, portabilité, socles alternatifs | F12, F13, ex-P6 à P10 | R6 | Selon la demande |
@@ -129,17 +129,17 @@ Correspondance avec l'ancienne feuille de route (section 4) : R1 à R3 = P1 éla
 
 ### 7.1 Mesures du jalon A′
 
-Révisé le 2026-11-14 (deux fois). Trois dépôts de stacks différentes, prises en charge par Discovery : le pilote n°1 (Nuxt + Laravel), puis un dépôt NestJS et un dépôt Python open source, chacun à un commit fixé. Critères de choix des dépôts open source : `.env.example`, `docker-compose` avec une base, une CI ; si possible `.claude/`, `CLAUDE.md` ou `.mcp.json` versionnés ; actif, licence permissive, 10 000 à 100 000 lignes.
+Trois dépôts de stacks différentes, prises en charge par Discovery : le pilote n°1 (Nuxt + Laravel), puis un dépôt NestJS et un dépôt Python open source, chacun à un commit fixé. Critères de choix des dépôts open source : `.env.example`, `docker-compose` avec une base, une CI ; si possible `.claude/`, `CLAUDE.md` ou `.mcp.json` versionnés ; actif, licence permissive, 10 000 à 100 000 lignes.
 
 **Mesure (a), actionnabilité.**
 - **Pilote n°1** : audité avec sa **configuration réelle** (réglages user, plugins, serveurs MCP du poste) : c'est son exposition réelle, et l'auditeur en est le propriétaire.
 - **Dépôts open source** : clone **non modifié**, audité avec un `CLAUDE_CONFIG_DIR` vide, pour que les réglages de l'auditeur ne faussent rien.
 - **Seuls les constats `X-*` comptent.** Un constat est **actionnable** quand le propriétaire du dépôt changerait quelque chose en le lisant. Ne comptent pas pour le seuil « ≥ 1 actionnable » : `X-MCP-UNEVALUATED` et `X-DATA-STORE` (systématiques), `X-NO-SECRET-SCAN` (presque systématique sur des clones, précisé le 2026-11-14), et un `X-SANDBOX-OFF` déclenché seulement par `data_stores` (le critère « compose avec une base » le garantit). Ils reçoivent quand même un verdict.
 - **Constats `error` en confiance `likely`** (`undecidable`, `source-unreadable`) : comptés **à part** dans `docs/dogfooding.md`, avec leur raison ; ni actionnables ni faux positifs pour les seuils.
-- **Version de Claude Code épinglée** : la même pour les 3 audits, notée dans `docs/dogfooding.md`, et égale à une version d'un tableau de conformité de la plateforme (sinon tout `covered` tombe en `untested-version`).
-- **Verdict par constat** : `actionnable`, `faux positif`, `déjà connu` ou `fixture-de-test`. `fixture-de-test` vaut pour un chemin sous `tests/`, `fixtures/` ou `testdata/` (une clé de test, par exemple) ; il est déclaré à l'avance dans les constats prévus, ne compte pas dans le seuil des faux positifs `error`, et chaque cas va au backlog de R4 (exclusion par motif de chemin, à spécifier).
+- **Version de Claude Code épinglée** : la même pour les 3 audits, notée dans `docs/dogfooding.md`, et égale à une version de `versions_tested` du tableau de conformité de la plateforme (spec 14 §3.5 ; plus ancienne : `untested-version` ; plus récente : `covered` avec `L-CLAUDE-NEWER`).
+- **Verdict par constat**, écrit avec l'un de ces libellés littéraux (les mêmes dans `docs/dogfooding.md`) : `actionable` (actionnable), `false-positive` (faux positif), `already-known` (déjà connu) ou `test-fixture` (fixture de test). `test-fixture` vaut pour un chemin sous `tests/`, `fixtures/` ou `testdata/` (une clé de test, par exemple) ; il est déclaré à l'avance dans les constats prévus, ne compte pas dans le seuil des faux positifs `error`, et chaque cas va au backlog de R4 (exclusion par motif de chemin, à spécifier).
 
-**Mesure (b), fidélité A/B.** Sur une copie de chaque dépôt open source, avec un `CLAUDE_CONFIG_DIR` vide : état A = clone + `.env` copié de l'exemple, valeurs factices générées ; état B = A + réglages Claude réalistes (`deny Read(./.env)` commitée dans `.claude/settings.json`, sandbox actif sans `failIfUnavailable`). On vérifie qu'un constat apparaît dans A et disparaît ou reste dans B comme prévu. Ces constats sont créés par construction : ils ne comptent **jamais** comme actionnables.
+**Mesure (b), fidélité A/B.** Sur une copie de chaque dépôt open source, avec un `CLAUDE_CONFIG_DIR` vide : état A = clone + `.env` copié de l'exemple, valeurs factices générées ; état B = A + réglages Claude réalistes (`deny Read(./.env)` dans `.claude/settings.json` suivi par git et commité, sandbox actif sans `failIfUnavailable`). On compare les **verdicts** de `data.exposure.audited` (spec 15 §7.3) : le chemin prévu passe de `not_covered` dans A à `covered` dans B, ou garde le verdict prévu ; son constat apparaît dans A et disparaît ou reste dans B comme prévu. Un chemin absent de `audited` est un écart, pas une disparition. Ces constats sont créés par construction : ils ne comptent **jamais** comme actionnables.
 
 Les constats prévus de (a) et (b) sont écrits dans `docs/dogfooding.md` **avant** l'exécution.
 
@@ -147,7 +147,7 @@ Les constats prévus de (a) et (b) sont écrits dans `docs/dogfooding.md` **avan
 |---|---|
 | Dépôts audités | 3 : le pilote n°1 et 2 dépôts open source à un commit fixé |
 | (a) Constats `X-*` actionnables | ≥ 1 sur chacun des 3 dépôts |
-| (a) Faux positifs de gravité `error` | 0 au total sur les 3 dépôts (hors `fixture-de-test` et hors constats en confiance `likely`, comptés à part) |
+| (a) Faux positifs de sévérité `error` | 0 au total sur les 3 dépôts (hors `test-fixture` et hors constats en confiance `likely`, comptés à part) |
 | (a) Faux positifs `warning` et `info` | ≤ 1/3 : nombre de faux positifs divisé par le nombre de constats `X-*` `warning` et `info` non systématiques, sur les 3 dépôts réunis |
 | (a) et (b) Écarts avec les constats prévus | chacun consigné dans `docs/dogfooding.md` |
 | Constat « protégé » ou équivalent affiché à tort | 0 |
@@ -156,6 +156,8 @@ Les constats prévus de (a) et (b) sont écrits dans `docs/dogfooding.md` **avan
 | Accès réseau du processus de PEO sans `--canary` | 0 (test NF5). **Limite déclarée** : les sous-processus `claude` (`claude plugin list --json`) ne sont pas couverts (hypothèse S20, spec 14 §3.4) |
 
 Deux fichiers (décision du 2026-11-14). **`docs/dogfooding.md`, versionné, agrégé seulement** : dépôts open source nommés avec leur SHA, pilote n°1 pseudonymisé (comptes agrégés, spec 16 §2.2), constats prévus, verdicts, durées et tailles, seuils. **Journal brut `docs/dogfooding.local.md`**, local, exclu par `.git/info/exclude`. Aucun fichier ni sortie brute des dépôts audités n'est versionné.
+
+**Divulgation responsable.** Pour un dépôt open source, `X-SECRET-TRACKED` et `X-LITERAL-IN-AGENT-CONFIG` ne sont publiés dans `docs/dogfooding.md` qu'en **comptes par code**, sans chemin ni source ; le détail reste dans le journal local. Avant toute publication d'un tel compte, le mainteneur est prévenu en privé (avis de sécurité GitHub, ou contact du `SECURITY.md`) ; la publication attend 30 jours ou sa réponse.
 
 ### 7.2 Hors périmètre ajouté
 

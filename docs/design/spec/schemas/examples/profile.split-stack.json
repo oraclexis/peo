@@ -274,6 +274,7 @@
     ],
     "data_dumps": [],
     "log_dirs": [],
+    "nested_claude_settings": [],
     "walk": {
       "depth_pruned": false,
       "linked_dirs": []

@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peo.dev/schemas/claude-rules.schema.json",
+  "title": "PEO conformance table (conformance/claude-rules*.json)",
+  "description": "Written by tools/spike_claude_rules.py, read by covers() (spec 14 section 3.5). Paths use <root>, <home> and <root-name>; no file content.",
+  "type": "object",
+  "required": [
+    "case_sensitive_fs",
+    "cases",
+    "claude_version",
+    "date",
+    "model",
+    "note",
+    "platform",
+    "setting_sources",
+    "versions_tested"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "case_sensitive_fs": {
+      "type": "boolean"
+    },
+    "claude_version": {
+      "type": "string",
+      "description": "Raw claude --version of the latest pass."
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "managed_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Top-level key names of the managed settings present on the spike machine; no value."
+    },
+    "model": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    },
+    "platform": {
+      "enum": [
+        "Darwin",
+        "Linux"
+      ]
+    },
+    "setting_sources": {
+      "type": "string"
+    },
+    "versions_tested": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      },
+      "description": "Versions whose pass gave the same observations (spec 14 section 3.5)."
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/reference_case"
+          },
+          {
+            "$ref": "#/$defs/other_case"
+          }
+        ]
+      },
+      "description": "A reference case carries form, relation and scope; the others do not."
+    }
+  },
+  "$defs": {
+    "reference_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "denied_tools",
+        "form",
+        "id",
+        "observed",
+        "options",
+        "relation",
+        "role",
+        "scope",
+        "setting_sources",
+        "settings",
+        "target",
+        "tool",
+        "tool_results"
+      ],
+      "properties": {
+        "denied_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "form": {
+          "enum": [
+            "absolute",
+            "any-depth",
+            "dot",
+            "home",
+            "name",
+            "relative",
+            "root",
+            "star-segment"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "observed": {
+          "enum": [
+            "auth-or-run-failed",
+            "denied",
+            "inconclusive",
+            "no-hit",
+            "not-called",
+            "os-denied",
+            "read"
+          ]
+        },
+        "options": {
+          "type": "object"
+        },
+        "relation": {
+          "enum": [
+            "exact",
+            "folder",
+            "under"
+          ]
+        },
+        "role": {
+          "const": "reference"
+        },
+        "scope": {
+          "enum": [
+            "local",
+            "project"
+          ]
+        },
+        "setting_sources": {
+          "type": "string"
+        },
+        "settings": {
+          "type": "object"
+        },
+        "target": {
+          "type": "string"
+        },
+        "tool": {
+          "enum": [
+            "Bash",
+            "Glob",
+            "Grep",
+            "Read"
+          ]
+        },
+        "tool_results": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2
+          }
+        }
+      }
+    },
+    "other_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "denied_tools",
+        "id",
+        "observed",
+        "options",
+        "role",
+        "setting_sources",
+        "settings",
+        "target",
+        "tool",
+        "tool_results"
+      ],
+      "properties": {
+        "denied_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "observed": {
+          "enum": [
+            "auth-or-run-failed",
+            "denied",
+            "inconclusive",
+            "no-hit",
+            "not-called",
+            "os-denied",
+            "read"
+          ]
+        },
+        "options": {
+          "type": "object"
+        },
+        "role": {
+          "enum": [
+            "off-list",
+            "other-condition"
+          ]
+        },
+        "setting_sources": {
+          "type": "string"
+        },
+        "settings": {
+          "type": "object"
+        },
+        "target": {
+          "type": "string"
+        },
+        "tool": {
+          "enum": [
+            "Bash",
+            "Glob",
+            "Grep",
+            "Read"
+          ]
+        },
+        "tool_results": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2
+          }
+        }
+      }
+    }
+  }
+}

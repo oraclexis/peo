@@ -149,7 +149,7 @@ def test_a2_6_validation_is_deterministic():
 
 def test_a2_6_every_shipped_schema_loads():
     names = sorted(p.name.removesuffix(".schema.json") for p in (ROOT / "src" / "peo" / "schemas").glob("*.schema.json"))
-    assert len(names) == 9
+    assert len(names) == 10
     for name in names:
         assert isinstance(load_schema(name), Schema)
 

@@ -56,3 +56,12 @@ def test_golden_files_are_valid():
     for name, schema in (("profile.json", "profile"), ("selection.json", "selection")):
         validator = Draft202012Validator(json.loads((PKG / f"{schema}.schema.json").read_text()))
         assert list(validator.iter_errors(json.loads((golden / name).read_text()))) == []
+
+
+def test_conformance_tables_are_valid():
+    """Conformance tables follow claude-rules.schema.json (spec 14 section 3.5, M13)."""
+    validator = Draft202012Validator(json.loads((PKG / "claude-rules.schema.json").read_text()))
+    tables = sorted((ROOT / "docs" / "design" / "spec" / "conformance").glob("claude-rules*.json"))
+    assert tables
+    for table in tables:
+        assert list(validator.iter_errors(json.loads(table.read_text()))) == [], table.name

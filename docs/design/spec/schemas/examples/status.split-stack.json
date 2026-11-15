@@ -1,6 +1,36 @@
 {
   "exposure": {
+    "audited": [
+      {
+        "kind": "secret_file",
+        "path": "backend/.env",
+        "reason": "untested-version",
+        "rule": "Read(./backend/.env)",
+        "source": "settings:project",
+        "verdict": "undecidable"
+      },
+      {
+        "kind": "log_dir",
+        "path": "backend/storage/logs",
+        "reason": null,
+        "rule": null,
+        "source": null,
+        "verdict": "not_covered"
+      }
+    ],
     "findings": [
+      {
+        "code": "X-DATA-READABLE",
+        "confidence": "fact",
+        "evidence": [
+          "backend/storage/logs log_dir: no deny Read rule matches"
+        ],
+        "message": "backend/storage/logs: no deny Read rule covers this log folder; suggested rule Read(./backend/storage/logs/**)",
+        "path": "backend/storage/logs",
+        "severity": "warning",
+        "status": "applied",
+        "suggested_rule": "Read(./backend/storage/logs/**)"
+      },
       {
         "code": "X-DATA-STORE",
         "confidence": "fact",
@@ -109,7 +139,7 @@
           "settings:project deny Read(./backend/.env) form dot",
           "settings:project deny Read: bare-tool",
           "settings:user invalid json: source-unreadable",
-          "conformance minimum 2.1.325"
+          "conformance versions_tested 2.1.325"
         ],
         "message": "backend/.env: deny rule Read(./backend/.env) found, but its form is not verified on Claude Code 2.1.300 (table from 2.1.325); write the rule in .claude/settings.json and keep Claude Code up to date",
         "path": "backend/.env",
@@ -120,7 +150,8 @@
         "status": "applied",
         "suggested_rule": "Read(./backend/.env)"
       }
-    ]
+    ],
+    "linked_dirs": []
   },
   "findings": [
     {
@@ -342,7 +373,8 @@
         "reason": null,
         "scope": "project",
         "status": "read",
-        "tracked": true
+        "tracked": true,
+        "modified": false
       },
       {
         "id": "settings:user",

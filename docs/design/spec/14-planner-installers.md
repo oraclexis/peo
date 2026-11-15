@@ -91,17 +91,17 @@ Les sources de plugin sont **positionnelles** (`plugin:#<n>`), jamais nommées p
 |---|---|---|---|
 | `read` | lu et analysé | — | applicable |
 | `absent` | fichier inexistant ; code 127 sur `claude --version` | — | applicable pour un fichier : l'absence de réglage est un fait (aucun hook, aucune règle). Pour la source `claude` : mode dégradé |
-| `invalid` | présent mais inexploitable | `too-large`, `binary`, `json`, `not-object`, `not-regular` | `skipped` pour les constats qui lisent cette source |
-| `unavailable` | impossible à lire ici | `permission-denied`, `read-error` (autre erreur de lecture), `claude-too-old`, `version-unparsed`, `timeout-or-missing` (127 sur `plugin list` après un `--version` réussi), `command-failed`, `output-unparsed` | `skipped` |
-| `not_inspected` | non lu, volontairement | `out-of-scope`, `not-provided`, `degraded`, `disabled` | `skipped` ; sauf `disabled` : les hooks d'un plugin désactivé ne s'exécutent pas, les constats sur ses hooks ne s'appliquent pas |
+| `invalid` | présent mais inexploitable | `too-large`, `binary`, `json`, `not-object`, `not-regular` | source illisible : spec 15 §6 (Principe unique) |
+| `unavailable` | impossible à lire ici | `permission-denied`, `read-error` (autre erreur de lecture), `claude-too-old`, `version-unparsed`, `timeout-or-missing` (127 sur `plugin list` après un `--version` réussi), `command-failed`, `output-unparsed` | source illisible : spec 15 §6 (Principe unique) |
+| `not_inspected` | non lu, volontairement | `out-of-scope`, `not-provided`, `degraded`, `disabled` | source illisible : spec 15 §6 (Principe unique) ; sauf `disabled` : les hooks d'un plugin désactivé ne s'exécutent pas, les constats sur ses hooks ne s'appliquent pas |
 
-Une **famille invalide** (section 3.2) a le même effet que `invalid`, limité aux constats qui lisent cette famille pour cette source. Le Runner rend 127 pour une commande introuvable comme pour un délai dépassé : l'Inventory classe selon la commande. Limite : un `claude --version` qui dépasse le délai donne `absent`.
+Une **famille invalide** (section 3.2) rend la source illisible pour cette famille seulement (effet : spec 15 §6). Le Runner rend 127 pour une commande introuvable comme pour un délai dépassé : l'Inventory classe selon la commande. Limite : un `claude --version` qui dépasse le délai donne `absent`.
 
 **Lecture d'un fichier.** Le chemin est résolu ; un fichier qui n'est pas un fichier ordinaire (périphérique, tube, dossier, par exemple un lien vers `/dev/zero`) donne `invalid`, `not-regular`, sans lecture. Une source du projet dont le chemin résolu sort de la racine résolue (`.mcp.json` lien vers `~/…`) n'est pas lue : `invalid`, `not-regular`. Sinon, au plus 1 048 577 octets sont lus : au-delà de 1 048 576 octets (1 Mio), `too-large`. Un octet nul ou un UTF-8 invalide donne `binary` ; un JSON invalide `json`, y compris un JSON trop imbriqué pour l'analyseur (`RecursionError` attrapée comme `JSONDecodeError`) ; une racine qui n'est pas un objet `not-object` ; une erreur de permission `unavailable`, `permission-denied` ; un fichier disparu pendant la lecture `absent` ; toute autre erreur de lecture `unavailable`, `read-error`. Le texte d'une erreur et le contenu du fichier ne sortent jamais.
 
 **Chemins affichés** : relatifs à la racine pour le projet, préfixés par `<user-config>/` pour l'utilisateur (le dossier réel n'apparaît jamais), absolus pour managed (chemin système fixe, pouvant contenir des espaces), `plugin:#<n>/hooks/hooks.json` pour un plugin (`installPath` n'est jamais émis).
 
-**`tracked`** : un seul appel `git ls-files -z -- <fichiers>` sur les sources du projet présentes (`settings:local`, `settings:project`, `mcp:project` à l'état `read` ou `invalid`, dans l'ordre des rangs), par le Runner, à la racine ; aucun appel si aucune n'est présente. Vrai ou faux pour ces fichiers ; `null` hors git, si `git ls-files` échoue (code non nul ou `OSError`), pour une source du projet absente, et pour toutes les autres sources.
+**`tracked`** : un seul appel `git ls-files -z -- <fichiers>` sur les sources du projet présentes (`settings:local`, `settings:project`, `mcp:project` à l'état `read` ou `invalid`, dans l'ordre des rangs), par le Runner, à la racine ; aucun appel si aucune n'est présente. Vrai ou faux pour ces fichiers ; `null` hors git, si `git ls-files` échoue (code non nul ou `OSError`), pour une source du projet absente, et pour toutes les autres sources. `tracked` veut dire **suivi par git** (présent dans l'index), pas « commité ». **`modified`** (R3, source `settings:project` seulement, champ absent ailleurs) : quand `tracked: true`, un appel `git diff --quiet HEAD -- .claude/settings.json` par le Runner ; code 0 → `false`, code 1 → `true` (le fichier diffère du dernier commit), autre code ou `OSError` → `null`.
 
 **Claude Code, mode complet.** `claude --version` (code 0) donne une version lue par `^([0-9]+)\.([0-9]+)\.([0-9]+)\b` (chiffres ASCII) sur la première ligne de sa sortie, après `strip()` (exemple : `2.1.325 (Claude Code)`) ; une version ≥ 2.1.285 (NF9, comparée en tuple d'entiers) ouvre le mode complet ; sinon `unavailable`, `claude-too-old` ou `version-unparsed` ; 127 → `absent` ; un autre code non nul → `unavailable`, `command-failed`. Puis `claude plugin list --json` : 127 → `unavailable`, `timeout-or-missing` ; autre code non nul → `unavailable`, `command-failed` ; dans les deux cas, mode dégradé. La sortie doit être un tableau d'objets ayant chacun `id` (chaîne), `scope` (chaîne) et `enabled` (booléen) ; sinon toute la sortie est `output-unparsed` (mode dégradé : une entrée mal formée ne laisse pas un inventaire partiel). Un `OSError` levé par `run` donne `unavailable`, `command-failed`. On garde les plugins de portée `user` ou `managed`, ceux de portée `project` ou `local` dont `projectPath` résolu égale la racine résolue, et ceux d'une autre portée (`synced` gardée telle quelle, toute portée inconnue de PEO écrite `other`, pour ne rien omettre). Chaque plugin gardé donne une entrée de `plugins` de source `claude` (`confidence: "fact"`) et une source `plugin:#<index>`. `enabled` reprend le champ `enabled` de la liste : état effectif pour ce projet, fusion des portées comprise ; `projectEnabled` n'est pas lu. Les deux commandes sont lancées à la racine (la sortie dépend du dossier courant). `error_count` = taille de `errors`, 0 si `errors` est absent. Pour un plugin activé, `<installPath>/hooks/hooks.json` est lu comme sa source (sans contrôle de racine), et ses `mcpServers` deviennent des entrées de `mcp_servers` de source `claude`, avec `plugin_index`.
 
@@ -190,77 +190,79 @@ Limite : `interpolated` n'est pas une garantie (`sk-abc${SUFFIXE}`) ; ce cas rel
 
 ### 3.4 Consommateurs, « actif », vues, limites
 
-**Consommateurs** : `peo status` et l'audit d'exposition (R3, spec 15 §6 et §7) lisent la vue observée, et l'audit passe les règles `deny` au matcher de la section 3.5 ; le Selector (R4, spec 13 §8.1) ne lit que `declared()` ; le Planner (R5) lit la vue observée pour le veto de la section 2.4 ; `Adapter.detect` de `claude-plugin` (section 4.2) lit la section 3.1.
+**Consommateurs** : `peo status` et l'audit d'exposition (R3, spec 15 §6 et §7) lisent la vue observée, et l'audit passe les règles `deny` au comparateur de règles de la section 3.5 ; le Selector (R4, spec 13 §8.1) ne lit que `declared()` ; le Planner (R5) lit la vue observée pour le veto de la section 2.4 ; `Adapter.detect` de `claude-plugin` (section 4.2) lit la section 3.1.
 
 **Actif** (définition unique, utilisée par H27, les capacités exclusives et les constats) : un plugin est actif quand son entrée de source `claude` porte `enabled: true` (valeur déjà fusionnée par Claude Code). En mode dégradé, l'activation se déduit des entrées `enabledPlugins` par la même précédence (calcul fait en R3/R5 ; un `false` local l'emporte sur un `true` user, spec 10 §5). Un serveur MCP est actif quand il figure dans une source lue : c'est une borne haute, puisque les réglages d'approbation ne sont pas lus (R5 devra les lire avant d'appliquer le veto à un serveur MCP).
 
 **Deux vues (H27).** La **vue observée** est toute la sortie ; elle dépend de la machine. Les **déclarations suivies du projet** sont celles que rend `declared()` (section 3.2). Exemple : `.claude/settings.json` suivi déclare `"superpowers@x": false` et la portée user l'active ; le projet l'emporte, l'entrée `claude` porte `enabled: false`, le plugin n'est pas actif, pas de veto.
 
-**Risques acceptés** : S7, un secret alphanumérique placé dans un nom passe la grammaire (NF14 autorise les noms) ; S16b, le contenu de `permission_rules[].rule` recopie ce que l'utilisateur a écrit comme chemin ou domaine (aucun motif ne sépare un chemin d'un secret) ; S23, `interpolated` peut cacher une partie de secret (relève d'un scanner de secrets) ; S24, un `claude --version` lent passe pour une absence. **Hypothèses sans test en R2** : S20, `claude plugin list` n'accède pas au réseau (probable, spec 10 §5 ; l'appelant peut passer un Runner à délai court) ; S28, `git ls-files` lancé dans un dépôt non fiable n'exécute pas de code (`core.fsmonitor`) ; même exposition que Discovery, à traiter pour les deux.
+**Risques acceptés** : S7, un secret alphanumérique placé dans un nom passe la grammaire (NF14 autorise les noms) ; S16b, le contenu de `permission_rules[].rule` recopie ce que l'utilisateur a écrit comme chemin ou domaine (aucun motif ne sépare un chemin d'un secret), et de même `rule`, `evidence` et `audited` de la sortie de `status` (spec 15 §7.3) ; S23, `interpolated` peut cacher une partie de secret (relève d'un scanner de secrets) ; S24, un `claude --version` lent passe pour une absence. **Hypothèses sans test en R2** : S20, `claude plugin list` n'accède pas au réseau (probable, spec 10 §5 ; l'appelant peut passer un Runner à délai court) ; S28, un `git` lancé dans un dépôt non fiable peut exécuter du code (`core.fsmonitor`, hooks) : depuis R3, chaque appel `git` de Discovery et de l'Inventory passe `-c core.fsmonitor=false -c core.hooksPath=/dev/null` avant la sous-commande (A14.5).
 
-### 3.5 Couverture d'un chemin par les règles `Read` (`peo.inventory.claude_rules`, ajout du 2026-11-14, R3 ; révisé deux fois le 2026-11-14 après la revue Goldfish)
+### 3.5 Couverture d'un chemin par les règles `Read` (R3, 2026-11-14)
 
-**Principe directeur : `covered` ne s'obtient que par une liste positive fermée ; tout le reste donne `undecidable`** (ou `not_covered` quand aucune règle ne correspond). La liste positive est le produit de trois listes fermées : les **formes** de la grammaire blanche ci-dessous, les **cas de référence** du tableau de conformité de la plateforme, et la **version** de Claude Code. Un motif, une portée, une plateforme ou une version hors de ces listes ne donne jamais `covered`.
+**Principe directeur : `covered` ne s'obtient que par une liste positive fermée ; tout le reste donne `undecidable`** (ou `not_covered` quand aucune règle ne correspond). La liste positive est le produit de trois listes fermées : les **formes et relations** de la grammaire admise ci-dessous, les **cas de référence** du tableau de conformité de la plateforme, et la **plage de versions** testée de Claude Code. Un motif, une relation, une portée, une plateforme ou une version antérieure à la plage ne donne jamais `covered` ; une version postérieure à la plus récente testée garde `covered`, assorti de la limite `L-CLAUDE-NEWER`. Un `covered` reste soumis aux limites de la spec 15 §7.4.
 
-Fonction pure, dans `src/peo/inventory/claude_rules.py`. `inventory()` ne l'appelle jamais ; l'audit d'exposition (`exposure.py`, spec 15 §7) l'appelle pour chaque chemin de `sensitive`. Elle ne lit aucun fichier, ne lance aucune commande et n'appelle ni `Path.home()`, ni `os.getcwd()`, ni `platform.system()` : l'appelant lui passe tout. Elle n'utilise pas `fnmatch`.
+Fonction pure `covers()`, dans `src/peo/inventory/claude_rules.py` (le **comparateur de règles**). `inventory()` ne l'appelle jamais ; l'audit d'exposition (`exposure.py`, spec 15 §7) l'appelle pour chaque chemin de `sensitive`. Elle ne lit aucun fichier, ne lance aucune commande et n'appelle ni `Path.home()`, ni `os.getcwd()`, ni `platform.system()` : l'appelant lui passe tout. Elle n'utilise pas `fnmatch` (S-11).
 
 **Contrat** : `covers(path, is_dir, link_target, rules, sources, managed_rules_only, claude_version, platform, table, project_root, home) -> Verdict`.
 
 - `path` : chemin relatif à la racine du projet, séparateur `/`, sans `/` final, tel que Discovery le produit (spec 12, section 7 bis). `is_dir` : vrai pour une entrée de `log_dirs`.
 - `link_target` : champ de l'entrée `sensitive` quand le chemin est un lien symbolique (spec 12, section 7 bis) : la cible relative à la racine, ou `null` si elle est hors du projet ; champ absent pour un chemin ordinaire.
-- `rules` : les entrées `permission_rules` de l'Inventory dont `list = "deny"` (section 3.2) ; `sources` : les sources de l'Inventory, pour la portée et `tracked`.
+- `rules` : les entrées `permission_rules` de l'Inventory dont `list = "deny"` (section 3.2) ; `sources` : les sources de l'Inventory, pour la portée, `tracked` et `modified`.
 - `managed_rules_only` : valeur effective de `allowManagedPermissionRulesOnly` calculée par la section 3.6 sur les sources managed : `true`, `false`, absente ou `unknown`.
 - `claude_version` : celle de l'Inventory, `None` en mode dégradé. `platform` : `platform.system()` de la machine auditée, fourni par l'appelant.
 - `table` : le tableau de conformité de cette plateforme (ci-dessous), ou `None` s'il n'existe pas.
 - `project_root` (passé **résolu**, `os.path.realpath`) et `home` : chemins absolus fournis par l'appelant.
-- `Verdict` : `{ "verdict": "covered" | "not_covered" | "undecidable", "reason": <énumération> | null, "rule": <règle telle qu'écrite> | null, "source": <id de source> | null }`.
+- `Verdict` : `{ "verdict": "covered" | "not_covered" | "undecidable", "reason": <énumération> | null, "rule": <règle telle qu'écrite> | null, "source": <id de source> | null, "newer": <booléen> }` ; `newer` est vrai quand un `covered` repose sur une version postérieure à `max(versions_tested)`.
 
-**Étapes.**
+**Passes.**
 
 1. **Règles retenues.** `managed_rules_only = true` : seules les règles des sources managed comptent ; un chemin que seules les autres règles couvriraient est `not_covered`, confiance `fact` (documentation officielle des réglages managed). `managed_rules_only = unknown` (source managed d'un emplacement connu illisible, ou famille `flags` invalide) : une règle non managed qui couvrirait donne `undecidable`, raison `source-unreadable`. Absente ou `false` : toutes les règles comptent.
 2. **Chemin comparé.** Sans `link_target` : `path`. Avec une cible dans le projet : la **cible**, seulement (spike : une règle sur le lien bloque la lecture par le lien, pas la lecture directe de la cible) ; une règle qui ne correspond qu'au chemin du lien donne `undecidable`, raison `symlink`. Cible hors du projet (`link_target = null`) : `undecidable`, raison `symlink-outside`, sans comparaison ; le constat cite le chemin du lien, **jamais la cible**.
-3. **Forme de la règle** (grammaire blanche ci-dessous). Une règle `Read(<motif>)` dont le motif n'est pas exactement d'une forme de la grammaire donne `undecidable`, raison `untested-form`, si elle pourrait correspondre (même premier segment littéral, ou motif non analysable) ; sinon elle est ignorée.
-4. **Correspondance.** Segment par segment, par **égalité de chaînes** (sensible à la casse). Égalité seulement en ignorant la casse : `undecidable`, raison `case-only`.
+3. **Forme de la règle** (grammaire admise ci-dessous). Une règle `Read(<motif>)` dont le motif n'est pas exactement d'une forme de la grammaire donne `undecidable`, raison `untested-form`, si elle peut correspondre (même premier segment littéral, ou motif non analysable) ; sinon elle est ignorée.
+4. **Correspondance.** Segment par segment, par **égalité de chaînes** (sensible à la casse). Elle établit la **relation** entre la règle et le chemin : `exact` (le chemin est `L`), `under` (le chemin est sous `L`, motif sans suffixe), `folder` (le chemin est sous `L`, ou est `L` avec `is_dir`, motif avec suffixe `/**` ou `/`). Égalité seulement en ignorant la casse : `undecidable`, raison `case-only`.
 5. **Recherche dans le tableau.** Une règle qui correspond ne donne `covered` que si les quatre conditions tiennent :
    - (a) `table` existe pour `platform`, sinon raison `untested-platform` ;
-   - (b) la forme et la portée de la source de la règle ont au moins un cas de référence `denied` dans `table`, sinon raison `untested-scope` ;
-   - (c) aucun cas de référence de ce couple n'est observé autrement que `denied`, sinon raison `contradictory-observations` ;
-   - (d) `claude_version` est connue et supérieure ou égale à la version de `table`, sinon raison `untested-version`.
-6. **Plusieurs règles.** `covered` l'emporte, puis `undecidable`, puis `not_covered`. La règle décisive citée est, parmi les règles couvrantes, d'abord celle d'une source `settings:project` avec `tracked: true`, sinon la première dans l'ordre des `permission_rules` (spec 15 §7.1, `X-COVERAGE-NOT-SHARED`).
+   - (b) la forme, la relation et la portée de la source de la règle ont au moins un cas de référence observé `denied` dans `table`, sinon raison `untested-form` quand le couple (forme, relation) n'a aucun cas, `untested-scope` quand seule la portée manque ;
+   - (c) aucun cas de référence de ce triplet n'est observé autrement que `denied`, sinon raison `contradictory-observations` ;
+   - (d) `claude_version` est connue et supérieure ou égale à `min(versions_tested)`, sinon raison `untested-version`. Supérieure à `max(versions_tested)` : `covered`, avec `newer` vrai (l'appelant émet `L-CLAUDE-NEWER`).
+6. **Plusieurs règles.** `covered` l'emporte, puis `undecidable`, puis `not_covered`. La règle décisive citée est, parmi les règles couvrantes, d'abord celle d'une source `settings:project` avec `tracked: true` et `modified: false`, sinon la première dans l'ordre des `permission_rules` (spec 15 §7.1, `X-COVERAGE-NOT-SHARED`).
 
-**Grammaire blanche.** Un motif est une suite de segments séparés par `/`. Un **segment littéral** ne contient aucun des caractères `*`, `?`, `[`, `]`, `{`, `}`, `!`, `\`, et n'est ni `.` ni `..`. Formes admises, et seulement celles-ci :
+**Grammaire admise.** Un motif est une suite de segments séparés par `/`. Un **segment littéral** ne contient que des caractères de `[A-Za-z0-9._@+-]`, ne commence pas par `#`, et n'est ni `.` ni `..`. Tout autre caractère (espace, `#` initial, `:`, parenthèse, caractère non ASCII, caractère de contrôle, et les caractères de motif `*`, `?`, `[`, `]`, `{`, `}`, `!`, `\`) fait sortir le motif de la grammaire. Formes admises, et seulement celles-ci :
 
-| Forme | Motif (L = un ou plusieurs segments littéraux) | Ancrage | Couvre |
-|---|---|---|---|
-| `dot` | `./L` | racine du projet | le chemin `L`, et tout chemin sous `L` |
-| `relative` | `L` avec au moins un `/`, sans `/` initial | racine du projet | idem |
-| `root` | `/L` | racine du projet (pas `.claude/`) | idem |
-| `absolute` | `//L` | racine du système de fichiers | idem, comparé à `project_root/path` |
-| `home` | `~/L` | `home` | idem, comparé à `project_root/path` |
-| `name` | un seul segment littéral, sans `/` | chaque segment, à toute profondeur | tout chemin dont un segment vaut ce nom, et tout ce qu'il contient |
-| `any-depth` | `**/L` | toute profondeur | tout chemin dont une suite de segments vaut `L`, et tout ce qu'il contient |
-| `folder` | une forme ci-dessus suivie de `/**` ou de `/` | celui de la forme | tout chemin **sous** le dossier, et le dossier lui-même avec `is_dir` |
-
-« Tout chemin sous `L` » vaut aussi sans `/**` : un dossier sans `/` final couvre son contenu (spike). Avec `is_dir`, `path` est comparé comme un dossier : `Read(./storage/logs/**)` et `Read(./storage/logs)` couvrent `storage/logs`. Hors grammaire, donc `untested-form` : `*`, `?`, `[...]`, `{...}`, `!` et `\` ailleurs que dans `/**` final ou `**/` initial, même quand le spike a observé un refus (`dir-star-*`, `question-mark`, `brackets`) ; `Read` sans parenthèses (raison `bare-tool`, voir ci-dessous) ; tout motif avec `..` ou `${`. Une règle `deny` couvre quelles que soient les règles `allow` et `ask` et le mode de permission (cas `allow-specific-vs-deny`, `bypass-mode`).
-
-**Cas de référence** du tableau macOS ([conformance/claude-rules.json](conformance/claude-rules.json), Claude Code 2.1.325, `platform = Darwin`, système de fichiers insensible à la casse). Seuls ces cas entrent dans la recherche de l'étape 5 ; les autres (`control-*`, `cwd-*`, `symlink-*`, `sandbox-*`, `grep`, `glob`) vérifient d'autres conditions et n'y entrent pas.
-
-| Forme | Portée project | Portée local |
+| Forme | Motif (L = un ou plusieurs segments littéraux) | Ancrage |
 |---|---|---|
-| `dot` | `dot-exact` | `local-scope` |
-| `relative` | `bare-relative` | `local-bare-relative` |
-| `root` | `slash-anchor` | `local-slash-anchor` |
-| `absolute` | `double-slash-abs` | `local-double-slash-abs` |
-| `home` | `tilde` | `local-tilde` |
-| `name` | `bare-name-at-depth`, `bare-name-at-root` | `local-bare-name` |
-| `any-depth` | `doublestar-name` | `local-doublestar-name` |
-| `folder` | `dir-doublestar`, `dir-trailing-slash`, `dir-no-slash` | `local-dir-doublestar` |
+| `dot` | `./L` | racine du projet |
+| `relative` | `L` avec au moins un `/`, sans `/` initial | racine du projet |
+| `root` | `/L` | racine du projet (pas `.claude/`) |
+| `absolute` | `//L` | racine du système de fichiers, comparé à `project_root/path` |
+| `home` | `~/L` | `home`, comparé à `project_root/path` |
+| `name` | un seul segment littéral, sans `/` | le dernier segment du chemin, à toute profondeur |
+| `any-depth` | `**/L` | toute profondeur, `L` aligné sur la fin du chemin |
+
+Un suffixe `/**` ou `/` après `L` donne la relation `folder` ; il n'est admis que pour les formes dont le tableau a un cas `folder`. **Relations jouées** (tableau macOS) : `exact` pour les sept formes ; `under` et `folder` pour `dot` seulement. Toute autre relation (par exemple `name` ou `any-depth` qui désigne un dossier parent, ou `Read(backend/**)` en forme `relative`) donne `untested-form`. Avec `is_dir`, `path` est comparé comme un dossier : `Read(./storage/logs/**)` et `Read(./storage/logs)` couvrent `storage/logs`. Hors grammaire, donc `untested-form` : tout caractère hors de l'ensemble littéral ailleurs que dans `/**` final ou `**/` initial, même quand le spike a observé un refus (`dir-star-*`, `question-mark`, `brackets`) ; `Read` sans parenthèses (raison `bare-tool`, voir ci-dessous) ; tout motif avec `..` ou `${`. Une règle `deny` couvre quelles que soient les règles `allow` et `ask` et le mode de permission (cas `allow-specific-vs-deny`, `bypass-mode`).
+
+**Cas de référence** du tableau macOS ([conformance/claude-rules.json](conformance/claude-rules.json), `versions_tested = ["2.1.325"]`, `platform = Darwin`, système de fichiers insensible à la casse). Chaque cas porte un champ `role` : `reference` (avec `form`, `relation`, `scope`), `off-list` (verdict attendu ci-dessous) ou `other-condition` (contrôles, `cwd-*`, `sandbox-*`, `grep`, `glob` : ils vérifient d'autres conditions). Seuls les cas `reference` entrent dans la passe 5.
+
+| Forme, relation | Portée project | Portée local |
+|---|---|---|
+| `dot`, `exact` | `dot-exact` | `local-scope` |
+| `dot`, `under` | `dir-no-slash` | — (`untested-scope`) |
+| `dot`, `folder` | `dir-doublestar`, `dir-trailing-slash` | `local-dir-doublestar` |
+| `relative`, `exact` | `bare-relative` | `local-bare-relative` |
+| `root`, `exact` | `slash-anchor` | `local-slash-anchor` |
+| `absolute`, `exact` | `double-slash-abs` | `local-double-slash-abs` |
+| `home`, `exact` | `tilde` | `local-tilde` |
+| `name`, `exact` | `bare-name-at-depth`, `bare-name-at-root` | `local-bare-name` |
+| `any-depth`, `exact` | `doublestar-name` | `local-doublestar-name` |
 
 Portées user et managed : aucun cas de référence (non jouées : un `CLAUDE_CONFIG_DIR` temporaire n'a pas de connexion, les réglages managed demandent des droits d'administrateur), donc `untested-scope`.
 
-**Verdict attendu des cas hors liste positive** (rejoués par A3.12, spec 16) :
+**Valeurs de `observed`** (énumération fermée, écrite par le spike) : `denied` (refus de permission sur l'outil et, pour Read, sur le chemin visé), `read` (le contenu du faux fichier est revenu), `os-denied` (le système ou le sandbox a bloqué l'outil), `no-hit` (l'outil a tourné sans rien rendre), `not-called` (outil jamais appelé), `auth-or-run-failed` (échec de `claude` avant tout appel d'outil), `inconclusive` (tout le reste). Seul `denied` compte pour la passe 5 (b) ; toute autre valeur compte comme « autrement que `denied` » pour la passe 5 (c).
 
-| Cas | Observé | Verdict attendu du matcher |
+**Verdict attendu des cas `off-list`** (rejoués par A3.12, spec 16) :
+
+| Cas | Observé | Verdict attendu du comparateur |
 |---|---|---|
 | `symlink`, `symlink-dir` (règle sur la cible, lecture par le lien) | `denied` | `covered` (cible comparée) |
 | `symlink-deny-link-read-link` (règle sur le lien) | `denied` | `undecidable`, `symlink` |
@@ -269,30 +271,39 @@ Portées user et managed : aucun cas de référence (non jouées : un `CLAUDE_CO
 | `case-differs` | `denied` | `undecidable`, `case-only` |
 | `bare-tool`, `bare-tool-deny-only` | `inconclusive` (lecture en erreur, pas de refus) | `undecidable`, `bare-tool` |
 | `slash-anchor-claude-dir` (règle `/backend/.env`, fichier `.claude/backend/.env`) | `read` | `not_covered` |
+| `allow-specific-vs-deny` (règle `deny` `./backend/**`, `allow` sur le fichier) | `denied` | `covered` |
+| `bypass-mode` (règle `deny` `./backend/.env`, mode `bypassPermissions`) | `denied` | `covered` |
 
 **Raisons de `undecidable`** (énumération fermée ; quand plusieurs s'appliquent, la première de cet ordre est retenue, les autres vont dans `evidence`) : `symlink-outside`, `symlink`, `untested-platform`, `untested-version`, `contradictory-observations`, `untested-scope`, `untested-form`, `case-only`, `bare-tool`, `source-unreadable`. L'appelant peut aussi poser `source-unreadable` (spec 15 §6).
 
 Les verdicts `undecidable` ne sont **jamais** lus comme `covered` : l'appelant émet le constat (spec 15 §7.1). Un motif plus large que la grammaire donne au pire un faux « non couvert », jamais un faux « couvert ».
 
-**Limites constantes** :
-- **Dossier de lancement.** Le verdict suppose que Claude Code est lancé depuis la racine du projet. Lancé depuis un sous-dossier, même une règle `//p` du projet ne s'applique pas : les réglages de la racine ne sont pas chargés (cas `cwd-subfolder`, `cwd-subfolder-abs`). Limite `L-LAUNCH-ROOT`.
+**Limites déclarées** (conditions d'émission : spec 15 §7.4) :
+- **Dossier de lancement.** Le verdict suppose que Claude Code est lancé depuis la racine du projet. Quand Claude Code est lancé depuis un sous-dossier, même une règle `//p` du projet ne s'applique pas : les réglages de la racine ne sont pas chargés (cas `cwd-subfolder`, `cwd-subfolder-abs`). Limite `L-LAUNCH-ROOT`. Les réglages `.claude/` d'un sous-dossier ne sont pas lus : Discovery les liste (`nested_claude_settings`, spec 12 §7 bis) et l'audit le déclare (`L-NESTED-SETTINGS`, confiance `likely` des constats concernés, spec 15 §7.1).
 - **Grep et Glob.** Non couverts par le tableau (outils différés en 2.1.325). Limite `L-GREP-GLOB`.
-- **Réglages managed hors fichiers.** `allowManagedPermissionRulesOnly` posé par MDM, registre ou profil (`settings:managed-other`) ou par le serveur n'est pas lisible. Il n'est pas compté `unknown`, faute de quoi aucun chemin ne serait jamais `covered`. Il est déclaré par les limites constantes `L-SETTINGS-MANAGED-OTHER` et `L-SERVER-MANAGED` (spec 15 §7.4).
+- **Réglages managed hors fichiers.** `allowManagedPermissionRulesOnly` posé par MDM, registre ou profil (`settings:managed-other`) ou par le serveur n'est pas lisible. Il n'est pas compté `unknown`, faute de quoi aucun chemin ne serait jamais `covered`. Il est déclaré par les limites `L-SETTINGS-MANAGED-OTHER` et `L-SERVER-MANAGED`.
+- **Version plus récente.** Une version de Claude Code postérieure à `max(versions_tested)` garde `covered` : `L-CLAUDE-NEWER`.
+- **Casse du volume.** Le tableau est choisi par `platform.system()` ; un volume dont la sensibilité à la casse diffère de `case_sensitive_fs` (APFS sensible à la casse, `/mnt/c` sous WSL) n'est pas détecté : `L-CASE-SENSITIVITY`. La raison `case-only` garde le cas courant du côté sûr.
 
-**Tableaux de conformité.** Un tableau par plateforme fait foi : `conformance/claude-rules.json` pour `Darwin`, `conformance/claude-rules.linux.json` pour `Linux` dès qu'il est joué. **Pas de fusion** entre tableaux ni entre passages : rejouer le spike remplace le tableau de sa plateforme, et sa version devient la version minimale. Un tableau est produit par `tools/spike_claude_rules.py`, joué à la main (jamais en CI) avec des faux fichiers dans un dossier temporaire. Il enregistre la version de `claude`, la date, `platform`, `case_sensitive_fs` et, par cas, `setting_sources`. Les chemins y sont remplacés par `<root>`, `<home>` et `<root-name>`, et aucun contenu de fichier n'est gardé. Les réglages managed de la machine du spike s'appliquaient, sans être enregistrés. Les tableaux sont **embarqués dans le paquet** (`src/peo/conformance/`, lus par `importlib.resources`), copies identiques octet pour octet de `docs/design/spec/conformance/`, comme les schémas ; un PEO installé sans tableau pour sa plateforme rend `untested-platform`.
+**Tableaux de conformité.** Un tableau par plateforme fait foi : `conformance/claude-rules.json` pour `Darwin`, `conformance/claude-rules.linux.json` pour `Linux` dès qu'il est joué. Format : [schemas/claude-rules.schema.json](schemas/claude-rules.schema.json), vérifié par `check_examples.py`. **Pas de fusion** entre tableaux. Un nouveau passage dont toutes les observations sont identiques **ajoute** sa version à `versions_tested` (la minimale ne change pas) ; un passage dont une observation change **remplace** le tableau de sa plateforme, et sa version devient la seule de `versions_tested`. Un tableau est produit par `tools/spike_claude_rules.py`, joué à la main (jamais en CI) avec des faux fichiers dans un dossier temporaire. Il enregistre la version de `claude`, `versions_tested`, la date, `platform`, `case_sensitive_fs`, les noms (jamais les valeurs) des clés managed présentes (`managed_keys`) et, par cas, `setting_sources` et `role`. Les chemins y sont remplacés par `<root>`, `<home>` et `<root-name>`, et aucun contenu de fichier n'est gardé. Les tableaux sont **embarqués dans le paquet** (`src/peo/conformance/`, lus par `importlib.resources`), copies identiques octet pour octet de `docs/design/spec/conformance/`, comme les schémas ; la copie arrive avec la PR de code R3 (A3.16). Un PEO installé sans tableau pour sa plateforme rend `untested-platform`.
 
-**Passages à jouer** : Linux, dans un conteneur dont le système de fichiers distingue la casse. `case-only` et `bare-tool` restent `undecidable` tant qu'un passage ne les a pas tranchés ; ajouter une forme ou une portée demande des cas joués, versionnés, puis une modification de cette section.
+**Passages à jouer** :
+- **Avant le jalon A′** (spec 16 §2.3) : les cas `star-segment-*` du spike (un `*` dans le dernier segment : `Read(./backend/.env.*)`, `Read(**/.env*)`, `Read(**/*.pem)`, portées project et local, plus `star-segment-no-cross` qui vérifie qu'un `*` ne traverse pas `/`). La forme `star-segment` (un seul `*` dans le dernier segment, qui ne correspond qu'à l'intérieur de ce segment) n'entre dans la grammaire admise que si tous ces cas sont `denied` et `star-segment-no-cross` n'est pas `denied` sur la cible imbriquée ; sinon les règles de ce type restent `untested-form`. Les règles `deny` les plus écrites (`.env.*`, `*.pem`) relèvent de cette forme.
+- **Linux**, dans un conteneur dont le système de fichiers distingue la casse.
+- `case-only` et `bare-tool` restent `undecidable` tant qu'un passage ne les a pas tranchés ; ajouter une forme, une relation ou une portée demande des cas joués, versionnés, puis une modification de cette section.
 
-### 3.6 Valeur effective d'un réglage scalaire (ajout du 2026-11-14, R3)
+### 3.6 Valeur effective d'un réglage scalaire (R3, 2026-11-14)
 
-Utilisée par `X-SANDBOX-OFF` et `X-SANDBOX-FALLBACK` (clés `sandbox.enabled`, `sandbox.failIfUnavailable`, `sandbox.allowUnsandboxedCommands` de la famille `flags`) et par le matcher de la section 3.5 (clé `allowManagedPermissionRulesOnly`, calculée sur les **sources managed seulement** : `settings:managed`, `settings:managed.d`). Précédence de la spec 10 §5, de la plus forte à la plus faible : managed (`settings:managed`, `settings:managed.d`), `settings:cli`, `settings:local`, `settings:project`, `settings:user`.
+Fonction pure `effective()`, dans `src/peo/inventory/effective.py`.
+
+Utilisée par `X-SANDBOX-OFF` et `X-SANDBOX-FALLBACK` (clés `sandbox.enabled`, `sandbox.failIfUnavailable`, `sandbox.allowUnsandboxedCommands` de la famille `flags`) et par le comparateur de règles de la section 3.5 (clé `allowManagedPermissionRulesOnly`, calculée sur les **sources managed seulement** : `settings:managed`, `settings:managed.d`). Précédence de la spec 10 §5, de la plus forte à la plus faible : managed (`settings:managed`, `settings:managed.d`), `settings:cli`, `settings:local`, `settings:project`, `settings:user`.
 
 1. Parcourir les sources dans cet ordre. La première source **lue** dont la famille `flags` est valide et qui porte la clé donne la valeur ; sa source est citée.
 2. Une source `out-of-scope` (`settings:cli`, `settings:managed-other`) est sautée : elle relève d'une limite (spec 15 §7.4), pas d'une inconnue.
 3. Si une source plus forte que la source retenue (ou n'importe quelle source parcourue, quand aucune ne porte la clé) est `invalid`, `unavailable`, `not_inspected` pour une autre raison, ou a la famille `flags` invalide, la valeur est **`unknown`**, et les sources en cause sont citées.
 4. Aucune source ne porte la clé, et aucune n'est illisible : valeur absente (le défaut de Claude Code s'applique ; `sandbox.enabled` absent = sandbox inactif ; `allowManagedPermissionRulesOnly` absent = faux).
 
-`unknown` n'est jamais lu comme « contrôle présent » : les codes de contrôle absent émettent leur constat en confiance `likely`, raison `source-unreadable` (spec 15 §6).
+`unknown` est une **valeur** de réglage, distincte du niveau de confiance du glossaire ; elle donne la confiance `likely`. `unknown` n'est jamais lu comme « contrôle présent » : les codes de contrôle absent émettent leur constat en confiance `likely`, raison `source-unreadable` (spec 15 §6).
 
 ## 4. Adaptateurs
 

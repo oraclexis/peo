@@ -83,7 +83,8 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Source ids, project paths, key names and Read(...) rules only (NF14)."
         },
         "path": {
           "type": "string",
@@ -94,27 +95,15 @@
         },
         "rule": {
           "type": "string",
-          "description": "Permission rule as written in the source (spec 14 section 3.5)."
+          "description": "Read(...) permission rule as written in the source (spec 14 section 3.5; NF14)."
         },
         "reason": {
-          "enum": [
-            "symlink-outside",
-            "symlink",
-            "untested-platform",
-            "untested-version",
-            "contradictory-observations",
-            "untested-scope",
-            "untested-form",
-            "case-only",
-            "bare-tool",
-            "source-unreadable"
-          ],
-          "description": "First applicable in this order (spec 14 section 3.5); the others go to evidence."
+          "$ref": "#/$defs/reason"
         },
         "suggested_rule": {
           "type": "string",
-          "pattern": "^Read\\(\\./[^()*?\\[\\]{}!\\\\]+?(/\\*\\*)?\\)$",
-          "description": "Read(./<exact path>) or Read(./<folder>/**); omitted when the path holds a pattern character or a parenthesis (spec 15 section 7.1)."
+          "pattern": "^Read\\(\\./[A-Za-z0-9._@+/-]+?(/\\*\\*)?\\)$",
+          "description": "Read(./<exact path>) or Read(./<folder>/**); omitted when the path holds a character outside the literal set of spec 14 section 3.5 (spec 15 section 7.1)."
         },
         "plugin_index": {
           "type": [
@@ -134,6 +123,22 @@
           ]
         }
       }
+    },
+    "reason": {
+      "enum": [
+        "symlink-outside",
+        "symlink",
+        "untested-platform",
+        "untested-version",
+        "contradictory-observations",
+        "untested-scope",
+        "untested-form",
+        "case-only",
+        "bare-tool",
+        "source-unreadable",
+        "nested-settings"
+      ],
+      "description": "First applicable in this order (spec 14 section 3.5); the others go to evidence. nested-settings is set by the caller, never by covers() (spec 15 section 7.1)."
     }
   },
   "type": "object",
@@ -147,7 +152,7 @@
   "properties": {
     "inventory": {
       "type": "object",
-      "description": "inventory.schema.json (spec 14 section 3.2)."
+      "description": "inventory.schema.json (spec 14 section 3.2); validated separately against that schema (A11.5)."
     },
     "findings": {
       "type": "array",
@@ -161,18 +166,21 @@
       "items": {
         "$ref": "#/$defs/code"
       },
-      "description": "Sorted codes evaluated in this run: the rule set of this PEO version (Etape column of spec 15)."
+      "description": "Sorted codes evaluated in this run: the rule set of this PEO version (Livraison column of spec 15)."
     },
     "limits": {
       "type": "array",
       "items": {
         "enum": [
+          "L-CASE-SENSITIVITY",
+          "L-CLAUDE-NEWER",
           "L-DISCOVERY-DEPTH",
           "L-GREP-GLOB",
           "L-HTTP-HOOK",
           "L-LAUNCH-ROOT",
           "L-MCP-APPROVAL",
           "L-MCP-LOCAL-USER",
+          "L-NESTED-SETTINGS",
           "L-SERVER-MANAGED",
           "L-SETTINGS-CLI",
           "L-SETTINGS-MANAGED-OTHER",
@@ -184,18 +192,89 @@
     "exposure": {
       "type": "object",
       "required": [
-        "findings"
+        "audited",
+        "findings",
+        "linked_dirs"
       ],
       "additionalProperties": false,
       "properties": {
+        "audited": {
+          "type": "array",
+          "description": "Every path of sensitive.secret_files, data_dumps and log_dirs with its covers() verdict, sorted by path (spec 15 section 7.3).",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "path",
+              "reason",
+              "rule",
+              "source",
+              "verdict"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "data_dump",
+                  "log_dir",
+                  "secret_file"
+                ]
+              },
+              "verdict": {
+                "enum": [
+                  "covered",
+                  "not_covered",
+                  "undecidable"
+                ]
+              },
+              "reason": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/reason"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rule": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/source_id"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "findings": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/finding"
           },
           "description": "X-* findings, same order."
+        },
+        "linked_dirs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "sensitive.walk.linked_dirs: linked folders not walked (L-SYMLINK-DIR)."
         }
-      }
+      },
+      "description": "Present with --exposure. canary sits beside it from R4.1, when the schema is extended (spec 15 section 7.3)."
     }
   }
 }

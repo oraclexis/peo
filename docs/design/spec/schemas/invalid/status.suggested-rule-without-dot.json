@@ -1,5 +1,15 @@
 {
   "exposure": {
+    "audited": [
+      {
+        "kind": "secret_file",
+        "path": "backend/.env",
+        "reason": null,
+        "rule": null,
+        "source": null,
+        "verdict": "not_covered"
+      }
+    ],
     "findings": [
       {
         "code": "X-SECRET-READABLE",
@@ -13,7 +23,8 @@
         "status": "applied",
         "suggested_rule": "Read(backend/.env)"
       }
-    ]
+    ],
+    "linked_dirs": []
   },
   "findings": [],
   "inventory": {},
