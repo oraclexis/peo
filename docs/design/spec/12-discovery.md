@@ -207,7 +207,7 @@ Confiance : ces informations sont des `fact` (existence d'un fichier, clé d'un 
 
 **Liens symboliques et parcours** (R3, pour le comparateur de règles de la spec 14 §3.5). Une entrée de `secret_files`, `data_dumps` ou `log_dirs` dont le chemin est un lien symbolique porte en plus `link_target` : la cible résolue (`os.path.realpath`), relative à la racine du projet résolue, ou `null` si elle est hors du projet ; le champ est absent pour un chemin ordinaire. **Exception à la règle de la section 1** pour cette section seulement : un lien dont le nom correspond à un motif de `secret_files`, `data_dumps` ou `log_dirs` et dont la cible sort de la racine **n'est pas ignoré** ; il est gardé avec `link_target = null`, et sa cible n'est **jamais ouverte** ni citée (pas de lecture des variables, `variables = []`, `bytes = 0`). La section porte aussi `walk` : `depth_pruned` (le parcours a laissé des dossiers au-delà de la profondeur 3) et `linked_dirs` (dossiers liés rencontrés et non suivis, triés). Seuls des chemins du projet sortent (NF14).
 
-Valeur attendue pour `fx-split-stack` :
+Valeur attendue pour `fx-split-stack` (`depth_pruned` vrai : `backend/app/Http/Controllers/` est à la profondeur 4 ; précisé le 2026-11-15) :
 
 ```json
 "sensitive": {
@@ -217,7 +217,7 @@ Valeur attendue pour `fx-split-stack` :
   "data_dumps": [],
   "log_dirs": [],
   "nested_claude_settings": [],
-  "walk": { "depth_pruned": false, "linked_dirs": [] }
+  "walk": { "depth_pruned": true, "linked_dirs": [] }
 }
 ```
 

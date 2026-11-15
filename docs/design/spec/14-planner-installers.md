@@ -213,7 +213,7 @@ Fonction pure `covers()`, dans `src/peo/inventory/claude_rules.py` (le **compara
 - `claude_version` : celle de l'Inventory, `None` en mode dégradé. `platform` : `platform.system()` de la machine auditée, fourni par l'appelant.
 - `table` : le tableau de conformité de cette plateforme (ci-dessous), ou `None` s'il n'existe pas.
 - `project_root` (passé **résolu**, `os.path.realpath`) et `home` : chemins absolus fournis par l'appelant.
-- `Verdict` : `{ "verdict": "covered" | "not_covered" | "undecidable", "reason": <énumération> | null, "rule": <règle telle qu'écrite> | null, "source": <id de source> | null, "newer": <booléen> }` ; `newer` est vrai quand un `covered` repose sur une version postérieure à `max(versions_tested)`.
+- `Verdict` : `{ "verdict": "covered" | "not_covered" | "undecidable", "reason": <énumération> | null, "rule": <règle telle qu'écrite> | null, "source": <id de source> | null, "newer": <booléen>, "evidence": [<chaîne>] }` ; `newer` est vrai quand un `covered` repose sur une version postérieure à `max(versions_tested)` ; `evidence` porte les raisons non retenues (passe 6 et ordre des raisons), sous la forme `"<source> deny <règle>: <raison>"` (précisé le 2026-11-15).
 
 **Passes.**
 
