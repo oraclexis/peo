@@ -274,6 +274,58 @@ class _Output:
                                                 found[1]) or []
 
 
+def _declarations(base: Path, manifest, key):
+    """[(inline, object)] of one manifest field (spec 14 §3.1); _Invalid when not read."""
+    status, _, data = manifest
+    if status == "absent":
+        return []
+    if status != "read":
+        raise _Invalid
+    found = data.get(key, [])
+    out = []
+    for item in found if isinstance(found, list) else [found]:
+        if isinstance(item, dict):
+            out.append((True, item))
+            continue
+        if not (isinstance(item, str) and item.startswith("./") and item.endswith(".json")
+                and ".." not in item.split("/")):
+            raise _Invalid  # bundle, URL, absolute path or other form: not read by PEO
+        status, _, obj = _read(base / item, base.resolve())
+        if status != "read":
+            raise _Invalid
+        out.append((False, obj))
+    return out
+
+
+def _plugin_hooks(data, base, manifest):
+    """hooks/hooks.json, then the manifest `hooks`; groups of one event put end to end."""
+    declared = [{"hooks": obj} if inline else obj
+                for inline, obj in _declarations(base, manifest, "hooks")]
+    merged = {}
+    for part in ([] if data is None else [data]) + declared:
+        for event, groups in _object(part, "hooks").items():
+            if not isinstance(groups, list):
+                raise _Invalid
+            merged.setdefault(event, []).extend(groups)
+    return {"hooks": merged}, bool(declared)
+
+
+def _plugin_mcp(base, manifest):
+    """<installPath>/.mcp.json, then the manifest `mcpServers`; a later name replaces one."""
+    status, _, data = _read(base / ".mcp.json", None)
+    if status not in ("read", "absent"):
+        raise _Invalid
+    tables = [] if data is None else [data.get("mcpServers", data)]
+    tables += [obj if inline else obj.get("mcpServers", obj)
+               for inline, obj in _declarations(base, manifest, "mcpServers")]
+    merged = {}
+    for table in tables:
+        if not isinstance(table, dict):
+            raise _Invalid
+        merged.update(table)
+    return merged
+
+
 def _same_folder(path, root):
     if not isinstance(path, str) or not os.path.isabs(path):
         return False
@@ -442,7 +494,7 @@ def inventory(root: Path, *, run: runner.Runner | None = None, user_config: Path
 
     claude, version, listing = _claude(run, root)
     sources = [f[0] for f in files] + [claude]
-    plugins, plugin_files, plugin_servers = [], [], []
+    plugins, plugin_files, plugin_servers, plugin_mcp = [], [], [], []
     if listing is None:
         sources.append(_source("plugin:*", None, None, "not_inspected", "degraded"))
     for n, plugin in enumerate(listing or []):
@@ -460,15 +512,19 @@ def inventory(root: Path, *, run: runner.Runner | None = None, user_config: Path
             continue
         install = plugin.get("installPath")
         display = f"plugin:#{n}/hooks/hooks.json"
+        base = manifest = None
         if isinstance(install, str) and os.path.isabs(install):
-            hooks_file = Path(install) / "hooks" / "hooks.json"  # outside the root, on purpose
-            src, data = _file(f"plugin:#{n}", scope, hooks_file, display)
+            base = Path(install)  # outside the root, on purpose
+            src, data = _file(f"plugin:#{n}", scope, base / "hooks" / "hooks.json", display)
+            manifest = _read(base / ".claude-plugin" / "plugin.json", None)
         else:
             src, data = _source(f"plugin:#{n}", scope, display, "unavailable", "read-error"), None
         sources.append(src)
-        plugin_files.append((src, data))
+        plugin_files.append((src, data, base, manifest))
         if "mcpServers" in plugin:
             plugin_servers.append((n, plugin["mcpServers"]))
+        elif base is not None:
+            plugin_mcp.append((n, base, manifest))
 
     _tracked(run, root, [s for s in sources if s["id"] in _PROJECT_IDS])
     project = next(s for s in sources if s["id"] == "settings:project")
@@ -484,11 +540,25 @@ def inventory(root: Path, *, run: runner.Runner | None = None, user_config: Path
             out.settings(src, data)
         else:
             out.mcp(src, [(None, data.get("mcpServers", {}))], identify)
+    try:
+        plugin_servers += [(n, _plugin_mcp(base, manifest)) for n, base, manifest in plugin_mcp]
+    except _Invalid:
+        claude["invalid_families"].append("mcp")
+        plugin_servers = []
     if plugin_servers:
         out.mcp(claude, plugin_servers, identify)
-    for src, data in plugin_files:
-        if data is not None:
-            out.hooks(src, data)
+    for src, data, base, manifest in plugin_files:
+        if base is None or src["status"] not in ("read", "absent"):
+            continue
+        try:
+            merged, from_manifest = _plugin_hooks(data, base, manifest)
+        except _Invalid:
+            src["invalid_families"].append("hooks")
+            continue
+        if src["status"] == "absent" and from_manifest:
+            src["status"] = "read"
+        if data is not None or from_manifest:
+            out.hooks(src, merged)
 
     rank = {s["id"]: i for i, s in enumerate(sources)}
     lists = out.lists
