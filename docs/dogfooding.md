@@ -25,8 +25,10 @@ Aggregated results only (document 07, section 7.1; spec 16, section 2.3). No fil
 | Repository | Stack | Commit | Config | Size (tracked lines) | Duration (PEO) | Duration (`claude`) |
 |---|---|---|---|---|---|---|
 | Pilot 1 (pseudonymized) | Nuxt + Laravel | — | real workstation config | — | — | — |
-| [brocoders/nestjs-boilerplate](https://github.com/brocoders/nestjs-boilerplate) (MIT) | NestJS | `9620f159eefe38f47747d02ab162852367c5472c` | empty `CLAUDE_CONFIG_DIR` | 35 724 | — | — |
-| [odense-rpa/automation-server](https://github.com/odense-rpa/automation-server) (MIT) | FastAPI + Vue | `522d6038378e35ee4b67071db2f672f6a0a38da2` | empty `CLAUDE_CONFIG_DIR` | 52 407 | — | — |
+| [brocoders/nestjs-boilerplate](https://github.com/brocoders/nestjs-boilerplate) (MIT) | NestJS | `9620f159eefe38f47747d02ab162852367c5472c` | empty `CLAUDE_CONFIG_DIR` | 35 724 | 1.74 s (a), 1.41 s (b A), 1.32 s (b B) | included, not measured apart |
+| [odense-rpa/automation-server](https://github.com/odense-rpa/automation-server) (MIT) | FastAPI + Vue | `522d6038378e35ee4b67071db2f672f6a0a38da2` | empty `CLAUDE_CONFIG_DIR` | 52 407 | 1.04 s (a), 1.19 s (b A), 1.17 s (b B) | included, not measured apart |
+
+Durations: wall time of `peo status --exposure --json`, `claude` subprocesses included; below the 5 s threshold even with them.
 
 Size: lines of the text files tracked by git (`grep -Ic ''` on `git ls-files`), binaries excluded.
 
@@ -63,12 +65,27 @@ Known selection gaps, recorded before the run: brocoders names its env examples 
 
 Mesure (b), setup: state A = clone + `.env` copied from the repository's example (`env-example-relational` for brocoders, `.env.example` for automation-server), every value replaced by a generated fake; state B = A + a tracked, committed `.claude/settings.json` with `permissions.deny = ["Read(./.env)"]` and `sandbox.enabled = true`, without `failIfUnavailable`.
 
+The automation-server rows of (b) state A and B that name the withheld file were moved to the local journal with the other withheld expectations before the run.
+
 Pilot 1: expected findings to be written before its run (real workstation config).
 
 ## Verdicts
 
 | Repository | Code | Path or source | Verdict (`actionable`, `false-positive`, `already-known`, `test-fixture`) | Gap with the expected findings |
 |---|---|---|---|---|
+| brocoders | `X-NO-SECRET-SCAN` | `.github/workflows/*.yml` | `actionable` (excluded from the threshold) | none |
+| brocoders | `X-SANDBOX-OFF` | — | `already-known` (`data_stores` only, excluded) | none |
+| brocoders | `X-DATA-STORE` ×7 | compose files | `already-known` (systematic) | none |
+| brocoders | `X-DATA-STORE` ×1 | `docker-compose.document.yaml`, service `mongo-express` | `false-positive`: an admin UI, not a database | as expected; Discovery backlog: do not classify `mongo-express`, `adminer`, `pgadmin` images as data stores |
+| brocoders | actionable total | — | **0**: threshold (a) fails on this repository | as expected |
+| brocoders | (b) A → B | `.env` | `not_covered` → `covered` (`settings:project`, `Read(./.env)`); `X-SECRET-READABLE` and `X-SANDBOX-OFF` gone, `X-SANDBOX-FALLBACK` appears | none |
+| automation-server | `X-SANDBOX-OFF` | — | `actionable` (counts) | none |
+| automation-server | `X-NO-SECRET-SCAN` | `.github/workflows/*.yml` | `false-positive`: `image-scan.yml` runs Trivy, whose default scanners include secrets (on the image, not the repository) | as expected; R4 backlog: a Trivy fiche with a `ci` token |
+| automation-server | `X-DATA-STORE` | `docker-compose.yml`, service `db` | `already-known` (systematic) | none |
+| automation-server | `X-SECRET-*` | withheld | in the local journal | none |
+| automation-server | (b) A → B | `.env` | `not_covered` → `covered` (`settings:project`, `Read(./.env)`); `X-SANDBOX-OFF` gone, `X-SANDBOX-FALLBACK` appears | none |
+| both | `S-*` | — | none emitted | none |
+| both | NF14 | outputs of (a), (b) A, (b) B | 0 of the 120 generated fake values found in the 6 JSON outputs | none |
 
 ## Withheld findings (open source repositories)
 
