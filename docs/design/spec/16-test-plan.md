@@ -64,7 +64,7 @@ Fichiers attendus : `tests/golden/fx-split-stack/`. La fixture n'est produite pa
   - aucun accès réseau du processus de PEO (NF5) ; les sous-processus `claude` ne sont pas couverts (limite S20 du jalon) ;
   - aucun message ne contient « protected » ni « protégé » ;
   - aucune valeur d'un `.env*` du dépôt dans stdout, stderr ou le JSON. Les valeurs sont lues en mémoire par le test ; en cas d'échec, il n'affiche que le nom de la variable.
-- Les verdicts d'actionnabilité et la fidélité A/B (document 07, section 7.1) sont notés à la main, pas par ce test : notes brutes dans `docs/dogfooding.local.md` (local, exclu de git), résultats agrégés dans `docs/dogfooding.md` (versionné). Pour un clone open source, `X-SECRET-TRACKED` et `X-LITERAL-IN-AGENT-CONFIG` n'y figurent qu'en comptes (document 07, section 7.1).
+- Les verdicts d'actionnabilité et la fidélité A/B (document 07, section 7.1) sont notés à la main, pas par ce test : notes brutes dans `docs/dogfooding.local.md` (local, exclu de git), résultats agrégés dans `docs/dogfooding.md` (versionné). Pour un clone open source, `X-SECRET-TRACKED` et `X-LITERAL-IN-AGENT-CONFIG` n'y figurent qu'en comptes (document 07, section 7.1), selon l'état de divulgation du constat (document 07, section 7.1 bis).
 - Aucun fichier, extrait ni sortie de ce test n'est versionné. Pour le pilote n°1, `docs/dogfooding.md` ne donne que des comptes agrégés, sous un pseudonyme (section 2.2).
 
 ## 3. Tests d'acceptation par fonctionnalité
