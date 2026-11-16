@@ -157,7 +157,30 @@ Les constats prévus de (a) et (b) sont écrits dans `docs/dogfooding.md` **avan
 
 Deux fichiers (décision du 2026-11-14). **`docs/dogfooding.md`, versionné, agrégé seulement** : dépôts open source nommés avec leur SHA, pilote n°1 pseudonymisé (comptes agrégés, spec 16 §2.2), constats prévus, verdicts, durées et tailles, seuils. **Journal brut `docs/dogfooding.local.md`**, local, exclu par `.git/info/exclude`. Aucun fichier ni sortie brute des dépôts audités n'est versionné.
 
-**Divulgation responsable.** Pour un dépôt open source, `X-SECRET-TRACKED` et `X-LITERAL-IN-AGENT-CONFIG` ne sont publiés dans `docs/dogfooding.md` qu'en **comptes par code**, sans chemin ni source ; le détail reste dans le journal local. Avant toute publication d'un tel compte, le mainteneur est prévenu en privé (avis de sécurité GitHub, ou contact du `SECURITY.md`) ; la publication attend 30 jours ou sa réponse.
+**Divulgation responsable.** Pour un dépôt open source, `X-SECRET-TRACKED` et `X-LITERAL-IN-AGENT-CONFIG` ne sont publiés dans `docs/dogfooding.md` qu'en **comptes par code**, sans chemin ni source ; le détail reste dans le journal local. Avant toute publication d'un tel compte, le mainteneur est prévenu en privé (avis de sécurité GitHub, ou contact du `SECURITY.md`) ; la publication attend 30 jours après la transmission des détails, ou sa réponse. Sans canal privé déclaré : section 7.1 bis (ajout du 2026-11-15).
+
+### 7.1 bis Divulgation sans canal privé déclaré
+
+Ajout du 2026-11-15, **proposé**. Cas : un constat retenu (section 7.1, « Divulgation responsable ») porte sur un dépôt open source qui n'offre ni avis de sécurité GitHub ni `SECURITY.md`.
+
+1. **Recherche du canal**, dans l'ordre : avis de sécurité GitHub (signalement privé activé) ; `SECURITY.md` ; `security.txt` (RFC 9116) du domaine officiel de l'organisation ; contact institutionnel publié par l'organisation. Le premier trouvé est retenu.
+2. **Rien trouvé** : une issue publique demande seulement un contact privé. Elle ne donne aucun détail technique, ne mentionne ni PEO ni un audit, et ne dit rien de la nature ni de la gravité du constat.
+3. **Embargo** : les 30 jours courent à partir de la transmission privée des détails, jamais à partir de la demande de contact.
+4. **Aucun canal obtenu** 30 jours après l'issue : proposer la coordination au CERT national compétent, ou ne jamais publier le constat. Le journal local le garde ; `docs/dogfooding.md` donne seulement le nombre de constats retenus non divulgués faute de canal, sans dépôt, sans code et sans chemin.
+5. **Interdit** : une adresse extraite de l'historique git, un canal personnel non affiché, une publication détaillée sans prévenance effective.
+
+États d'un constat retenu, notés dans le journal local avec leur date (un seul état courant par constat) :
+
+| État | Sens | Ce que `docs/dogfooding.md` en montre |
+|---|---|---|
+| `channel_search` | recherche de canal en cours (étape 1) | rien |
+| `contact_requested` | issue neutre ouverte, date notée (étape 2) | rien, quelle que soit l'ancienneté de l'issue |
+| `details_sent` | détails transmis en privé, date notée ; l'embargo part de cette date (étape 3) | rien tant que l'embargo court |
+| `cert_coordination` | relais par le CERT national (étape 4) | rien |
+| `no_private_channel` | abandon définitif, publication détaillée interdite (étape 4) | le compteur agrégé seulement |
+| `disclosed` | publication autorisée : 30 jours écoulés depuis `details_sent`, ou réponse du mainteneur | le compte par code (section 7.1) |
+
+Règles : une date d'embargo n'existe qu'avec une date `details_sent` ; un constat ne passe à `disclosed` que depuis `details_sent` ; un état absent ou inconnu vaut « ne pas publier ». Ces états sont tenus à la main (aucun outil ne génère `docs/dogfooding.md`, spec 16 §2.3).
 
 ### 7.2 Hors périmètre ajouté
 

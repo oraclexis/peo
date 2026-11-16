@@ -4,7 +4,7 @@ Aggregated results only (document 07, section 7.1; spec 16, section 2.3). No fil
 
 - Open source repositories: named, with the commit SHA audited.
 - Pilot 1: pseudonymized, aggregated counts only.
-- `X-SECRET-TRACKED` and `X-LITERAL-IN-AGENT-CONFIG` on an open source repository: counts per code only, no path or source, published after the maintainer was told privately and 30 days passed (document 07, section 7.1).
+- `X-SECRET-TRACKED` and `X-LITERAL-IN-AGENT-CONFIG` on an open source repository: counts per code only, no path or source, published only once the finding is `disclosed`: 30 days after the details were sent privately, or the maintainer's answer (document 07, sections 7.1 and 7.1 bis). Any other state, or no state, publishes nothing.
 
 ## Thresholds (document 07, section 7.1)
 
@@ -47,5 +47,9 @@ Claude Code version, pinned and identical for the 3 audits: —
 
 ## Withheld findings (open source repositories)
 
-| Repository | Code | Count | Maintainer told (date) | Published after |
+Only `disclosed` findings appear in this table (document 07, section 7.1 bis).
+
+| Repository | Code | Count | Details sent privately (date) | Disclosed (date) |
 |---|---|---|---|---|
+
+Withheld findings not disclosed for lack of a private channel (`no_private_channel`): 0.
