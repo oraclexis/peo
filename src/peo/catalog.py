@@ -21,6 +21,13 @@ MAX_BYTES = 1024 * 1024
 CAPABILITY_ID = re.compile(r"^[a-z]+(\.[a-z0-9-]+)+$")
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 STRENGTHS = ("hard", "soft")
+QUESTION_KINDS = ("confirm", "choice", "text")
+MAX_OPTIONS = 4
+EXPRESSION_KEYS = ("when", "ask_if", "recommend_if", "for_each")
+# Fields of peo.toml the CLI reads itself (spec 13 section 7.1): a question may feed them
+# without any expression reading them.
+PEO_TOML_CONSUMED = frozenset({"project.mission", "project.languages.artifacts", "commands.verify",
+                               "gates.mode", "backbone.id"})
 
 
 class CatalogNotFound(Exception):
@@ -183,18 +190,80 @@ class _Run:
             if ref not in known:
                 self.error(rel, where, "unknown-entry", f"unknown entry {ref!r}")
 
+    def opaque(self) -> int:
+        """Backbone and recipe tables keep their own format; only their expressions are checked."""
+        count = 0
+        for folder in ("backbones", "recipes"):
+            base = self.root / folder
+            if not base.is_dir() or base.is_symlink():
+                continue
+            for path in (p for p in self.files(base) if p.is_file() and p.suffix == ".toml"):
+                rel = path.relative_to(self.root).as_posix()
+                doc = self.toml(rel)
+                if doc is not None:
+                    count += 1
+                    self.walk(rel, "", doc)
+        return count
+
+    def walk(self, rel: str, where: str, node: Any) -> None:
+        if isinstance(node, list):
+            for i, item in enumerate(node):
+                self.walk(rel, f"{where}/{i}", item)
+        elif isinstance(node, dict):
+            for key, value in node.items():
+                here = f"{where}/{key}"
+                if key in EXPRESSION_KEYS:
+                    texts = value if isinstance(value, list) else [value]
+                    for i, text in enumerate(texts):
+                        self.expression(rel, here if not isinstance(value, list) else f"{here}/{i}",
+                                        text, it=key == "when" and "for_each" in node)
+                else:
+                    self.walk(rel, here, value)
+
+    def question_shape(self, where: str, q: dict, seen: set[str]) -> None:
+        def bad(message: str) -> None:
+            self.error("questions.toml", where, "question", message)
+
+        qid = q.get("id")
+        if not isinstance(qid, str):
+            bad("question without a string id")
+        elif qid in seen:
+            bad(f"duplicate question id {qid!r}")
+        seen.add(str(qid))
+        rnd = q.get("round")
+        if not isinstance(rnd, int) or isinstance(rnd, bool) or rnd < 1:
+            bad(f"question {qid!r}: round must be an integer >= 1")
+        if q.get("kind") not in QUESTION_KINDS:
+            bad(f"question {qid!r}: kind must be one of {', '.join(QUESTION_KINDS)}")
+        if len(q.get("options", [])) > MAX_OPTIONS:
+            bad(f"question {qid!r}: at most {MAX_OPTIONS} options")
+
     def questions(self) -> int:
         if not (self.root / "questions.toml").is_file():
             return 0
         found = (self.toml("questions.toml") or {}).get("questions", [])
+        seen: set[str] = set()
         for i, question in enumerate(found):
             where = f"/questions/{i}"
+            self.question_shape(where, question, seen)
             if "ask_if" in question:
                 self.expression("questions.toml", f"{where}/ask_if", question["ask_if"])
             for j, option in enumerate(question.get("options", [])):
                 if "recommend_if" in option:
                     self.expression("questions.toml", f"{where}/options/{j}/recommend_if",
                                     option["recommend_if"])
+        for i, question in enumerate(found):          # S-5, once every expression has been read
+            feeds = question.get("feeds")
+            qid = question.get("id")
+            if not (isinstance(feeds, list) and feeds and all(isinstance(f, str) for f in feeds)):
+                self.error("questions.toml", f"/questions/{i}/feeds", "question",
+                           f"question {qid!r}: feeds must be a non-empty list of strings")
+                continue
+            for feed in feeds:
+                answer = feed if feed.startswith("answers[") else f"answers['{feed}']"
+                if feed not in PEO_TOML_CONSUMED and answer not in self.reads:
+                    self.error("questions.toml", f"/questions/{i}/feeds", "unconsumed",
+                               f"question {qid!r} feeds {feed!r}, which nothing reads")
         return len(found)
 
     def entries(self, capabilities: dict[str, bool]) -> int:
@@ -232,9 +301,10 @@ def validate(path: str | Path, today: date | None = None) -> Report:
     capabilities = run.capabilities()
     rules = run.rules(capabilities)
     entries = run.entries(capabilities)
+    opaque = run.opaque()
     questions = run.questions()
     order = lambda e: (e.file, e.location, e.message)  # noqa: E731
     return Report(root=root.resolve().name, errors=sorted(run.errors, key=order),
                   warnings=sorted(run.warnings, key=order),
-                  counts={"capabilities": len(capabilities), "entries": entries, "opaque": 0,
+                  counts={"capabilities": len(capabilities), "entries": entries, "opaque": opaque,
                           "questions": questions, "rules": rules})
