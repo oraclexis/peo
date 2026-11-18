@@ -28,6 +28,8 @@ def demo_tool(**changes) -> str:
     text = (EXAMPLES / "tool.serena.toml").read_text()
     text = re.sub(r'^id\s*=\s*"serena"', 'id = "demo"', text, flags=re.M)
     text = re.sub(r'^kind\s*=\s*"mcp"', 'kind = "cli"', text, flags=re.M)
+    text = text.replace('requires = ["cli:uv"]', "requires = []")      # the demo catalog has no uv
+    text = re.sub(r"^overlaps\s*=.*$", "overlaps = []", text, flags=re.M)
     for old, new in changes.items():
         assert old in text, old
         text = text.replace(old, new)

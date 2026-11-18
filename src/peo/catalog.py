@@ -1,4 +1,205 @@
 """Catalog loader and validator (spec 13). Standard library only.
 
-Not imported by gate.py or context.py (their latency budget).
+Not imported by gate.py or context.py.
+
+`validate(path)` reads a catalog folder and returns every problem in one `Report`; it never writes,
+never runs a process and never uses the network. Messages hold paths relative to the catalog only.
 """
+
+import re
+import tomllib
+from dataclasses import dataclass, field
+from datetime import date
+from pathlib import Path
+from typing import Any, NamedTuple
+
+from peo.validate import load_schema
+from peo.validate import validate as validate_schema
+
+MAX_BYTES = 1024 * 1024
+CAPABILITY_ID = re.compile(r"^[a-z]+(\.[a-z0-9-]+)+$")
+ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+STRENGTHS = ("hard", "soft")
+
+
+class CatalogNotFound(Exception):
+    """The catalog folder does not exist (exit code 2, not a catalog error)."""
+
+
+class CatalogError(NamedTuple):
+    file: str        # path relative to the catalog folder
+    location: str    # JSON pointer, or empty
+    code: str        # short and stable
+    message: str     # one line, English
+
+
+@dataclass
+class Report:
+    root: str
+    errors: list[CatalogError] = field(default_factory=list)
+    warnings: list[CatalogError] = field(default_factory=list)
+    counts: dict[str, int] = field(default_factory=dict)
+
+
+class _Run:
+    def __init__(self, root: Path, today: date):
+        self.root, self.today = root, today
+        self.errors: list[CatalogError] = []
+        self.warnings: list[CatalogError] = []
+
+    def error(self, file: str, location: str, code: str, message: str) -> None:
+        self.errors.append(CatalogError(file, location, code, message))
+
+    def toml(self, rel: str) -> dict | None:
+        """Parse one file: bounded read, strict UTF-8, TOML. None (and an error) when it fails."""
+        path = self.root / rel
+        if path.stat().st_size > MAX_BYTES:
+            self.error(rel, "", "too-large", "file is larger than 1 MiB")
+            return None
+        with path.open("rb") as f:
+            raw = f.read(MAX_BYTES + 1)
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            self.error(rel, "", "encoding", "file is not valid UTF-8")
+            return None
+        try:
+            return tomllib.loads(text)
+        except tomllib.TOMLDecodeError as exc:
+            self.error(rel, "", "toml", f"invalid TOML: {exc}")
+            return None
+
+    def files(self, folder: Path) -> list[Path]:
+        """Regular files and folders below `folder`, sorted; symbolic links are ignored."""
+        return sorted(p for p in folder.iterdir() if not p.is_symlink())
+
+    def table_file(self, rel: str) -> dict | None:
+        if not (self.root / rel).is_file() or (self.root / rel).is_symlink():
+            self.error(rel, "", "missing", f"missing {rel}")
+            return None
+        return self.toml(rel)
+
+    def capabilities(self) -> dict[str, bool]:
+        doc = self.table_file("capabilities.toml")
+        found: dict[str, bool] = {}
+        for i, cap in enumerate((doc or {}).get("capabilities", [])):
+            where = f"/capabilities/{i}"
+            cid = cap.get("id") if isinstance(cap, dict) else None
+            if not isinstance(cid, str) or not CAPABILITY_ID.match(cid):
+                self.error("capabilities.toml", where, "capability",
+                           f"invalid capability id {cid!r}")
+            elif cid in found:
+                self.error("capabilities.toml", where, "duplicate",
+                           f"duplicate capability {cid!r}")
+            else:
+                found[cid] = bool(cap.get("exclusive", False))
+        return found
+
+    def rules(self, capabilities: dict[str, bool]) -> int:
+        doc = self.table_file("requirements.toml")
+        seen: set[str] = set()
+        rules = (doc or {}).get("rules", [])
+        for i, rule in enumerate(rules):
+            where = f"/rules/{i}"
+            rid = rule.get("id")
+            if not isinstance(rid, str):
+                self.error("requirements.toml", where, "rule", "rule without a string id")
+            elif rid in seen:
+                self.error("requirements.toml", where, "duplicate", f"duplicate rule id {rid!r}")
+            seen.add(str(rid))
+            need = rule.get("require")
+            if not isinstance(need, dict):
+                self.error("requirements.toml", where, "rule", f"rule {rid!r} has no require table")
+                continue
+            if need.get("capability") not in capabilities:
+                self.error("requirements.toml", where, "unknown-capability",
+                           f"unknown capability {need.get('capability')!r}")
+            if need.get("strength") not in STRENGTHS:
+                self.error("requirements.toml", where, "rule",
+                           f"strength {need.get('strength')!r} is not hard or soft")
+        return len(rules)
+
+    def date_of(self, rel: str, location: str, text: Any) -> date | None:
+        try:
+            if isinstance(text, str) and ISO_DATE.match(text):
+                return date.fromisoformat(text)
+        except ValueError:
+            pass
+        self.error(rel, location, "date", f"{text!r} is not a date in YYYY-MM-DD form")
+        return None
+
+    def entry(self, rel: str, kind_dir: str, name: str, doc: dict,
+              capabilities: dict[str, bool]) -> None:
+        schema_errors = validate_schema(doc, load_schema("tool-entry"))
+        for e in schema_errors:
+            self.error(rel, e.path, "schema", e.message)
+        if schema_errors:
+            return
+        if doc["kind"] != kind_dir:
+            self.error(rel, "/kind", "path",
+                       f"kind {doc['kind']!r} does not match its folder {kind_dir!r}")
+        if doc["id"] != name:
+            self.error(rel, "/id", "path", f"id {doc['id']!r} does not match file name {name!r}")
+        for cap in doc["capabilities"].get("provides", []):
+            if cap not in capabilities:
+                self.error(rel, "/capabilities/provides", "unknown-capability",
+                           f"unknown capability {cap!r}")
+        notes, checked = doc["notes"], doc["source"].get("checked")
+        evaluated = self.date_of(rel, "/notes/evaluated", notes.get("evaluated"))
+        review_by = self.date_of(rel, "/notes/review_by", notes.get("review_by"))
+        if checked is not None:
+            self.date_of(rel, "/source/checked", checked)
+        if evaluated and review_by and review_by < evaluated:
+            self.error(rel, "/notes/review_by", "date", "review_by is before evaluated")
+        if review_by and review_by < self.today:
+            self.warnings.append(CatalogError(rel, "/notes/review_by", "W_REVIEW_EXPIRED",
+                                              f"review_by {review_by} is in the past"))
+
+    def references(self, rel: str, doc: dict, known: set[str]) -> None:
+        refs = [(f"/relations/{k}", r) for k in ("requires", "conflicts", "overlaps")
+                for r in doc.get("relations", {}).get(k, [])]
+        refs += [("/prerequisites", p["fix"]) for p in doc.get("prerequisites", []) if "fix" in p]
+        for where, ref in refs:
+            if ref not in known:
+                self.error(rel, where, "unknown-entry", f"unknown entry {ref!r}")
+
+    def entries(self, capabilities: dict[str, bool]) -> int:
+        tools = self.root / "tools"
+        if not tools.is_dir() or tools.is_symlink():
+            self.error("tools", "", "missing", "missing tools/ folder")
+            return 0
+        loaded: list[tuple[str, dict]] = []
+        known: set[str] = set()
+        declared: set[str] = set()
+        for kind_dir in (p for p in self.files(tools) if p.is_dir()):
+            for path in (p for p in self.files(kind_dir) if p.is_file() and p.suffix == ".toml"):
+                rel = path.relative_to(self.root).as_posix()
+                known.add(f"{kind_dir.name}:{path.stem}")
+                doc = self.toml(rel)
+                if doc is None:
+                    continue
+                loaded.append((rel, doc))
+                self.entry(rel, kind_dir.name, path.stem, doc, capabilities)
+                key = f"{doc.get('kind')}:{doc.get('id')}"
+                if key in declared:
+                    self.error(rel, "/id", "duplicate", f"duplicate entry {key!r}")
+                declared.add(key)
+        for rel, doc in loaded:
+            self.references(rel, doc, known)
+        return len(loaded)
+
+
+def validate(path: str | Path, today: date | None = None) -> Report:
+    """Check the catalog folder at `path`; `today` is injectable so the output is reproducible."""
+    root = Path(path)
+    if not root.is_dir():
+        raise CatalogNotFound(f"catalog folder not found: {root.name}")
+    run = _Run(root, today or date.today())
+    capabilities = run.capabilities()
+    rules = run.rules(capabilities)
+    entries = run.entries(capabilities)
+    order = lambda e: (e.file, e.location, e.message)  # noqa: E731
+    return Report(root=root.resolve().name, errors=sorted(run.errors, key=order),
+                  warnings=sorted(run.warnings, key=order),
+                  counts={"capabilities": len(capabilities), "entries": entries, "opaque": 0,
+                          "questions": 0, "rules": rules})

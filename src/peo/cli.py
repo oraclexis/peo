@@ -83,6 +83,17 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--exposure", action="store_true", help="add the exposure audit")
             p.add_argument("--ci", action="store_true", help="exit 3 on an error finding")
             continue
+        if name == "catalog":
+            p = sub.add_parser(name, help="validate a catalog (spec 11, section 2.4)")
+            actions = p.add_subparsers(dest="catalog_command", metavar="ACTION")
+            check = actions.add_parser("validate", help="validate a catalog folder")
+            check.add_argument("path", nargs="?",
+                               help="catalog folder (default: --catalog, else catalog/)")
+            check.add_argument("--json", action="store_true", default=argparse.SUPPRESS,
+                               help="print the JSON envelope on stdout")
+            actions.add_parser("show", help="(not implemented yet, phase P1)").add_argument(
+                "ref", nargs="?", help=argparse.SUPPRESS)
+            continue
         p = sub.add_parser(name, help=f"(not implemented yet, phase {phase})")
         p.add_argument("rest", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
     return parser
@@ -209,6 +220,44 @@ def status_command(args: argparse.Namespace) -> int:
     return EXIT_STATUS_FINDINGS if args.ci and failing else EXIT_OK
 
 
+def catalog_command(args: argparse.Namespace) -> int:
+    if args.catalog_command != "validate":
+        return _not_implemented("catalog", args)
+    command = "catalog validate"
+    source = args.path or args.catalog or "catalog"
+    if "://" in source:     # URL@ref: the network is forbidden outside adapters (spec 11, NF5)
+        error = {"code": "E_USAGE",
+                 "message": "a remote catalog is not supported yet; give a local folder"}
+        _emit(args, envelope(command, False, errors=[error]), None)
+        return EXIT_USAGE
+    from peo.catalog import CatalogNotFound, validate
+
+    try:
+        report = validate(source)
+    except CatalogNotFound as exc:
+        error = {"code": "E_CATALOG_NOT_FOUND", "message": str(exc)}
+        _emit(args, envelope(command, False, errors=[error]), None)
+        return EXIT_USAGE
+
+    def line(e) -> str:
+        return f"{e.file}#{e.location}: {e.message}" if e.location else f"{e.file}: {e.message}"
+
+    errors = [{"code": "E_CATALOG_INVALID", "message": line(e)} for e in report.errors]
+    warnings = [{"code": w.code, "message": line(w)} for w in report.warnings]
+    data = {"counts": report.counts, "root": report.root}
+    c = report.counts
+    summary = f"{c['entries']} entries, {c['capabilities']} capabilities, {c['rules']} rules: valid"
+    _emit(args, envelope(command, not errors, data, warnings, errors), summary)
+    return EXIT_ERROR if errors else EXIT_OK
+
+
+def _not_implemented(command: str, args: argparse.Namespace) -> int:
+    message = f"'peo {command}' is specified but not implemented yet (phase {COMMANDS[command]})"
+    error = {"code": "E_NOT_IMPLEMENTED", "message": message}
+    _emit(args, envelope(command, False, errors=[error]), None)
+    return EXIT_ERROR
+
+
 def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):   # file names that are not UTF-8 print escaped
@@ -222,11 +271,9 @@ def main(argv: list[str] | None = None) -> int:
         return discover_command(args)
     if args.command == "status":
         return status_command(args)
-    phase = COMMANDS[args.command]
-    message = f"'peo {args.command}' is specified but not implemented yet (phase {phase})"
-    error = {"code": "E_NOT_IMPLEMENTED", "message": message}
-    _emit(args, envelope(args.command, False, errors=[error]), None)
-    return EXIT_ERROR
+    if args.command == "catalog":
+        return catalog_command(args)
+    return _not_implemented(args.command, args)
 
 
 if __name__ == "__main__":  # pragma: no cover
