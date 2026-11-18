@@ -1,0 +1,39 @@
+id          = "everything-claude-code"
+kind        = "claude-plugin"
+name        = "Everything Claude Code"
+description = "Alternative backbone, detected to report the conflict"
+status      = "watch"
+license     = "MIT"
+source      = { repo = "https://github.com/affaan-m/everything-claude-code", checked = "2026-11-11", commit = "d2ef268" }
+
+[versions]
+tested = "2.2.3"
+
+[capabilities]
+provides = ["clarify.interview", "spec.authoring", "spec.review.independent", "plan.tasks", "tdd.discipline", "review.code", "debug.diagnosis", "drift.docs"]
+
+[relations]
+conflicts = ["framework:spec-kit"]
+
+[selection]
+detect_only = true
+
+[surface]
+hooks     = ["SessionStart"]
+network   = "none"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "none"
+
+[uninstall]
+
+[notes]
+risks     = ["Injects a process at every session start: cannot be combined with another backbone"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

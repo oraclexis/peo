@@ -1,0 +1,39 @@
+id          = "compound-engineering"
+kind        = "claude-plugin"
+name        = "Compound Engineering"
+description = "Alternative backbone, detected to report the conflict"
+status      = "backbone-alt"
+license     = "MIT"
+source      = { repo = "https://github.com/EveryInc/compound-engineering-plugin", checked = "2026-11-11", commit = "4ba4887" }
+
+[versions]
+tested = "3.37.1"
+
+[capabilities]
+provides = ["clarify.interview", "spec.authoring", "spec.review.independent", "plan.tasks", "tdd.discipline", "review.code", "debug.diagnosis", "drift.docs", "knowledge.lessons"]
+
+[relations]
+conflicts = ["framework:spec-kit"]
+
+[selection]
+detect_only = true
+
+[surface]
+hooks     = ["SessionStart"]
+network   = "none"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "none"
+
+[uninstall]
+
+[notes]
+risks     = ["Injects a process at every session start: cannot be combined with another backbone"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

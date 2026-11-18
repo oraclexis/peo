@@ -1,0 +1,36 @@
+id          = "intelephense"
+kind        = "cli"
+name        = "Intelephense"
+description = "PHP language server (prerequisite of php-lsp)"
+status      = "conditional"
+license     = "TBD"
+source      = { repo = "TBD", checked = "2026-11-18" }
+
+[versions]
+tested = "TBD"
+
+[capabilities]
+provides = []
+
+[surface]
+hooks     = []
+network   = "install-only"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "npm"
+package = "intelephense"
+verify = "intelephense --version"
+
+[uninstall]
+cli = "npm uninstall -g intelephense"
+
+[notes]
+risks     = ["Global npm install (risk class R3)"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

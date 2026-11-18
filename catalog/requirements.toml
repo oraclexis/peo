@@ -1,0 +1,48 @@
+# Derived requirements (spec 13, section 6). A rule without `when` always applies.
+
+[[rules]]
+id = "lsp-php"
+for_each = "profile.components"
+when = "'php' in it.languages"
+require = { capability = "nav.lsp.php", strength = "soft" }
+
+[[rules]]
+id = "lsp-typescript"
+for_each = "profile.components"
+when = "'typescript' in it.languages"
+require = { capability = "nav.lsp.typescript", strength = "soft" }
+
+[[rules]]
+id = "lsp-python"
+for_each = "profile.components"
+when = "'python' in it.languages"
+require = { capability = "nav.lsp.python", strength = "soft" }
+
+[[rules]]
+id = "sast-when-exposed"
+when = "profile.signals.auth.value == true or profile.signals.public_surface.value == true"
+require = { capability = "review.security.sast", strength = "soft" }
+
+[[rules]]
+id = "e2e-for-frontends"
+when = "any(profile.components, it.kind == 'frontend')"
+require = { capability = "browser.e2e", strength = "soft" }
+
+[[rules]]
+id = "symbols-for-large-code"
+when = "profile.metrics.loc_total > 50000 or answers['q.refactoring'] == true"
+require = { capability = "nav.symbols", strength = "soft" }
+
+[[rules]]
+id = "native-controls-for-secrets"
+when = "profile.sensitive.secret_files != []"
+require = { capability = "exposure.native", strength = "hard" }
+
+[[rules]]
+id = "native-controls-for-data"
+when = "profile.sensitive.data_dumps != [] or profile.sensitive.log_dirs != []"
+require = { capability = "exposure.native", strength = "soft" }
+
+[[rules]]
+id = "secret-scan-ci"
+require = { capability = "secrets.scan.ci", strength = "soft" }

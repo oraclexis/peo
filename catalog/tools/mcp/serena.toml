@@ -1,0 +1,47 @@
+id          = "serena"
+kind        = "mcp"
+name        = "Serena"
+description = "Symbol-level IDE tools through language servers"
+status      = "conditional"
+license     = "GPL-3.0-or-later"
+source      = { repo = "https://github.com/oraios/serena", checked = "2026-11-11", commit = "6e5c377" }
+
+[versions]
+tested = "TBD"
+pin    = true
+
+[capabilities]
+provides = ["nav.symbols"]
+
+[relations]
+overlaps = ["claude-plugin:typescript-lsp", "claude-plugin:php-lsp"]
+
+[selection]
+when = { any = ["profile.metrics.loc_total > 50000", "answers['q.refactoring'] == true"], not = ["profile.kind.value == 'new'"] }
+
+[surface]
+hooks     = []
+network   = "none"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 3000
+evidence = "estimate"
+
+[install]
+manager = "uv"
+package = "serena-agent"
+python = "3.13"
+verify = "serena --version"
+config = { mcp = { command = "serena", args = ["start-mcp-server", "--context", "claude-code", "--mode", "no-memories", "--project", "{project_dir}"] } }
+
+[uninstall]
+cli = "uv tool uninstall serena-agent"
+config = "remove-mcp-entry"
+keep = [".serena/"]
+
+[notes]
+risks     = ["Replaces Edit with its own write tools: gate matcher must include them", "Do not install through a marketplace (Serena README)"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

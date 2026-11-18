@@ -1,0 +1,38 @@
+id          = "typescript-lsp"
+kind        = "claude-plugin"
+name        = "TypeScript LSP"
+description = "TypeScript language server for code navigation"
+status      = "conditional"
+license     = "TBD"
+source      = { repo = "https://github.com/anthropics/claude-plugins-official", checked = "2026-11-11", commit = "43fd1f9", marketplace = "claude-plugins-official" }
+
+[versions]
+tested = "TBD"
+
+[capabilities]
+provides = ["nav.lsp.typescript"]
+
+[selection]
+when = { any = ["any(profile.components, 'typescript' in it.languages or 'vue' in it.languages)"] }
+
+[surface]
+hooks     = []
+network   = "none"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "claude"
+plugin = "typescript-lsp"
+marketplace = "claude-plugins-official"
+
+[uninstall]
+config = "remove-enabled-plugin"
+
+[notes]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

@@ -1,0 +1,37 @@
+id          = "ui-ux-pro-max"
+kind        = "vendored-skill"
+name        = "UI UX Pro Max"
+description = "Design skill copied into the project"
+status      = "conditional"
+license     = "TBD"
+source      = { repo = "TBD", checked = "2026-11-18" }
+
+[versions]
+tested = "TBD"
+
+[capabilities]
+provides = ["ui.design"]
+
+[selection]
+when = { all = ["profile.signals.frontend_heavy.value == true"], not = ["profile.signals.design_rules_in_instructions.value"] }
+
+[surface]
+hooks     = []
+network   = "none"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "files"
+
+[uninstall]
+config = "remove-skill-files"
+
+[notes]
+risks     = ["Type vendored-skill is outside the MVP: proposed as a manual step"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"
