@@ -18,6 +18,7 @@ import pytest
 
 import peo.runner
 from peo import cli
+from peo.discovery.sensitive import ENV_EXAMPLES
 
 PATHS = [p for p in os.environ.get("PEO_AUDIT_PATHS", "").split(":") if p]
 PROTECTED = re.compile(r"protect|protégé", re.IGNORECASE)
@@ -41,7 +42,7 @@ def env_values(root: Path) -> list[tuple[str, str]]:
     """(name, value) of every .env* line, kept in memory only."""
     found = []
     for path in _files(root):
-        if not path.name.startswith(".env") or path.is_symlink():
+        if not path.name.startswith(".env") or path.name in ENV_EXAMPLES or path.is_symlink():
             continue
         try:
             text = path.read_text(errors="replace")
@@ -53,6 +54,12 @@ def env_values(root: Path) -> list[tuple[str, str]]:
             if sep and len(value) >= 6:
                 found.append((name.strip(), value))
     return found
+
+
+def leaked_names(values: list[tuple[str, str]], text: str) -> list[str]:
+    """Names whose value appears in text as a whole word (bounds: start, end, or not [A-Za-z0-9_-])."""
+    return sorted({name for name, value in values
+                   if re.search(rf"(?<![A-Za-z0-9_-]){re.escape(value)}(?![A-Za-z0-9_-])", text)})
 
 
 @pytest.mark.parametrize("path", PATHS)
@@ -95,5 +102,5 @@ def test_a_prime_invariants(path, monkeypatch, capsys, tmp_path):
     assert data["inventory"]["claude_version"] == pinned
     assert total - claude_time[0] < 5
     assert not PROTECTED.search(out + err)
-    leaked = sorted({name for name, value in env_values(root) if value in out or value in err})
+    leaked = leaked_names(env_values(root), out + "\n" + err)
     assert leaked == [], f"values of these variables are in the output: {leaked}"

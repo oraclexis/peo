@@ -37,6 +37,8 @@ jobs:
         run: uv run python tools/release.py check-version
       - name: Tests
         run: uv run pytest -q
+      - name: Disclosure guard
+        run: uv run python tools/check_disclosure.py docs/dogfooding.md
       - name: Spec schema examples
         run: uv run python docs/design/spec/schemas/check_examples.py docs/design/spec/schemas
 
