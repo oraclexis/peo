@@ -56,7 +56,9 @@ def test_sens_env_200_names_max(tmp_path):
     assert len(got) == 200 and "V000" not in got        # V000 is the 201st line of the file
 
 
-@pytest.mark.parametrize("name", [".env.example", ".env.sample", ".env.template", ".env.dist"])
+@pytest.mark.parametrize("name", [".env.example", ".env.sample", ".env.template", ".env.dist",
+                                  ".env.development.example", ".env.production.sample",
+                                  ".env.local.template", ".env.ci.dist"])
 def test_a1_8_env_examples_are_not_secret_files(tmp_path, name):
     write(tmp_path, {name: "A=1\n"})
     assert sensitive(tmp_path)["secret_files"] == []

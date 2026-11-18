@@ -18,7 +18,7 @@ import pytest
 
 import peo.runner
 from peo import cli
-from peo.discovery.sensitive import ENV_EXAMPLES
+from peo.discovery.sensitive import ENV_EXAMPLE_SUFFIXES
 
 PATHS = [p for p in os.environ.get("PEO_AUDIT_PATHS", "").split(":") if p]
 PROTECTED = re.compile(r"protect|protégé", re.IGNORECASE)
@@ -42,7 +42,7 @@ def env_values(root: Path) -> list[tuple[str, str]]:
     """(name, value) of every .env* line, kept in memory only."""
     found = []
     for path in _files(root):
-        if not path.name.startswith(".env") or path.name in ENV_EXAMPLES or path.is_symlink():
+        if not path.name.startswith(".env") or path.name.endswith(ENV_EXAMPLE_SUFFIXES) or path.is_symlink():
             continue
         try:
             text = path.read_text(errors="replace")
@@ -54,6 +54,13 @@ def env_values(root: Path) -> list[tuple[str, str]]:
             if sep and len(value) >= 6:
                 found.append((name.strip(), value))
     return found
+
+
+def without_paths(root: Path, text: str) -> str:
+    """`text` minus the repository's own paths: a value that is a piece of a file name is no leak."""
+    for rel in sorted((p.relative_to(root).as_posix() for p in _files(root)), key=len, reverse=True):
+        text = text.replace(rel, "")
+    return text
 
 
 def leaked_names(values: list[tuple[str, str]], text: str) -> list[str]:
@@ -102,5 +109,5 @@ def test_a_prime_invariants(path, monkeypatch, capsys, tmp_path):
     assert data["inventory"]["claude_version"] == pinned
     assert total - claude_time[0] < 5
     assert not PROTECTED.search(out + err)
-    leaked = leaked_names(env_values(root), out + "\n" + err)
+    leaked = leaked_names(env_values(root), without_paths(root, out + "\n" + err))
     assert leaked == [], f"values of these variables are in the output: {leaked}"
