@@ -21,6 +21,9 @@ MAX_BYTES = 1024 * 1024
 CAPABILITY_ID = re.compile(r"^[a-z]+(\.[a-z0-9-]+)+$")
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 STRENGTHS = ("hard", "soft")
+# Bidirectional controls that can hide text (13 section 1): U+061C, U+200E, U+200F, U+202A-U+202E,
+# U+2066-U+2069.
+BIDI_CONTROLS = frozenset({0x061C, 0x200E, 0x200F, *range(0x202A, 0x202F), *range(0x2066, 0x206A)})
 QUESTION_KINDS = ("confirm", "choice", "text")
 MAX_OPTIONS = 4
 EXPRESSION_KEYS = ("when", "ask_if", "recommend_if", "for_each")
@@ -71,6 +74,11 @@ class _Run:
             text = raw.decode("utf-8")
         except UnicodeDecodeError:
             self.error(rel, "", "encoding", "file is not valid UTF-8")
+            return None
+        hidden = sorted({ord(c) for c in text if ord(c) in BIDI_CONTROLS})
+        if hidden:      # before tomllib, so the cause is named even when the TOML is also invalid
+            names = ", ".join(f"U+{cp:04X}" for cp in hidden)
+            self.error(rel, "", "bidi", f"contains bidirectional control characters ({names})")
             return None
         try:
             return tomllib.loads(text)
