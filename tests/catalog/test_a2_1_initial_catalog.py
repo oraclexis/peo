@@ -1,5 +1,6 @@
 """A2.1: the catalog of the repository loads, with exactly the 21 entries of spec 13 section 5."""
 
+import time
 from datetime import date
 from pathlib import Path
 
@@ -26,3 +27,9 @@ def test_a2_1_the_initial_catalog_is_valid():
 def test_a2_1_the_catalog_holds_the_21_entries_of_section_5():
     found = {f"{p.parent.name}:{p.stem}" for p in (CATALOG / "tools").glob("*/*.toml")}
     assert found == EXPECTED and len(EXPECTED) == 21
+
+
+def test_a2_1_validating_the_catalog_is_fast():
+    start = time.perf_counter()
+    validate(CATALOG, today=date(2026, 11, 18))
+    assert time.perf_counter() - start < 5     # about 0.1 s here; the margin is for a slow CI machine

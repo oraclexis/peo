@@ -39,6 +39,8 @@ jobs:
         run: uv run pytest -q
       - name: Disclosure guard
         run: uv run python tools/check_disclosure.py docs/dogfooding.md
+      - name: Catalog
+        run: uv run peo catalog validate catalog/
       - name: Spec schema examples
         run: uv run python docs/design/spec/schemas/check_examples.py docs/design/spec/schemas
 
