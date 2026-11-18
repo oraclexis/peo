@@ -10,6 +10,7 @@ import re
 import tomllib
 from dataclasses import dataclass, field
 from datetime import date
+from functools import cache
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -19,6 +20,7 @@ from peo.validate import validate as validate_schema
 
 MAX_BYTES = 1024 * 1024
 CAPABILITY_ID = re.compile(r"^[a-z]+(\.[a-z0-9-]+)+$")
+ANSWER_READ = re.compile(r"^answers(?:\['([^']*)'\]|\.([A-Za-z_][A-Za-z0-9_]*))")
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 STRENGTHS = ("hard", "soft")
 # Bidirectional controls that can hide text (13 section 1): U+061C, U+200E, U+200F, U+202A-U+202E,
@@ -31,6 +33,22 @@ EXPRESSION_KEYS = ("when", "ask_if", "recommend_if", "for_each")
 # without any expression reading them.
 PEO_TOML_CONSUMED = frozenset({"project.mission", "project.languages.artifacts", "commands.verify",
                                "gates.mode", "backbone.id"})
+
+
+def _bidi_in(node: Any) -> set[int]:
+    """Bidirectional controls in any decoded string of a parsed document, keys included."""
+    if isinstance(node, str):
+        return {ord(c) for c in node if ord(c) in BIDI_CONTROLS}
+    if isinstance(node, list):
+        return set().union(*map(_bidi_in, node)) if node else set()
+    if isinstance(node, dict):
+        return set().union(*(_bidi_in(k) | _bidi_in(v) for k, v in node.items())) if node else set()
+    return set()
+
+
+@cache
+def _entry_schema():
+    return load_schema("tool-entry")
 
 
 class CatalogNotFound(Exception):
@@ -57,7 +75,7 @@ class _Run:
         self.root, self.today = root, today
         self.errors: list[CatalogError] = []
         self.warnings: list[CatalogError] = []
-        self.reads: set[str] = set()   # external paths read by any expression (rule S-5)
+        self.answers: set[str] = set()   # answer ids read by any expression (rule S-5)
 
     def error(self, file: str, location: str, code: str, message: str) -> None:
         self.errors.append(CatalogError(file, location, code, message))
@@ -81,10 +99,25 @@ class _Run:
             self.error(rel, "", "bidi", f"contains bidirectional control characters ({names})")
             return None
         try:
-            return tomllib.loads(text)
+            doc = tomllib.loads(text)
         except tomllib.TOMLDecodeError as exc:
             self.error(rel, "", "toml", f"invalid TOML: {exc}")
             return None
+        decoded = sorted(_bidi_in(doc))     # a \u202E escape only exists after decoding
+        if decoded:
+            names = ", ".join(f"U+{cp:04X}" for cp in decoded)
+            self.error(rel, "", "bidi", f"contains bidirectional control characters ({names})")
+            return None
+        return doc
+
+    def tables(self, rel: str, where: str, value: Any) -> list[dict]:
+        """The tables of an array-of-tables key; anything else is an error, not a crash."""
+        if value is None:
+            return []
+        if not isinstance(value, list) or not all(isinstance(v, dict) for v in value):
+            self.error(rel, where, "shape", "expected an array of tables")
+            return []
+        return value
 
     def expression(self, rel: str, location: str, text: Any, it: bool = False) -> None:
         """Parse one `when` expression; the paths it reads are kept for rule S-5."""
@@ -92,7 +125,10 @@ class _Run:
             self.error(rel, location, "expression", "an expression must be a string")
             return
         try:
-            self.reads |= expr.reads(expr.parse(text, it=it))
+            for path in expr.reads(expr.parse(text, it=it)):
+                m = ANSWER_READ.match(path)
+                if m:
+                    self.answers.add(m.group(1) or m.group(2))
         except expr.ExprError as exc:
             self.error(rel, location, "expression", f"invalid expression {text[:200]!r}: {exc}")
 
@@ -109,9 +145,10 @@ class _Run:
     def capabilities(self) -> dict[str, bool]:
         doc = self.table_file("capabilities.toml")
         found: dict[str, bool] = {}
-        for i, cap in enumerate((doc or {}).get("capabilities", [])):
+        caps = self.tables("capabilities.toml", "/capabilities", (doc or {}).get("capabilities"))
+        for i, cap in enumerate(caps):
             where = f"/capabilities/{i}"
-            cid = cap.get("id") if isinstance(cap, dict) else None
+            cid = cap.get("id")
             if not isinstance(cid, str) or not CAPABILITY_ID.match(cid):
                 self.error("capabilities.toml", where, "capability",
                            f"invalid capability id {cid!r}")
@@ -125,7 +162,7 @@ class _Run:
     def rules(self, capabilities: dict[str, bool]) -> int:
         doc = self.table_file("requirements.toml")
         seen: set[str] = set()
-        rules = (doc or {}).get("rules", [])
+        rules = self.tables("requirements.toml", "/rules", (doc or {}).get("rules"))
         for i, rule in enumerate(rules):
             where = f"/rules/{i}"
             rid = rule.get("id")
@@ -142,10 +179,11 @@ class _Run:
             if not isinstance(need, dict):
                 self.error("requirements.toml", where, "rule", f"rule {rid!r} has no require table")
                 continue
-            if need.get("capability") not in capabilities:
+            cap = need.get("capability")
+            if not isinstance(cap, str) or cap not in capabilities:
                 self.error("requirements.toml", where, "unknown-capability",
                            f"unknown capability {need.get('capability')!r}")
-            if need.get("strength") not in STRENGTHS:
+            if not isinstance(need.get("strength"), str) or need["strength"] not in STRENGTHS:
                 self.error("requirements.toml", where, "rule",
                            f"strength {need.get('strength')!r} is not hard or soft")
         return len(rules)
@@ -160,12 +198,13 @@ class _Run:
         return None
 
     def entry(self, rel: str, kind_dir: str, name: str, doc: dict,
-              capabilities: dict[str, bool]) -> None:
-        schema_errors = validate_schema(doc, load_schema("tool-entry"))
+              capabilities: dict[str, bool]) -> bool:
+        """Check one entry; True when it passed the schema, so its structure can be trusted."""
+        schema_errors = validate_schema(doc, _entry_schema())
         for e in schema_errors:
             self.error(rel, e.path, "schema", e.message)
         if schema_errors:
-            return
+            return False
         if doc["kind"] != kind_dir:
             self.error(rel, "/kind", "path",
                        f"kind {doc['kind']!r} does not match its folder {kind_dir!r}")
@@ -189,6 +228,7 @@ class _Run:
         if review_by and review_by < self.today:
             self.warnings.append(CatalogError(rel, "/notes/review_by", "W_REVIEW_EXPIRED",
                                               f"review_by {review_by} is in the past"))
+        return True
 
     def references(self, rel: str, doc: dict, known: set[str]) -> None:
         refs = [(f"/relations/{k}", r) for k in ("requires", "conflicts", "overlaps")
@@ -228,7 +268,7 @@ class _Run:
                 else:
                     self.walk(rel, here, value)
 
-    def question_shape(self, where: str, q: dict, seen: set[str]) -> None:
+    def question_shape(self, where: str, q: dict, options: list, seen: set[str]) -> None:
         def bad(message: str) -> None:
             self.error("questions.toml", where, "question", message)
 
@@ -243,20 +283,23 @@ class _Run:
             bad(f"question {qid!r}: round must be an integer >= 1")
         if q.get("kind") not in QUESTION_KINDS:
             bad(f"question {qid!r}: kind must be one of {', '.join(QUESTION_KINDS)}")
-        if len(q.get("options", [])) > MAX_OPTIONS:
+        if len(options) > MAX_OPTIONS:
             bad(f"question {qid!r}: at most {MAX_OPTIONS} options")
 
     def questions(self) -> int:
-        if not (self.root / "questions.toml").is_file():
+        path = self.root / "questions.toml"
+        if not path.is_file() or path.is_symlink():
             return 0
-        found = (self.toml("questions.toml") or {}).get("questions", [])
+        doc = self.toml("questions.toml") or {}
+        found = self.tables("questions.toml", "/questions", doc.get("questions"))
         seen: set[str] = set()
         for i, question in enumerate(found):
             where = f"/questions/{i}"
-            self.question_shape(where, question, seen)
+            options = self.tables("questions.toml", f"{where}/options", question.get("options"))
+            self.question_shape(where, question, options, seen)
             if "ask_if" in question:
                 self.expression("questions.toml", f"{where}/ask_if", question["ask_if"])
-            for j, option in enumerate(question.get("options", [])):
+            for j, option in enumerate(options):
                 if "recommend_if" in option:
                     self.expression("questions.toml", f"{where}/options/{j}/recommend_if",
                                     option["recommend_if"])
@@ -268,8 +311,8 @@ class _Run:
                            f"question {qid!r}: feeds must be a non-empty list of strings")
                 continue
             for feed in feeds:
-                answer = feed if feed.startswith("answers[") else f"answers['{feed}']"
-                if feed not in PEO_TOML_CONSUMED and answer not in self.reads:
+                key = feed[len("answers['"):-2] if feed.startswith("answers['") else feed
+                if feed not in PEO_TOML_CONSUMED and key not in self.answers:
                     self.error("questions.toml", f"/questions/{i}/feeds", "unconsumed",
                                f"question {qid!r} feeds {feed!r}, which nothing reads")
         return len(found)
@@ -279,7 +322,8 @@ class _Run:
         if not tools.is_dir() or tools.is_symlink():
             self.error("tools", "", "missing", "missing tools/ folder")
             return 0
-        loaded: list[tuple[str, dict]] = []
+        loaded: list[tuple[str, dict]] = []     # entries that passed the schema
+        count = 0
         known: set[str] = set()
         declared: set[str] = set()
         for kind_dir in (p for p in self.files(tools) if p.is_dir()):
@@ -289,15 +333,16 @@ class _Run:
                 doc = self.toml(rel)
                 if doc is None:
                     continue
-                loaded.append((rel, doc))
-                self.entry(rel, kind_dir.name, path.stem, doc, capabilities)
+                count += 1
+                if self.entry(rel, kind_dir.name, path.stem, doc, capabilities):
+                    loaded.append((rel, doc))
                 key = f"{doc.get('kind')}:{doc.get('id')}"
                 if key in declared:
                     self.error(rel, "/id", "duplicate", f"duplicate entry {key!r}")
                 declared.add(key)
         for rel, doc in loaded:
             self.references(rel, doc, known)
-        return len(loaded)
+        return count
 
 
 def validate(path: str | Path, today: date | None = None) -> Report:

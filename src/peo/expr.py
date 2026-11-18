@@ -128,7 +128,10 @@ class _Parser:
         kind, value, pos = self.tok
         if kind == "number":
             self.i += 1
-            return ("num", float(value) if "." in value else int(value))
+            try:
+                return ("num", float(value) if "." in value else int(value))
+            except ValueError:      # an integer over Python's digit limit
+                raise ExprError("number too large", pos) from None
         if kind == "string":
             self.i += 1
             return ("str", value[1:-1])
@@ -152,12 +155,14 @@ class _Parser:
 
     def list_(self) -> tuple:
         self.expect("punct", "[")
+        self.enter()
         items = []
         if not self.accept("punct", "]"):
             items.append(self.operand())
             while self.accept("punct", ","):
                 items.append(self.operand())
             self.expect("punct", "]")
+        self.depth -= 1
         return ("list", tuple(items))
 
     def any_(self) -> tuple:
