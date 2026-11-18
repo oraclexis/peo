@@ -19,6 +19,8 @@ PREFIX_TO_SCHEMA = [("profile", "profile"), ("selection", "selection"), ("plan",
 
 
 def schema_for(name):
+    if name.endswith(".toml") and not name.startswith(("tool.", "peo.")):
+        return "tool-entry"          # a catalog entry is named after its id (catalog/tools/<kind>/<id>.toml)
     for prefix, key in PREFIX_TO_SCHEMA:
         if name.startswith(prefix):
             return key
@@ -35,7 +37,8 @@ def documents(path):
 
 FILES = ([(p, True) for p in sorted((SPEC / "examples").iterdir())]
          + [(p, False) for p in sorted((SPEC / "invalid").iterdir())]
-         + [(p, True) for p in sorted(GOLDEN.glob("*.json"))])
+         + [(p, True) for p in sorted(GOLDEN.glob("*.json"))]
+         + [(p, True) for p in sorted((ROOT / "catalog" / "tools").glob("*/*.toml"))])
 
 
 @pytest.mark.parametrize("path,valid", FILES, ids=lambda x: x.name if hasattr(x, "name") else "")
