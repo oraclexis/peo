@@ -13,6 +13,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, NamedTuple
 
+from peo import expr
 from peo.validate import load_schema
 from peo.validate import validate as validate_schema
 
@@ -46,6 +47,7 @@ class _Run:
         self.root, self.today = root, today
         self.errors: list[CatalogError] = []
         self.warnings: list[CatalogError] = []
+        self.reads: set[str] = set()   # external paths read by any expression (rule S-5)
 
     def error(self, file: str, location: str, code: str, message: str) -> None:
         self.errors.append(CatalogError(file, location, code, message))
@@ -68,6 +70,16 @@ class _Run:
         except tomllib.TOMLDecodeError as exc:
             self.error(rel, "", "toml", f"invalid TOML: {exc}")
             return None
+
+    def expression(self, rel: str, location: str, text: Any, it: bool = False) -> None:
+        """Parse one `when` expression; the paths it reads are kept for rule S-5."""
+        if not isinstance(text, str):
+            self.error(rel, location, "expression", "an expression must be a string")
+            return
+        try:
+            self.reads |= expr.reads(expr.parse(text, it=it))
+        except expr.ExprError as exc:
+            self.error(rel, location, "expression", f"invalid expression {text[:200]!r}: {exc}")
 
     def files(self, folder: Path) -> list[Path]:
         """Regular files and folders below `folder`, sorted; symbolic links are ignored."""
@@ -107,6 +119,10 @@ class _Run:
             elif rid in seen:
                 self.error("requirements.toml", where, "duplicate", f"duplicate rule id {rid!r}")
             seen.add(str(rid))
+            for key in ("when", "for_each"):
+                if key in rule:
+                    self.expression("requirements.toml", f"{where}/{key}", rule[key],
+                                    it=key == "when" and "for_each" in rule)
             need = rule.get("require")
             if not isinstance(need, dict):
                 self.error("requirements.toml", where, "rule", f"rule {rid!r} has no require table")
@@ -144,6 +160,10 @@ class _Run:
             if cap not in capabilities:
                 self.error(rel, "/capabilities/provides", "unknown-capability",
                            f"unknown capability {cap!r}")
+        when = doc.get("selection", {}).get("when", {})
+        for key in ("any", "all", "not"):
+            for i, text in enumerate(when.get(key, [])):
+                self.expression(rel, f"/selection/when/{key}/{i}", text)
         notes, checked = doc["notes"], doc["source"].get("checked")
         evaluated = self.date_of(rel, "/notes/evaluated", notes.get("evaluated"))
         review_by = self.date_of(rel, "/notes/review_by", notes.get("review_by"))
@@ -162,6 +182,20 @@ class _Run:
         for where, ref in refs:
             if ref not in known:
                 self.error(rel, where, "unknown-entry", f"unknown entry {ref!r}")
+
+    def questions(self) -> int:
+        if not (self.root / "questions.toml").is_file():
+            return 0
+        found = (self.toml("questions.toml") or {}).get("questions", [])
+        for i, question in enumerate(found):
+            where = f"/questions/{i}"
+            if "ask_if" in question:
+                self.expression("questions.toml", f"{where}/ask_if", question["ask_if"])
+            for j, option in enumerate(question.get("options", [])):
+                if "recommend_if" in option:
+                    self.expression("questions.toml", f"{where}/options/{j}/recommend_if",
+                                    option["recommend_if"])
+        return len(found)
 
     def entries(self, capabilities: dict[str, bool]) -> int:
         tools = self.root / "tools"
@@ -198,8 +232,9 @@ def validate(path: str | Path, today: date | None = None) -> Report:
     capabilities = run.capabilities()
     rules = run.rules(capabilities)
     entries = run.entries(capabilities)
+    questions = run.questions()
     order = lambda e: (e.file, e.location, e.message)  # noqa: E731
     return Report(root=root.resolve().name, errors=sorted(run.errors, key=order),
                   warnings=sorted(run.warnings, key=order),
                   counts={"capabilities": len(capabilities), "entries": entries, "opaque": 0,
-                          "questions": 0, "rules": rules})
+                          "questions": questions, "rules": rules})

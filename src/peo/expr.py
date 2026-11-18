@@ -44,11 +44,11 @@ def _tokens(text: str) -> list[tuple[str, str, int]]:
 
 
 class _Parser:
-    def __init__(self, text: str):
+    def __init__(self, text: str, it: bool = False):
         self.tokens = _tokens(text)
         self.i = 0
         self.depth = 0
-        self.scopes: list[bool] = [False]       # True while inside any(path, expr): `it` is bound
+        self.scopes: list[bool] = [it]   # True while `it` is bound: in any(...) or a for_each rule
 
     @property
     def tok(self) -> tuple[str, str, int]:
@@ -195,10 +195,13 @@ class _Parser:
                 return ("path", root, tuple(segments))
 
 
-def parse(text: str) -> tuple:
-    """Return the tree of `text`, or raise ExprError. Nesting is capped, so no RecursionError."""
+def parse(text: str, *, it: bool = False) -> tuple:
+    """Return the tree of `text`, or raise ExprError. Nesting is capped, so no RecursionError.
+
+    `it` allows the element name at the top level: the `when` of a rule that has `for_each`.
+    """
     try:
-        return _Parser(text).parse()
+        return _Parser(text, it).parse()
     except RecursionError:                      # pragma: no cover - MAX_DEPTH stops it first
         raise ExprError("expression nested too deeply", 0) from None
 

@@ -57,6 +57,12 @@ def test_a2_3_invalid_expressions_are_rejected_with_a_position(text):
     assert isinstance(info.value.position, int) and 0 <= info.value.position <= len(text)
 
 
+def test_a2_3_it_is_allowed_at_the_top_level_when_the_caller_says_so():
+    assert reads(parse("'php' in it.languages", it=True)) == frozenset()
+    with pytest.raises(ExprError):
+        parse("'php' in it.languages")
+
+
 def test_a2_3_a_pattern_of_exactly_200_characters_is_accepted():
     assert parse("profile.x matches '" + "a" * 200 + "'") is not None
 
