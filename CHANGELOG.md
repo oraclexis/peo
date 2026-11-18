@@ -17,4 +17,7 @@
 - Profile schema: `present_tools[].via` is restricted to `dev-dependency` and `file`, the only values Discovery emits.
 - Discovery fixes: a dump that is a broken symbolic link no longer makes `peo discover` fail (it is ignored); `flask` is now listed as a server stack in spec 12, as the code already did.
 - Known debt: `Schema.from_dict` keeps a deep copy of the schema; unit tests for the Go, Rust, JVM, Ruby and `requirements*.txt` manifest readers.
+- Discovery: `secret_files` excludes every `.env.*` name ending in `.example`, `.sample`, `.template` or `.dist` (spec 12 §7 bis), not only the four exact names.
+- Conformance table: Claude Code 2.1.326 added to `versions_tested` (45 cases, same verdicts). The `star-segment` form stays `untested-form`: on 2.1.326 `Read(./*.env)` also denies `backend/.env` (spec 14 §3.5).
+- Milestone A′ harness: the leak check ignores a value found only inside a path of the audited repository.
 - CI/CD: `ci`, `release` (GitHub release, PyPI trusted publishing behind a switch), `codeql`, Dependabot; `tools/release.py` for version consistency and release notes.

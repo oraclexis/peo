@@ -20,7 +20,7 @@ MAX_DEPTH = 3
 MAX_BYTES = 1024 * 1024
 MAX_NAMES = 200
 NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-ENV_EXAMPLES = {".env.example", ".env.sample", ".env.template", ".env.dist"}
+ENV_EXAMPLE_SUFFIXES = (".example", ".sample", ".template", ".dist")
 SECRET_PATTERNS = ("*.pem", "*.key", "*.p12", "*.pfx", "credentials*.json", "id_rsa*",
                    "id_ed25519*")
 DUMP_PATTERNS = ("*.sql", "*.dump", "*.bak", "*.sqlite", "*.sqlite3", "*.db")
@@ -70,10 +70,8 @@ def link_target(root: Path, real_root: str, rel: str) -> str | None | bool:
 
 def is_secret_file(rel: str) -> bool:
     name = PurePosixPath(rel).name
-    if name in ENV_EXAMPLES:
-        return False
     if name == ".env" or name.startswith(".env."):
-        return True
+        return not name.endswith(ENV_EXAMPLE_SUFFIXES)
     return any(fnmatch.fnmatchcase(name, p) for p in SECRET_PATTERNS)
 
 
