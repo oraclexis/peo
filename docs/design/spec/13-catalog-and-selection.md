@@ -67,6 +67,7 @@ list    := "[" (operand ("," operand)*)? "]"
 
 Règles :
 
+- `it` n'existe que dans le second argument de `any(...)` et, au niveau racine, dans le `when` d'une règle qui a `for_each` (§6), où il nomme l'élément courant (précisé le 2026-11-20, R4a). Ailleurs, c'est une erreur d'analyse.
 - Un chemin absent vaut `null`. `null` comparé par `>`, `<`… est faux, jamais une erreur.
 - `matches` : expression régulière Python, ancrée, compilée une fois, 200 caractères au plus.
 - Les champs `confidence` sont accessibles : `profile.signals.auth.confidence == 'fact'`.
