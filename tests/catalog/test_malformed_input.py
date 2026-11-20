@@ -82,3 +82,11 @@ def test_a_symbolic_questions_file_is_ignored(make_catalog, tmp_path):
     os.symlink(outside, root / "questions.toml")
     report = validate(root, today=TODAY)
     assert report.errors == [] and report.counts["questions"] == 0
+
+
+@pytest.mark.parametrize("text", ["a = " + "[" * 200000 + "]" * 200000 + "\n",
+                                  "x = " + "{a=" * 100000 + "1" + "}" * 100000 + "\n"])
+def test_a_deeply_nested_toml_file_is_an_error_not_a_crash(make_catalog, text):
+    report = validate(make_catalog(extra={"tools/cli/deep.toml": text}), today=TODAY)
+    assert [e.file for e in report.errors] == ["tools/cli/deep.toml"]
+    assert "nested" in report.errors[0].message

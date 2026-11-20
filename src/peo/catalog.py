@@ -100,10 +100,13 @@ class _Run:
             return None
         try:
             doc = tomllib.loads(text)
+            decoded = sorted(_bidi_in(doc))     # a \u202E escape only exists after decoding
         except tomllib.TOMLDecodeError as exc:
             self.error(rel, "", "toml", f"invalid TOML: {exc}")
             return None
-        decoded = sorted(_bidi_in(doc))     # a \u202E escape only exists after decoding
+        except RecursionError:      # a file under 1 MiB can still nest thousands of levels
+            self.error(rel, "", "toml", "invalid TOML: nested too deeply")
+            return None
         if decoded:
             names = ", ".join(f"U+{cp:04X}" for cp in decoded)
             self.error(rel, "", "bidi", f"contains bidirectional control characters ({names})")
@@ -253,7 +256,10 @@ class _Run:
                 doc = self.toml(rel)
                 if doc is not None:
                     count += 1
-                    self.walk(rel, "", doc)
+                    try:
+                        self.walk(rel, "", doc)
+                    except RecursionError:      # nested deeper than the interpreter allows here
+                        self.error(rel, "", "toml", "invalid TOML: nested too deeply")
         return count
 
     def walk(self, rel: str, where: str, node: Any) -> None:
