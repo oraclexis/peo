@@ -155,8 +155,11 @@ class _Run:
             elif cid in found:
                 self.error("capabilities.toml", where, "duplicate",
                            f"duplicate capability {cid!r}")
+            elif not isinstance(cap.get("exclusive", False), bool):
+                self.error("capabilities.toml", where, "capability",
+                           f"capability {cid!r}: exclusive must be true or false")
             else:
-                found[cid] = bool(cap.get("exclusive", False))
+                found[cid] = cap.get("exclusive", False)
         return found
 
     def rules(self, capabilities: dict[str, bool]) -> int:
@@ -325,7 +328,7 @@ class _Run:
         loaded: list[tuple[str, dict]] = []     # entries that passed the schema
         count = 0
         known: set[str] = set()
-        declared: set[str] = set()
+        declared: dict[str, list[str]] = {}     # reference -> files that declare it
         for kind_dir in (p for p in self.files(tools) if p.is_dir()):
             for path in (p for p in self.files(kind_dir) if p.is_file() and p.suffix == ".toml"):
                 rel = path.relative_to(self.root).as_posix()
@@ -336,10 +339,11 @@ class _Run:
                 count += 1
                 if self.entry(rel, kind_dir.name, path.stem, doc, capabilities):
                     loaded.append((rel, doc))
-                key = f"{doc.get('kind')}:{doc.get('id')}"
-                if key in declared:
+                declared.setdefault(f"{doc.get('kind')}:{doc.get('id')}", []).append(rel)
+        for key, files in declared.items():
+            if len(files) > 1:      # reject every file of the pair, not only the later one
+                for rel in files:
                     self.error(rel, "/id", "duplicate", f"duplicate entry {key!r}")
-                declared.add(key)
         for rel, doc in loaded:
             self.references(rel, doc, known)
         return count

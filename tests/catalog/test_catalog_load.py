@@ -132,3 +132,17 @@ def test_counts_and_messages_hold_no_absolute_path(make_catalog):
     report = validate(root, today=TODAY)
     assert report.counts == {"capabilities": 2, "entries": 1, "opaque": 0, "questions": 0, "rules": 1}
     assert not any(str(root.parent) in m for m in messages(report))
+
+
+def test_a_duplicate_entry_rejects_both_files(make_catalog):
+    twin = demo_tool().replace('"demo"', '"a"')
+    report = validate(make_catalog(tools={"a": twin, "b": twin}), today=TODAY)
+    flagged = {e.file for e in report.errors if "duplicate" in e.message}
+    assert flagged == {"tools/cli/a.toml", "tools/cli/b.toml"}
+
+
+def test_a_capability_exclusive_flag_must_be_a_boolean(make_catalog):
+    caps = CAPABILITIES + '\n[[capabilities]]\nid = "a.b"\nexclusive = "yes"\n'
+    report = validate(make_catalog(capabilities=caps), today=TODAY)
+    assert [e.file for e in report.errors] == ["capabilities.toml"]
+    assert "exclusive" in report.errors[0].message
