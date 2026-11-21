@@ -1,0 +1,39 @@
+id          = "gitleaks"
+kind        = "ci-check"
+name        = "Gitleaks"
+description = "Secret scanning in CI with masked values"
+status      = "conditional"
+license     = "TBD"
+source      = { repo = "TBD", checked = "2026-11-18" }
+
+[versions]
+tested = "TBD"
+
+[capabilities]
+provides = ["secrets.scan.ci"]
+
+[surface]
+hooks     = []
+network   = "install-only"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "ci"
+package = "gitleaks"
+
+[uninstall]
+config = "remove-ci-block"
+
+[canary]
+command = ["gitleaks", "dir", "{dir}"]
+detected_exit = 1
+
+[notes]
+risks     = ["Canary exit code to verify on the pinned version"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

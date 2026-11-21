@@ -1,0 +1,36 @@
+id          = "playwright"
+kind        = "cli"
+name        = "Playwright"
+description = "Browser automation for end-to-end checks"
+status      = "reuse"
+license     = "Apache-2.0"
+source      = { repo = "https://github.com/microsoft/playwright", checked = "2026-11-11", commit = "3b43822" }
+
+[versions]
+tested = "TBD"
+
+[capabilities]
+provides = ["browser.e2e"]
+
+[selection]
+reuse_only = true
+
+[surface]
+hooks     = []
+network   = "install-only"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "none"
+
+[uninstall]
+
+[notes]
+risks     = ["Detected only: the MCP launches with @latest, prefer the CLI and skills"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

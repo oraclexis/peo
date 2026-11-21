@@ -1,0 +1,38 @@
+id          = "spec-kit"
+kind        = "framework"
+name        = "GitHub Spec Kit"
+description = "Specification process: spec, plan, tasks, constitution"
+status      = "core"
+license     = "MIT"
+source      = { repo = "https://github.com/github/spec-kit", checked = "2026-11-11", commit = "f29319d" }
+
+[versions]
+tested = "1.4.0"
+
+[capabilities]
+provides = ["spec.authoring", "plan.tasks"]
+
+[relations]
+requires = ["cli:specify-cli"]
+
+[surface]
+hooks     = []
+network   = "install-only"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "specify"
+cli = "specify init"
+
+[uninstall]
+config = "remove-spec-kit-files"
+
+[notes]
+risks     = ["Releases almost daily; hook extensions are applied by prompt, not enforced"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

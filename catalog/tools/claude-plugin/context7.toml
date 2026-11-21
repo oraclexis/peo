@@ -1,0 +1,36 @@
+id          = "context7"
+kind        = "claude-plugin"
+name        = "Context7"
+description = "Up-to-date library documentation (hosted service)"
+status      = "optional"
+license     = "TBD"
+source      = { repo = "TBD", checked = "2026-11-18" }
+
+[versions]
+tested = "TBD"
+
+[capabilities]
+provides = ["docs.libraries"]
+
+[surface]
+hooks     = []
+network   = "runtime"
+data_path = "reads-sensitive"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "claude"
+plugin = "context7"
+marketplace = "TBD"
+
+[uninstall]
+config = "remove-enabled-plugin"
+
+[notes]
+risks     = ["Hosted service: queries leave the machine"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

@@ -1,0 +1,97 @@
+# Capability vocabulary (spec 13, section 2).
+
+[[capabilities]]
+id = "clarify.interview"
+exclusive = true
+
+[[capabilities]]
+id = "spec.authoring"
+exclusive = true
+
+[[capabilities]]
+id = "spec.review.independent"
+exclusive = false
+
+[[capabilities]]
+id = "plan.tasks"
+exclusive = true
+
+[[capabilities]]
+id = "tdd.discipline"
+exclusive = true
+
+[[capabilities]]
+id = "review.code"
+exclusive = true
+
+[[capabilities]]
+id = "debug.diagnosis"
+exclusive = true
+
+[[capabilities]]
+id = "drift.docs"
+exclusive = false
+
+[[capabilities]]
+id = "process.gates"
+exclusive = true
+
+[[capabilities]]
+id = "nav.lsp.typescript"
+exclusive = false
+
+[[capabilities]]
+id = "nav.lsp.php"
+exclusive = false
+
+[[capabilities]]
+id = "nav.lsp.python"
+exclusive = false
+
+[[capabilities]]
+id = "nav.symbols"
+exclusive = false
+
+[[capabilities]]
+id = "nav.graph"
+exclusive = false
+
+[[capabilities]]
+id = "review.security.sast"
+exclusive = false
+
+[[capabilities]]
+id = "review.security.guidance"
+exclusive = true
+
+[[capabilities]]
+id = "browser.e2e"
+exclusive = true
+
+[[capabilities]]
+id = "ui.design"
+exclusive = true
+
+[[capabilities]]
+id = "docs.libraries"
+exclusive = false
+
+[[capabilities]]
+id = "knowledge.lessons"
+exclusive = true
+
+[[capabilities]]
+id = "re.artifact"
+exclusive = false
+
+[[capabilities]]
+id = "exposure.native"
+exclusive = false
+
+[[capabilities]]
+id = "secrets.scan.ci"
+exclusive = false
+
+[[capabilities]]
+id = "privacy.masking"
+exclusive = true

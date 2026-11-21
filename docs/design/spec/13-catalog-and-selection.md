@@ -15,7 +15,7 @@ peo-catalog/
 
 Versionné par tags `vAAAA.MM[.n]`. Une fiche modifiée par un commit doit mettre à jour `notes.evaluated`. La CI du catalogue lance `peo catalog validate`.
 
-**Lecture d'un catalogue** (précisé le 2026-11-18, R4a) : chaque fichier est lu en octets, 1 Mio au plus, en UTF-8 strict ; un lien symbolique est ignoré ; un caractère de contrôle bidirectionnel Unicode (U+061C, U+200E, U+200F, U+202A à U+202E, U+2066 à U+2069 : la propriété `Bidi_Control`) rejette le fichier. `backbones/*.toml` et `recipes/*.toml` n'ont pas de format défini avant R6 : ils sont lus comme des tables dont seule la syntaxe est vérifiée, et toute valeur chaîne (ou liste de chaînes) d'une clé nommée `when`, `ask_if`, `recommend_if` ou `for_each`, à toute profondeur, est une expression analysée comme les autres et compte parmi les consommateurs de la règle S-5 (section 7.1). Un `review_by` antérieur à la date du jour est un avertissement, jamais une erreur.
+**Lecture d'un catalogue** (précisé le 2026-11-18, R4a) : chaque fichier est lu en octets, 1 Mio au plus, en UTF-8 strict ; un lien symbolique est ignoré, avec l'avertissement `W_SYMLINK_IGNORED` (précisé le 2026-11-21) ; un caractère de contrôle bidirectionnel Unicode (U+061C, U+200E, U+200F, U+202A à U+202E, U+2066 à U+2069 : la propriété `Bidi_Control`) rejette le fichier. `backbones/*.toml` et `recipes/*.toml` n'ont pas de format défini avant R6 : ils sont lus comme des tables dont seule la syntaxe est vérifiée, et toute valeur chaîne (ou liste de chaînes) d'une clé nommée `when`, `ask_if`, `recommend_if` ou `for_each`, à toute profondeur, est une expression analysée comme les autres et compte parmi les consommateurs de la règle S-5 (section 7.1). Un `review_by` antérieur à la date du jour est un avertissement, jamais une erreur.
 
 ## 2. Vocabulaire de capacités du MVP
 
@@ -67,6 +67,7 @@ list    := "[" (operand ("," operand)*)? "]"
 
 Règles :
 
+- `it` n'existe que dans le second argument de `any(...)` et, au niveau racine, dans le `when` d'une règle qui a `for_each` (§6), où il nomme l'élément courant (précisé le 2026-11-20, R4a). Ailleurs, c'est une erreur d'analyse.
 - Un chemin absent vaut `null`. `null` comparé par `>`, `<`… est faux, jamais une erreur.
 - `matches` : expression régulière Python, ancrée, compilée une fois, 200 caractères au plus.
 - Les champs `confidence` sont accessibles : `profile.signals.auth.confidence == 'fact'`.

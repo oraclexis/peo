@@ -1,0 +1,37 @@
+id          = "native-controls"
+kind        = "peo"
+name        = "PEO native controls"
+description = "permissions.deny rules for secret files, dumps and logs"
+status      = "core"
+license     = "TBD"
+source      = { repo = "https://github.com/oraclexis/peo", checked = "2026-11-18" }
+
+[versions]
+tested = "TBD"
+
+[capabilities]
+provides = ["exposure.native"]
+
+[selection]
+when = { any = ["profile.sensitive.secret_files != []", "profile.sensitive.data_dumps != []", "profile.sensitive.log_dirs != []"] }
+
+[surface]
+hooks     = []
+network   = "none"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "files"
+
+[uninstall]
+config = "remove-permission-rules"
+
+[notes]
+risks     = ["Sandbox is recommended only, never installed (S-9)"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"
