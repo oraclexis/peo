@@ -90,3 +90,33 @@ def test_a_deeply_nested_toml_file_is_an_error_not_a_crash(make_catalog, text):
     report = validate(make_catalog(extra={"tools/cli/deep.toml": text}), today=TODAY)
     assert [e.file for e in report.errors] == ["tools/cli/deep.toml"]
     assert "nested" in report.errors[0].message
+
+
+def test_an_unreadable_capabilities_file_gives_one_error_not_a_cascade(make_catalog):
+    report = validate(make_catalog(capabilities="id = \n"), today=TODAY)
+    assert [e.file for e in report.errors] == ["capabilities.toml"]
+
+
+def test_a_question_does_not_satisfy_s5_by_reading_its_own_feed(make_catalog):
+    text = ('[[questions]]\nid = "q.x"\nround = 1\nkind = "confirm"\ntext = "t"\n'
+            'feeds = ["x.y"]\nask_if = "answers[\'x.y\'] == true"\n')
+    report = validate(make_catalog(extra={"questions.toml": text}), today=TODAY)
+    assert any(e.code == "unconsumed" for e in report.errors)
+
+
+def test_a_question_option_does_not_satisfy_s5_either(make_catalog):
+    text = ('[[questions]]\nid = "q.x"\nround = 1\nkind = "choice"\ntext = "t"\nfeeds = ["x.y"]\n'
+            '[[questions.options]]\nvalue = "a"\nlabel = "A"\nrecommend_if = "answers[\'x.y\'] == 1"\n')
+    report = validate(make_catalog(extra={"questions.toml": text}), today=TODAY)
+    assert any(e.code == "unconsumed" for e in report.errors)
+
+
+@pytest.mark.parametrize("where", ["tools/cli/linked.toml", "recipes/linked.toml", "questions.toml"])
+def test_an_ignored_symbolic_link_is_a_warning(make_catalog, tmp_path, where):
+    root = make_catalog(extra={"recipes/ok.toml": "a = 1\n"})
+    outside = tmp_path / "outside.toml"
+    outside.write_text("a = 1\n")
+    os.symlink(outside, root / where)
+    report = validate(root, today=TODAY)
+    assert report.errors == []
+    assert [(w.code, w.file) for w in report.warnings] == [("W_SYMLINK_IGNORED", where)]

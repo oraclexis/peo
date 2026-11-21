@@ -75,6 +75,7 @@ class _Run:
         self.root, self.today = root, today
         self.errors: list[CatalogError] = []
         self.warnings: list[CatalogError] = []
+        self.capabilities_known = True      # False when capabilities.toml could not be read
         self.answers: set[str] = set()   # answer ids read by any expression (rule S-5)
 
     def error(self, file: str, location: str, code: str, message: str) -> None:
@@ -122,7 +123,8 @@ class _Run:
             return []
         return value
 
-    def expression(self, rel: str, location: str, text: Any, it: bool = False) -> None:
+    def expression(self, rel: str, location: str, text: Any, it: bool = False,
+                   counts: bool = True) -> None:
         """Parse one `when` expression; the paths it reads are kept for rule S-5."""
         if not isinstance(text, str):
             self.error(rel, location, "expression", "an expression must be a string")
@@ -130,14 +132,24 @@ class _Run:
         try:
             for path in expr.reads(expr.parse(text, it=it)):
                 m = ANSWER_READ.match(path)
-                if m:
+                if m and counts:
                     self.answers.add(m.group(1) or m.group(2))
         except expr.ExprError as exc:
             self.error(rel, location, "expression", f"invalid expression {text[:200]!r}: {exc}")
 
     def files(self, folder: Path) -> list[Path]:
-        """Regular files and folders below `folder`, sorted; symbolic links are ignored."""
-        return sorted(p for p in folder.iterdir() if not p.is_symlink())
+        """Files and folders below `folder`, sorted; a symbolic link is ignored with a warning."""
+        found = []
+        for p in folder.iterdir():
+            if p.is_symlink():
+                self.ignored_link(p.relative_to(self.root).as_posix())
+            else:
+                found.append(p)
+        return sorted(found)
+
+    def ignored_link(self, rel: str) -> None:
+        self.warnings.append(CatalogError(rel, "", "W_SYMLINK_IGNORED",
+                                          "symbolic link ignored"))
 
     def table_file(self, rel: str) -> dict | None:
         if not (self.root / rel).is_file() or (self.root / rel).is_symlink():
@@ -147,6 +159,7 @@ class _Run:
 
     def capabilities(self) -> dict[str, bool]:
         doc = self.table_file("capabilities.toml")
+        self.capabilities_known = doc is not None
         found: dict[str, bool] = {}
         caps = self.tables("capabilities.toml", "/capabilities", (doc or {}).get("capabilities"))
         for i, cap in enumerate(caps):
@@ -186,7 +199,7 @@ class _Run:
                 self.error("requirements.toml", where, "rule", f"rule {rid!r} has no require table")
                 continue
             cap = need.get("capability")
-            if not isinstance(cap, str) or cap not in capabilities:
+            if self.capabilities_known and (not isinstance(cap, str) or cap not in capabilities):
                 self.error("requirements.toml", where, "unknown-capability",
                            f"unknown capability {need.get('capability')!r}")
             if not isinstance(need.get("strength"), str) or need["strength"] not in STRENGTHS:
@@ -217,7 +230,7 @@ class _Run:
         if doc["id"] != name:
             self.error(rel, "/id", "path", f"id {doc['id']!r} does not match file name {name!r}")
         for cap in doc["capabilities"].get("provides", []):
-            if cap not in capabilities:
+            if self.capabilities_known and cap not in capabilities:
                 self.error(rel, "/capabilities/provides", "unknown-capability",
                            f"unknown capability {cap!r}")
         when = doc.get("selection", {}).get("when", {})
@@ -249,7 +262,10 @@ class _Run:
         count = 0
         for folder in ("backbones", "recipes"):
             base = self.root / folder
-            if not base.is_dir() or base.is_symlink():
+            if base.is_symlink():
+                self.ignored_link(folder)
+                continue
+            if not base.is_dir():
                 continue
             for path in (p for p in self.files(base) if p.is_file() and p.suffix == ".toml"):
                 rel = path.relative_to(self.root).as_posix()
@@ -297,7 +313,10 @@ class _Run:
 
     def questions(self) -> int:
         path = self.root / "questions.toml"
-        if not path.is_file() or path.is_symlink():
+        if path.is_symlink():
+            self.ignored_link("questions.toml")
+            return 0
+        if not path.is_file():
             return 0
         doc = self.toml("questions.toml") or {}
         found = self.tables("questions.toml", "/questions", doc.get("questions"))
@@ -307,11 +326,12 @@ class _Run:
             options = self.tables("questions.toml", f"{where}/options", question.get("options"))
             self.question_shape(where, question, options, seen)
             if "ask_if" in question:
-                self.expression("questions.toml", f"{where}/ask_if", question["ask_if"])
+                self.expression("questions.toml", f"{where}/ask_if", question["ask_if"],
+                                counts=False)
             for j, option in enumerate(options):
                 if "recommend_if" in option:
                     self.expression("questions.toml", f"{where}/options/{j}/recommend_if",
-                                    option["recommend_if"])
+                                    option["recommend_if"], counts=False)
         for i, question in enumerate(found):          # S-5, once every expression has been read
             feeds = question.get("feeds")
             qid = question.get("id")
