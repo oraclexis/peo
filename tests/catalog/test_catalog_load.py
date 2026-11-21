@@ -149,7 +149,8 @@ def test_a_capability_exclusive_flag_must_be_a_boolean(make_catalog):
 
 
 def test_a_toml_under_an_unknown_kind_folder_is_rejected_and_other_files_are_ignored(make_catalog):
-    root = make_catalog(extra={"tools/weird/demo.toml": demo_tool(), "tools/cli/notes.txt": "hi\n"})
+    other = demo_tool().replace('"demo"', '"other"')
+    root = make_catalog(extra={"tools/weird/other.toml": other, "tools/cli/notes.txt": "hi\n"})
     report = validate(root, today=TODAY)
-    assert [e.file for e in report.errors] == ["tools/weird/demo.toml"]
+    assert {e.file for e in report.errors} == {"tools/weird/other.toml"}
     assert any("kind" in e.message for e in report.errors)
