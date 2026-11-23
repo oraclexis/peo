@@ -40,7 +40,7 @@ Un avertissement porte `code`, `message` et ce qu'il concerne (précisé le 2026
 | 3 | `status --ci` : au moins un constat de sévérité `error`, y compris un constat d'exposition `X-*` avec `--exposure` |
 | 4 | Accord requis ou plan périmé : `apply` sans `--expect-plan` correspondant, ou état du dépôt changé depuis le plan |
 | 5 | Prérequis non satisfait (ex. `claude` absent pour un adaptateur `claude-plugin`) |
-| 6 | Sélection impossible : exigence dure non couverte, ou deux socles en conflit sans arbitrage |
+| 6 | Sélection impossible : exigence dure non couverte (`ok = false`), ou deux socles en conflit sans arbitrage (`E_BACKBONE_CONFLICT`) |
 
 Les commandes de hook (`gate`, `context`) suivent le protocole des hooks (section 4), pas ce tableau.
 
@@ -52,7 +52,7 @@ Les commandes de hook (`gate`, `context`) suivent le protocole des hooks (sectio
 |---|---|---|---|
 | `peo discover [--write]` | Calcule le profil (document 12) | `.peo/profile.json` si `--write` | `profile` |
 | `peo questions [--answers -]` | Questions encore nécessaires, compte tenu du profil et des réponses déjà données | rien | `{ "round": n, "questions": [...] }` |
-| `peo select [--answers -]` | Sélection justifiée (document 13) | rien | `selection` |
+| `peo select [--profile FILE] [--declared FILE] [--answers -]` | Sélection justifiée (document 13) ; `--profile` vaut par défaut `<projet>/.peo/profile.json` | rien | `selection` |
 | `peo plan [--answers -]` | Plan exact et son empreinte (document 14) | rien | `plan` |
 | `peo apply --answers - --expect-plan SHA [--autonomy guided\|semi] [--only GROUP]` | Recalcule le plan, vérifie l'empreinte, applique | tout ce que le plan liste | `{ "applied": [...], "skipped": [...], "manual": [...] }` |
 | `peo apply --resume` | Reprend après des étapes manuelles (spike S1) : vérifie, puis termine lock, journal et doc | lock, journal, doc | idem |
@@ -98,6 +98,8 @@ sequenceDiagram
 | `peo tools update --plan [REF]` | Différences de version et de **surface** (hooks, outils MCP, réseau) entre le lock et la version testée du catalogue. N'applique rien au MVP |
 | `peo catalog validate [PATH]` | Valide un catalogue (schéma des fiches, expressions, références, Unicode, dates, règle S-5 ; document 13, sections 1 et 7.1). Code 1 si une erreur de catalogue | rien | `{ "counts": {...}, "root": "…" }` |
 | `peo catalog show REF` | Fiche résolue |
+
+`peo select` (précisé le 2026-11-23, R4b) : lit `--profile`, les réponses (`--answers -`, un objet JSON sur l'entrée standard, absent = `{}`) et `--catalog` (local seulement) ; `data` est la sélection de 13 §8.4. `--declared FILE` : déclarations suivies au format de `inventory.declared` ; absent = aucune (le câblage de l'Inventory est R5). Erreurs : catalogue invalide (`E_CATALOG_INVALID`) et trop de candidats (`E_TOO_MANY_CANDIDATES`, défaut de catalogue, avec le nombre) donnent le code 1 ; profil absent, réponses illisibles, `--catalog` distant et `E_BACKBONE_UNKNOWN` le code 2 ; `E_BACKBONE_CONFLICT` et `E_REQUIREMENT_UNCOVERED` (`ok = false`, `data` garde la sélection) le code 6. La commande ne lit que ses entrées et n'écrit rien ; même entrée, même sortie.
 
 `peo catalog validate` (précisé le 2026-11-18, R4a) : `PATH` vaut par défaut `--catalog` si c'est un chemin local, sinon `catalog/` du dossier courant ; un `--catalog` distant (`URL@ref`) donne le code 2, le réseau étant interdit hors adaptateurs (NF5). `data.counts` donne `capabilities`, `entries`, `opaque`, `questions` et `rules` ; `data.root` le nom du dossier, jamais un chemin absolu. Une erreur de catalogue est une entrée de `errors` de code `E_CATALOG_INVALID` (code de sortie 1) ; un dossier absent donne `E_CATALOG_NOT_FOUND` (code 2) ; `--catalog URL@ref` donne `E_USAGE` (code 2, précisé le 2026-11-20). Une fiche dont `review_by` est antérieur à la date du jour donne un avertissement `W_REVIEW_EXPIRED` et ne change pas le code de sortie ; un lien symbolique ignoré donne `W_SYMLINK_IGNORED` (précisé le 2026-11-21), même effet. `errors` et `warnings` sont triés par fichier, emplacement puis message ; la sortie ne contient ni chemin absolu, ni valeur de variable d'environnement.
 | `peo render-doc` | Régénère `.peo/README.md` en préservant la section « Notes » |

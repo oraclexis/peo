@@ -69,7 +69,9 @@ Règles :
 
 - `it` n'existe que dans le second argument de `any(...)` et, au niveau racine, dans le `when` d'une règle qui a `for_each` (§6), où il nomme l'élément courant (précisé le 2026-11-20, R4a). Ailleurs, c'est une erreur d'analyse.
 - Un chemin absent vaut `null`. `null` comparé par `>`, `<`… est faux, jamais une erreur.
-- `matches` : expression régulière Python, ancrée, compilée une fois, 200 caractères au plus.
+- `matches` : expression régulière Python, 200 caractères au plus, compilée une fois, appliquée par `fullmatch` (ancrée aux deux bouts) à une chaîne de 512 caractères au plus (au-delà, la comparaison est fausse). Pour éviter le retour arrière exponentiel d'un motif venu d'un catalogue (précisé le 2026-11-23, R4b), le motif est refusé à l'analyse s'il contient une rétro-référence ou une assertion (avant ou arrière), une répétition large (`*`, `+`, `{n,}` ou plus de 8 occurrences) qui contient une autre répétition de plus d'une occurrence ou une alternative `|`, ou plus de deux répétitions larges.
+- `selection` (précisé le 2026-11-23, R4b) : seuls `selection.selected` (liste des références retenues) et `selection.covered` (liste des capacités couvertes) sont définis ; tout autre chemin de cette racine vaut `null`.
+- Une comparaison entre types différents est fausse (sauf `==` et `!=`, qui comparent les valeurs) ; `in` teste l'appartenance à une liste ou à une chaîne, `contains` est son inverse ; `any` sur une valeur qui n'est pas une liste est faux. L'évaluation ne lève jamais d'erreur.
 - Les champs `confidence` sont accessibles : `profile.signals.auth.confidence == 'fact'`.
 - Une expression invalide rend la **fiche invalide** au chargement (`catalog validate`), jamais à l'exécution.
 
@@ -156,11 +158,11 @@ Les versions testées et les sources sont celles du document 03 ; chaque fiche p
 
 ```toml
 [[rules]]
-id = "lsp-per-language"
+id = "lsp-php"                      # un identifiant par langage (précisé le 2026-11-23, R4b)
 for_each = "profile.components"
 when = "'php' in it.languages"
 require = { capability = "nav.lsp.php", strength = "soft" }
-# règles identiques pour typescript et python
+# `lsp-typescript` et `lsp-python` : règles identiques
 
 [[rules]]
 id = "sast-when-exposed"
@@ -259,17 +261,32 @@ Règles de validation (`catalog validate`) :
 1. socle    = backbone de peo.toml, sinon socle par défaut du catalogue
               si un socle alternatif figure dans les déclarations suivies du projet
               (H27) : erreur E_BACKBONE_CONFLICT (code 6), sauf réponse à q.backbone_conflict ;
-              actif seulement dans la vue observée : veto du Planner (spec 14 §2.4)
+              actif seulement dans la vue observée : veto du Planner (spec 14 §2.4).
+              La réponse à q.backbone_conflict porte l'identifiant du socle retenu. En R4b
+              seul le socle par défaut (`speckit-egm-mattpocock` : spec-kit, egm,
+              mattpocock-skills) est défini : toute autre valeur, ou un `backbone.id` inconnu,
+              donne E_BACKBONE_UNKNOWN (code 2). Les socles alternatifs sont R6
 2. requis   = capacités du socle (dures) ∪ process.gates (dure) ∪ règles de requirements.toml
 3. présents = present_tools (Discovery) + déclarations suivies du projet (declared(),
-              spec 14 §3.2 ; H27) reconnus par [detect] (E6) → capacités couvertes à coût 0
+              spec 14 §3.2 ; H27) reconnus par [detect] (E6) → capacités couvertes à coût 0.
+              Un élément déclaré est reconnu quand sa valeur est égale (chaîne exacte) à un
+              jeton de `detect.plugin` d'une fiche, ou son nom avant `@` ; un serveur MCP
+              déclaré est reconnu quand `identify` lui a donné la référence d'une fiche ;
+              s'il correspond à une fiche `backbone-alt`, ce n'est pas un outil présent mais
+              un socle alternatif (étape 1)
 4. candidats = fiches t telles que
                t.status ∉ {rejected, watch, backbone-alt}
                t fournit au moins une capacité requise et non couverte par « présents »
                when(t) vrai
               chaque candidat écarté reçoit un code (8.3)
 5. prérequis : pour chaque candidat, chaque prérequis bloquant non satisfait
-               sans `fix` → écarté (PREREQ_UNMET) ; avec `fix` → action ajoutée au plan
+               sans `fix` → écarté (PREREQ_UNMET) ; avec `fix` → action ajoutée au plan.
+               Le statut se calcule sur le profil seul (le Selector ne lit jamais la machine) :
+               `bin:<nom>` est `met` si un outil présent a ce binaire dans `detect.bin` ;
+               `path:<chemin>` (`{component:<id>}` résolu par `profile.components`) est `met`
+               si le profil le liste ; `runtime:host` est `met` si le composant visé a
+               `runtime.value == "host"` ; tout autre cas est `unmet`. Action : `fix` si la
+               fiche en a un, sinon `hint`, sinon `none`
 6. recherche exhaustive (8.2) sur les candidats restants
 7. justification et capacités non couvertes
 ```
@@ -283,7 +300,7 @@ coût(t) = 1
         + ceil(t.cost.context_static_tokens / 500)
         + 3 × len(t.surface.hooks)
         + 2 × (t.surface.network == "runtime")
-        + 1 par prérequis avec `fix`
+        + 1 par prérequis non satisfait avec `fix`
 ```
 
 On cherche S ⊆ candidats qui minimise, **dans cet ordre lexicographique** :
@@ -296,7 +313,9 @@ On cherche S ⊆ candidats qui minimise, **dans cet ordre lexicographique** :
 
 Sous contraintes : pas de paire en `conflicts` ; pour chaque capacité exclusive, au plus un fournisseur dans S ∪ présents ; `requires` de chaque outil inclus dans S ∪ présents.
 
-Algorithme : séparation et évaluation, en essayant d'abord les outils qui couvrent le plus d'exigences non couvertes. Au-delà de **24 candidats**, erreur `E_TOO_MANY_CANDIDATES` : c'est un défaut de catalogue (conditions trop larges), pas un cas à optimiser.
+Algorithme : séparation et évaluation, en essayant d'abord les outils qui couvrent le plus d'exigences non couvertes (nombre décroissant, puis identifiant). On abandonne une branche dont le nombre minimal atteignable d'exigences dures non couvertes dépasse celui du meilleur ensemble trouvé (précisé le 2026-11-23, R4b). Au-delà de **24 candidats**, erreur `E_TOO_MANY_CANDIDATES` : c'est un défaut de catalogue (conditions trop larges), pas un cas à optimiser.
+
+Le coût est un entier. Un outil sélectionné entraîne ses `requires` et les `fix` de ses prérequis bloquants non satisfaits ; ils entrent dans S (couverture vide, coût compté).
 
 Un outil qui fournit une capacité exclusive déjà couverte par un outil **présent** est écarté (`REDUNDANT`), même si sa condition est vraie : on réutilise l'existant.
 
@@ -316,9 +335,15 @@ Un outil qui fournit une capacité exclusive déjà couverte par un outil **pré
 | `BACKBONE_EXCLUSIVE` | Socle alternatif | `claude-plugin:superpowers` |
 | `STATUS` | Fiche `rejected` ou `watch` | `claude-plugin:everything-claude-code` |
 
+Ordre d'évaluation des codes pour une fiche (un seul code, le premier qui s'applique ; précisé le 2026-11-23, R4b) : `STATUS`, `BACKBONE_EXCLUSIVE`, outil présent (`REUSED`, ou `NOT_REQUIRED` s'il ne couvre aucune exigence), `CONDITION_FALSE`, `CONTRAINDICATED`, `NOT_REQUIRED`, `REDUNDANT`, `PREREQ_UNMET` ; après la recherche : `CONFLICT`, puis `COST`.
+
+Textes (`reason` d'un retenu, `detail` d'un écarté) : gabarits fixes, en anglais, sans chemin absolu ni valeur d'environnement. `CONDITION_FALSE` : `<expression> is false` (la première expression fausse de `when.all`, sinon les expressions de `when.any` jointes par ` or `) ; `CONTRAINDICATED` : `<expression> is true` ; `NOT_REQUIRED` : `<capacités> not required` ; `BACKBONE_EXCLUSIVE` : `alternative backbone` ; `STATUS` : `status <statut>` ; `REDUNDANT` : `<capacité> already provided by <ref>` ; `CONFLICT` : `conflicts with <ref>` ; `COST` : `same coverage at a higher cost than <refs>` ; `PREREQ_UNMET` : `<check> unmet and no fix`. `reason` d'un retenu : `covers <capacités>`, ou `required by <ref>` / `prerequisite of <ref>`. Le test A5.1 compare tout le reste de la sortie octet pour octet ; il ne compare pas `reason` ni `detail`.
+
 ### 8.4 Sortie
 
 Schéma : [schemas/selection.schema.json](schemas/selection.schema.json). Exemple attendu pour `fx-split-stack` : [schemas/examples/selection.split-stack.json](schemas/examples/selection.split-stack.json).
+
+Ordres (précisé le 2026-11-23, R4b) : `requirements` dans l'ordre de `capabilities.toml` ; `source` vaut `backbone`, `always` ou l'identifiant de la règle, suivi de ` (<id de l'élément>)` pour une règle `for_each` ; `selected` : les outils du socle dans l'ordre du socle, puis les autres par rang de leur première exigence couverte, chaque outil entraîné (`requires`, `fix`) juste après celui qui l'entraîne ; `reused` et `rejected` par référence. `cost_total` est la somme des `cost` de `selected`. `rule` d'un retenu : `backbone`, `always`, l'identifiant de la règle, `requires (<ref>)` ou `prerequisite (<ref>)`.
 
 ### 8.5 Propriétés testées
 
