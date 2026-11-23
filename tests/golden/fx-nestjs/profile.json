@@ -1,0 +1,220 @@
+{
+  "ci": {
+    "file": ".github/workflows/ci.yml",
+    "kind": "github"
+  },
+  "commands": {
+    "verify": {
+      "confidence": "unknown",
+      "evidence": "no verify/check target in Makefile",
+      "value": null
+    }
+  },
+  "components": [
+    {
+      "commands": {
+        "build": {
+          "confidence": "fact",
+          "evidence": "package.json scripts.build",
+          "value": "npm run build"
+        },
+        "lint": {
+          "confidence": "fact",
+          "evidence": "package.json scripts.lint",
+          "value": "npm run lint"
+        },
+        "test": {
+          "confidence": "fact",
+          "evidence": "package.json scripts.test",
+          "value": "npm test"
+        },
+        "typecheck": {
+          "confidence": "fact",
+          "evidence": "package.json scripts.typecheck",
+          "value": "npm run typecheck"
+        }
+      },
+      "ecosystems": [
+        "node"
+      ],
+      "id": "root",
+      "kind": "backend",
+      "languages": [
+        "typescript"
+      ],
+      "path": ".",
+      "paths": {
+        "code": [
+          "**/*.ts"
+        ]
+      },
+      "runtime": {
+        "confidence": "fact",
+        "evidence": "no compose service builds '.'; node on PATH",
+        "value": "host"
+      },
+      "stacks": [
+        {
+          "confidence": "fact",
+          "evidence": "package.json: @nestjs/core",
+          "id": "nestjs",
+          "version": "10"
+        },
+        {
+          "confidence": "fact",
+          "evidence": "package.json: jest",
+          "id": "jest"
+        },
+        {
+          "confidence": "fact",
+          "evidence": "package.json: eslint",
+          "id": "eslint"
+        },
+        {
+          "confidence": "fact",
+          "evidence": "package.json: typescript",
+          "id": "typescript"
+        }
+      ]
+    }
+  ],
+  "conventions": {
+    "branches": {
+      "confidence": "fact",
+      "evidence": "46 of 46 branches outside main",
+      "id_shares": {
+        "alnum-id": 0.52,
+        "free": 0.48
+      },
+      "id_style": "mixed",
+      "pattern": "^(feat|fix)/[A-Za-z0-9-]+$",
+      "prefixes": [
+        "feat",
+        "fix"
+      ],
+      "share": 1.0
+    },
+    "commits": {
+      "confidence": "fact",
+      "evidence": "47 of 47 non-merge subjects",
+      "excluded_merges": 46,
+      "language": "fr",
+      "share": 1.0,
+      "style": "conventional"
+    }
+  },
+  "docs": {
+    "adr": null,
+    "agents_md": false,
+    "claude_md": {
+      "class": "rich",
+      "lines": 27,
+      "rules_count": 9
+    },
+    "handoff": "HANDOFF.md",
+    "readme": true
+  },
+  "docs_drift": [
+    {
+      "confidence": "likely",
+      "file": "CLAUDE.md",
+      "line": 27,
+      "message": "Line marked 'TODO' cites ContentBlock.vue, which exists (app/components/ContentBlock.vue)",
+      "rule": "D1"
+    },
+    {
+      "confidence": "likely",
+      "file": "README.md",
+      "line": 82,
+      "message": "Line marked '- [ ]' cites ContentBlock.vue, which exists (app/components/ContentBlock.vue)",
+      "rule": "D1"
+    },
+    {
+      "confidence": "likely",
+      "file": "README.md",
+      "line": 72,
+      "message": "Path apps/api/ does not exist",
+      "rule": "D3"
+    },
+    {
+      "confidence": "likely",
+      "file": "HANDOFF.md",
+      "message": "Last changed 92 commits before HEAD while files it cites changed since",
+      "rule": "D4"
+    }
+  ],
+  "gaps": [
+    "no-remote",
+    "no-agents-md",
+    "no-adr"
+  ],
+  "generated": "2026-11-11T15:00:00Z",
+  "git": {
+    "default_branch": "main",
+    "remote": false
+  },
+  "intent_from_docs": [
+    {
+      "confidence": "likely",
+      "evidence": "README.md:68 mentions Spec Kit",
+      "tool": "spec-kit"
+    }
+  ],
+  "kind": {
+    "confidence": "fact",
+    "evidence": "93 commits",
+    "value": "existing"
+  },
+  "metrics": {
+    "commits": 210,
+    "contributors": 3,
+    "loc": {
+      "ts": 4000
+    },
+    "loc_total": 4000,
+    "tracked_files": 120
+  },
+  "monorepo": false,
+  "multi_component": false,
+  "present_tools": [],
+  "schema": 1,
+  "sensitive": {
+    "data_dumps": [],
+    "data_stores": [
+      {
+        "kind": "postgres",
+        "service": "db",
+        "source": "docker-compose.yml"
+      }
+    ],
+    "log_dirs": [],
+    "nested_claude_settings": [],
+    "secret_files": [],
+    "walk": {
+      "depth_pruned": true,
+      "linked_dirs": []
+    }
+  },
+  "signals": {
+    "auth": {
+      "confidence": "likely",
+      "evidence": "README.md:12 mentions login",
+      "value": true
+    },
+    "design_rules_in_instructions": {
+      "confidence": "fact",
+      "evidence": "CLAUDE.md: no design rule",
+      "value": false
+    },
+    "frontend_heavy": {
+      "confidence": "fact",
+      "evidence": "no front-end dependency",
+      "value": false
+    },
+    "public_surface": {
+      "confidence": "unknown",
+      "evidence": "no public surface found",
+      "value": false
+    }
+  }
+}

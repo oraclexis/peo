@@ -83,6 +83,18 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--exposure", action="store_true", help="add the exposure audit")
             p.add_argument("--ci", action="store_true", help="exit 3 on an error finding")
             continue
+        if name == "select":
+            p = sub.add_parser(name, help="justified selection of tools (spec 11, section 2.1)")
+            p.add_argument("--project", metavar="DIR", default=argparse.SUPPRESS,
+                           help="project root")
+            p.add_argument("--json", action="store_true", default=argparse.SUPPRESS,
+                           help="print the JSON envelope on stdout")
+            p.add_argument("--profile", metavar="FILE",
+                           help="profile JSON (default: <project>/.peo/profile.json)")
+            p.add_argument("--answers", metavar="-", help="answers as a JSON object on stdin")
+            p.add_argument("--declared", metavar="FILE",
+                           help="tracked declarations as JSON (output of inventory.declared)")
+            continue
         if name == "catalog":
             p = sub.add_parser(name, help="validate a catalog (spec 11, section 2.4)")
             actions = p.add_subparsers(dest="catalog_command", metavar="ACTION")
@@ -251,6 +263,90 @@ def catalog_command(args: argparse.Namespace) -> int:
     return EXIT_ERROR if errors else EXIT_OK
 
 
+MAX_JSON = 8 * 1024 * 1024
+
+
+def _read_object(raw: bytes, what: str) -> dict:
+    """A JSON object from bounded bytes; ValueError with a short message otherwise."""
+    if len(raw) > MAX_JSON:
+        raise ValueError(f"{what} larger than {MAX_JSON // (1024 * 1024)} MiB")
+    try:
+        value = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError, RecursionError):
+        raise ValueError(f"{what} is not valid JSON") from None
+    if not isinstance(value, dict):
+        raise ValueError(f"{what} must be a JSON object")
+    return value
+
+
+def _read_file(path: Path, what: str) -> dict:
+    try:
+        with path.open("rb") as f:
+            return _read_object(f.read(MAX_JSON + 1), what)
+    except OSError:
+        raise ValueError(f"{what} cannot be read: {path.name}") from None
+
+
+def select_command(args: argparse.Namespace) -> int:
+    command = "select"
+
+    def fail(code: str, message: str, exit_code: int, data: dict | None = None) -> int:
+        error = {"code": code, "message": message}
+        _emit(args, envelope(command, False, data, errors=[error]), None)
+        return exit_code
+
+    source = args.catalog or "catalog"
+    if "://" in source:     # URL@ref: the network is forbidden outside adapters (spec 11, NF5)
+        return fail("E_USAGE", "a remote catalog is not supported yet; give a local folder",
+                    EXIT_USAGE)
+    root = _project_root(args.project)
+    if root is None:
+        return fail("E_PROJECT_NOT_FOUND", f"project directory not found: {args.project}",
+                    EXIT_USAGE)
+    profile_path = Path(args.profile) if args.profile else root / ".peo" / "profile.json"
+    if not profile_path.is_file():
+        return fail("E_PROFILE_NOT_FOUND", f"profile not found: {profile_path.name}; "
+                    "run 'peo discover --write' first", EXIT_USAGE)
+    try:
+        profile = _read_file(profile_path, "profile")
+        declared = _read_file(Path(args.declared), "declarations") if args.declared else {}
+        if args.answers not in (None, "-"):
+            raise ValueError("--answers only reads standard input: use '-'")
+        answers = _read_object(sys.stdin.read(MAX_JSON + 1).encode(), "answers") \
+            if args.answers == "-" else {}
+    except ValueError as exc:
+        return fail("E_USAGE", str(exc), EXIT_USAGE)
+    from peo import selector
+    from peo.catalog import CatalogInvalid, CatalogNotFound, load
+
+    try:
+        catalog = load(source)
+    except CatalogNotFound as exc:
+        return fail("E_CATALOG_NOT_FOUND", str(exc), EXIT_USAGE)
+    except CatalogInvalid as exc:
+        errors = [{"code": "E_CATALOG_INVALID",
+                   "message": f"{e.file}#{e.location}: {e.message}" if e.location
+                   else f"{e.file}: {e.message}"} for e in exc.report.errors]
+        _emit(args, envelope(command, False, errors=errors), None)
+        return EXIT_ERROR
+    try:
+        selection = selector.select(catalog, profile, answers, declared)
+    except selector.BackboneConflict as exc:
+        return fail(exc.code, str(exc), EXIT_SELECTION_IMPOSSIBLE)
+    except selector.BackboneUnknown as exc:
+        return fail(exc.code, str(exc), EXIT_USAGE)
+    except selector.TooManyCandidates as exc:
+        return fail(exc.code, str(exc), EXIT_ERROR)
+    if not selection["ok"]:
+        hard = ", ".join(u["capability"] for u in selection["uncovered"] if u["strength"] == "hard")
+        return fail("E_REQUIREMENT_UNCOVERED", f"hard requirement not covered: {hard}",
+                    EXIT_SELECTION_IMPOSSIBLE, selection)
+    summary = (f"{len(selection['selected'])} selected, {len(selection['reused'])} reused, "
+               f"{len(selection['rejected'])} rejected, cost {selection['cost_total']}")
+    _emit(args, envelope(command, True, selection), summary)
+    return EXIT_OK
+
+
 def _not_implemented(command: str, args: argparse.Namespace) -> int:
     message = f"'peo {command}' is specified but not implemented yet (phase {COMMANDS[command]})"
     error = {"code": "E_NOT_IMPLEMENTED", "message": message}
@@ -273,6 +369,8 @@ def main(argv: list[str] | None = None) -> int:
         return status_command(args)
     if args.command == "catalog":
         return catalog_command(args)
+    if args.command == "select":
+        return select_command(args)
     return _not_implemented(args.command, args)
 
 
