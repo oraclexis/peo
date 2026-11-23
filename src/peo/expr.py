@@ -1,16 +1,21 @@
-"""Parser of the `when` language (spec 13, section 3). Standard library only; no eval.
+"""Parser and evaluator of the `when` language (spec 13, section 3). Standard library only; no eval.
 
-`parse` checks an expression and returns a tree; `reads` lists the external paths it reads.
-Evaluation belongs to the Selector (R4b), not here.
+`parse` checks an expression and returns a tree; `reads` lists the external paths it reads;
+`evaluate` computes a tree over a context and never raises.
 """
 
 import re
+from functools import cache
+from re import _constants, _parser  # private, bounded by a consistency test (research D2)
 
 ROOTS = ("profile", "answers", "selection")
 OPERATORS = ("==", "!=", ">=", "<=", ">", "<")
 WORD_OPERATORS = ("in", "contains", "matches")
 MAX_DEPTH = 50
 MAX_PATTERN = 200
+MAX_INPUT = 512          # longer strings never match (spec 13, section 3)
+LARGE = 8                # a repeat of more than 8 occurrences is `large`
+MAX_LARGE_REPEATS = 2
 _TOKEN = re.compile(r"""
     (?P<space>\s+)
   | (?P<number>\d+(?:\.\d+)?)
@@ -19,6 +24,52 @@ _TOKEN = re.compile(r"""
   | (?P<op>==|!=|>=|<=|>|<)
   | (?P<punct>[()\[\].,])
 """, re.VERBOSE)
+
+
+_REPEATS = (_constants.MAX_REPEAT, _constants.MIN_REPEAT, _constants.POSSESSIVE_REPEAT)
+
+
+def check_pattern(regex: str) -> str | None:
+    """Why `regex` could backtrack without bound, or None (research D2).
+
+    Refused: a back-reference or an assertion; a large repeat (`*`, `+`, `{n,}`, or more than 8
+    occurrences) that holds another repeat of more than one occurrence or an alternative; more
+    than two large repeats. Together with the 512-character input cap, this bounds the work of
+    `fullmatch` without a timer. Assumes `regex` already compiles.
+    """
+    large = 0
+
+    def walk(sub, inside: bool) -> str | None:
+        nonlocal large
+        for op, av in sub:
+            if op in (_constants.GROUPREF, _constants.GROUPREF_EXISTS):
+                return "back-reference"
+            if op in (_constants.ASSERT, _constants.ASSERT_NOT):
+                return "lookahead or lookbehind assertion"
+            if op in _REPEATS:
+                lo, hi, body = av
+                is_large = hi > LARGE
+                if inside and hi > 1:
+                    return "nested repeat inside an unbounded or large repeat"
+                large += is_large
+                if large > MAX_LARGE_REPEATS:
+                    return f"more than {MAX_LARGE_REPEATS} unbounded repeats"
+                found = walk(body, inside or is_large)
+            elif op is _constants.SUBPATTERN:
+                found = walk(av[-1], inside)
+            elif op is _constants.ATOMIC_GROUP:
+                found = walk(av, inside)
+            elif op is _constants.BRANCH:
+                if inside:
+                    return "alternative inside an unbounded or large repeat"
+                found = next(filter(None, (walk(branch, inside) for branch in av[1])), None)
+            else:
+                continue
+            if found:
+                return found
+        return None
+
+    return walk(_parser.parse(regex), False)
 
 
 class ExprError(ValueError):
@@ -122,6 +173,9 @@ class _Parser:
             re.compile(regex)
         except re.error as e:
             raise ExprError(f"not a regular expression ({e})", pos) from None
+        problem = check_pattern(regex)
+        if problem:
+            raise ExprError(f"pattern not allowed: {problem}", pos)
         return ("str", regex)
 
     def operand(self) -> tuple:
@@ -242,3 +296,87 @@ def reads(node: tuple) -> frozenset[str]:
 
     walk(node)
     return frozenset(found)
+
+
+def _is_number(value: object) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def _equal(a: object, b: object) -> bool:
+    """Equality that keeps booleans apart from numbers: `true == 1` is false."""
+    if isinstance(a, bool) != isinstance(b, bool):
+        return False
+    return a == b
+
+
+def _order(op: str, a: object, b: object) -> bool:
+    if not ((_is_number(a) and _is_number(b)) or (isinstance(a, str) and isinstance(b, str))):
+        return False
+    return {">": a > b, "<": a < b, ">=": a >= b, "<=": a <= b}[op]    # type: ignore[operator]
+
+
+def _within(item: object, collection: object) -> bool:
+    if isinstance(collection, list):
+        return any(_equal(item, element) for element in collection)
+    return isinstance(item, str) and isinstance(collection, str) and item in collection
+
+
+@cache
+def _compiled(regex: str):
+    return re.compile(regex)
+
+
+def _lookup(node: tuple, ctx: dict) -> object:
+    _, root, segments = node
+    if root == "selection" and segments and segments[0] not in ("selected", "covered"):
+        return None
+    value: object = ctx.get(root)
+    for seg in segments:
+        key = seg[1] if isinstance(seg, tuple) else seg
+        if not isinstance(value, dict) or key not in value:
+            return None
+        value = value[key]
+    return value
+
+
+def evaluate(node: tuple, ctx: dict) -> object:
+    """Value of a parsed tree over `ctx` (`profile`, `answers`, `selection`, `it`); never raises.
+
+    A path that does not exist is `None`; a comparison that makes no sense is false.
+    """
+    kind = node[0]
+    if kind == "path":
+        return _lookup(node, ctx)
+    if kind in ("str", "num", "lit"):
+        return node[1]
+    if kind == "list":
+        return [evaluate(item, ctx) for item in node[1]]
+    if kind == "not":
+        return not holds(node[1], ctx)
+    if kind == "and":
+        return all(holds(part, ctx) for part in node[1])
+    if kind == "or":
+        return any(holds(part, ctx) for part in node[1])
+    if kind == "any":
+        items = evaluate(node[1], ctx)
+        return isinstance(items, list) and any(
+            holds(node[2], {**ctx, "it": item}) for item in items)
+    _, op, left_node, right_node = node
+    left, right = evaluate(left_node, ctx), evaluate(right_node, ctx)
+    if op == "==":
+        return _equal(left, right)
+    if op == "!=":
+        return not _equal(left, right)
+    if op == "in":
+        return _within(left, right)
+    if op == "contains":
+        return _within(right, left)
+    if op == "matches":
+        ok = isinstance(left, str) and len(left) <= MAX_INPUT
+        return ok and _compiled(right).fullmatch(left) is not None
+    return _order(op, left, right)
+
+
+def holds(node: tuple, ctx: dict) -> bool:
+    """`evaluate`, read as a condition: null, false, zero, empty are false."""
+    return bool(evaluate(node, ctx))
