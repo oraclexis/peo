@@ -18,6 +18,9 @@ conflicts = ["framework:spec-kit"]
 [selection]
 detect_only = true
 
+[detect]
+plugin = ["everything-claude-code"]
+
 [surface]
 hooks     = ["SessionStart"]
 network   = "none"
