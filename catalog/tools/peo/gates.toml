@@ -1,0 +1,33 @@
+id          = "gates"
+kind        = "peo"
+name        = "PEO gates"
+description = "Process gates enforced by the PEO hook"
+status      = "core"
+license     = "TBD"
+source      = { repo = "https://github.com/oraclexis/peo", checked = "2026-11-18" }
+
+[versions]
+tested = "TBD"
+
+[capabilities]
+provides = ["process.gates"]
+
+[surface]
+hooks     = ["PreToolUse"]
+network   = "none"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "files"
+
+[uninstall]
+config = "remove-gate-hooks"
+
+[notes]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

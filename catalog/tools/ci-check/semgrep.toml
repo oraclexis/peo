@@ -1,0 +1,38 @@
+id          = "semgrep"
+kind        = "ci-check"
+name        = "Semgrep"
+description = "Static security analysis in CI"
+status      = "conditional"
+license     = "LGPL-2.1"
+source      = { repo = "https://github.com/semgrep/semgrep", checked = "2026-11-11", commit = "06d9993" }
+
+[versions]
+tested = "TBD"
+
+[capabilities]
+provides = ["review.security.sast"]
+
+[selection]
+when = { any = ["profile.signals.auth.value == true", "profile.signals.public_surface.value == true"] }
+
+[surface]
+hooks     = []
+network   = "install-only"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "ci"
+package = "semgrep"
+
+[uninstall]
+config = "remove-ci-block"
+
+[notes]
+risks     = ["Advanced rules are in the paid offer"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

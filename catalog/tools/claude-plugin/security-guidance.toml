@@ -1,0 +1,38 @@
+id          = "security-guidance"
+kind        = "claude-plugin"
+name        = "Security guidance"
+description = "Anthropic security guidance plugin"
+status      = "conditional"
+license     = "TBD"
+source      = { repo = "https://github.com/anthropics/claude-plugins-official", checked = "2026-11-11", commit = "43fd1f9", marketplace = "claude-plugins-official" }
+
+[versions]
+tested = "TBD"
+
+[capabilities]
+provides = ["review.security.guidance"]
+
+[selection]
+when = { all = ["answers['q.sensitivity'] == 'sensitive'", "profile.signals.auth.confidence == 'fact'"] }
+
+[surface]
+hooks     = []
+network   = "none"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "claude"
+plugin = "security-guidance"
+marketplace = "claude-plugins-official"
+
+[uninstall]
+config = "remove-enabled-plugin"
+
+[notes]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

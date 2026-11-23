@@ -1,0 +1,36 @@
+id          = "egm"
+kind        = "claude-plugin"
+name        = "Elephant-Goldfish Model"
+description = "Independent review by context-free subagents, doc-code drift"
+status      = "core"
+license     = "Apache-2.0"
+source      = { repo = "https://github.com/google/elephant-goldfish-model", checked = "2026-11-11", commit = "8c29f56", marketplace = "egm" }
+
+[versions]
+tested = "0.1.1"
+
+[capabilities]
+provides = ["spec.review.independent", "drift.docs"]
+
+[surface]
+hooks     = []
+network   = "install-only"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "claude"
+plugin = "egm"
+marketplace = "egm"
+
+[uninstall]
+config = "remove-enabled-plugin"
+
+[notes]
+risks     = ["High subagent cost", "Needs Claude Code >= 2.1.271 to isolate Goldfish reviewers"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"

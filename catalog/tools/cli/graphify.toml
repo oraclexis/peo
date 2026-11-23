@@ -1,0 +1,38 @@
+id          = "graphify"
+kind        = "cli"
+name        = "Graphify"
+description = "Code knowledge graph built with tree-sitter, no LLM"
+status      = "conditional"
+license     = "Apache-2.0 AND MIT"
+source      = { repo = "https://github.com/Graphify-Labs/graphify", checked = "2026-11-11", commit = "35d1d20" }
+
+[versions]
+tested = "0.9.106"
+
+[capabilities]
+provides = ["nav.graph"]
+
+[selection]
+when = { any = ["profile.metrics.loc_total > 100000"] }
+
+[surface]
+hooks     = []
+network   = "install-only"
+data_path = "none"
+fail_mode = "open"
+
+[cost]
+context_static_tokens = 0
+evidence = "estimate"
+
+[install]
+manager = "uv"
+package = "TBD"
+
+[uninstall]
+cli = "uv tool uninstall TBD"
+
+[notes]
+risks     = ["`graphify install` edits CLAUDE.md and intercepts Read and Grep: use the CLI only"]
+evaluated = "2026-11-18"
+review_by = "2027-02-18"
