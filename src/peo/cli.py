@@ -287,6 +287,14 @@ def _read_file(path: Path, what: str) -> dict:
         raise ValueError(f"{what} cannot be read: {path.name}") from None
 
 
+def _check_lists(doc: dict, keys: tuple[str, ...], what: str) -> None:
+    """Each key, when present, is a list of objects; ValueError otherwise (spec 11, 2.1)."""
+    for key in keys:
+        value = doc.get(key, [])
+        if not isinstance(value, list) or not all(isinstance(v, dict) for v in value):
+            raise ValueError(f"{what}: {key} must be a list of objects")
+
+
 def select_command(args: argparse.Namespace) -> int:
     command = "select"
 
@@ -314,6 +322,8 @@ def select_command(args: argparse.Namespace) -> int:
             raise ValueError("--answers only reads standard input: use '-'")
         answers = _read_object(sys.stdin.read(MAX_JSON + 1).encode(), "answers") \
             if args.answers == "-" else {}
+        _check_lists(profile, ("present_tools", "components"), "profile")
+        _check_lists(declared, ("plugins", "mcp_servers"), "declarations")
     except ValueError as exc:
         return fail("E_USAGE", str(exc), EXIT_USAGE)
     from peo import selector

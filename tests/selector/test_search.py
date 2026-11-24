@@ -169,3 +169,11 @@ def test_exactly_24_candidates_is_searched():
     entries = [GATES] + [tool(f"cli:t{i:02d}", [f"x.c{i:02d}"]) for i in range(23)]
     rules = [rule(f"r{i:02d}", f"x.c{i:02d}") for i in range(23)]
     assert len(run(entries, rules)["selected"]) == 24
+
+
+def test_a_candidate_with_an_unavailable_dependency_is_prereq_unmet_and_the_helper_is_not_required():
+    helper = tool("cli:helper", [], requires=["cli:dead"])
+    out = run([GATES, tool("cli:a", ["x.one"], requires=["cli:helper"]), helper,
+               tool("cli:dead", [], status="watch")], [rule("r", "x.one")])
+    assert rejected(out)["cli:a"][0] == "PREREQ_UNMET" and "cli:dead" in rejected(out)["cli:a"][1]
+    assert rejected(out)["cli:helper"][0] == "NOT_REQUIRED"

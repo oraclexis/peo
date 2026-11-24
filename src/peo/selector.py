@@ -116,11 +116,13 @@ def _declared_refs(catalog: Catalog, declared: dict) -> dict[str, str]:
     """Catalog reference -> evidence, for every tracked declaration the catalog recognises."""
     found: dict[str, str] = {}
     for plugin in declared.get("plugins", []):
+        if not isinstance(plugin, dict):
+            continue
         for ref, doc in catalog.entries.items():
             if _plugin_matches(plugin.get("id"), _list(doc, "detect", "plugin")):
                 found.setdefault(ref, f"declared plugin {plugin.get('id')}")
     for server in declared.get("mcp_servers", []):
-        if server.get("ref") in catalog.entries:
+        if isinstance(server, dict) and server.get("ref") in catalog.entries:
             found.setdefault(server["ref"], "declared MCP server")
     return found
 
@@ -134,7 +136,7 @@ def present_tools(catalog: Catalog, profile: dict, declared: dict) -> dict[str, 
     """Tools already there: Discovery's list plus tracked declarations (13 section 8.1, step 3)."""
     found: dict[str, str] = {}
     for item in profile.get("present_tools", []):
-        if item.get("ref") in catalog.entries:
+        if isinstance(item, dict) and item.get("ref") in catalog.entries:
             found[item["ref"]] = str(item.get("evidence", ""))
     for ref, evidence in _declared_refs(catalog, declared).items():
         if catalog.entries[ref]["status"] != "backbone-alt":
@@ -159,8 +161,8 @@ def prerequisites(catalog: Catalog, entry: dict, profile: dict, present) -> list
     def resolve(check: str) -> str:
         def one(m: re.Match) -> str:
             path = _component_path(components, m.group(1))
-            return m.group(0) if path is None else ("" if path == "." else path)
-        return re.sub(r"\{component:([^}]+)\}", one, check)
+            return m.group(0) if path is None else path
+        return re.sub(r"\{component:([^}]+)\}", one, check).replace("./", "")
 
     out = []
     for item in entry.get("prerequisites", []):

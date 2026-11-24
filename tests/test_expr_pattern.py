@@ -13,7 +13,7 @@ SRC = Path(__file__).resolve().parents[1] / "src" / "peo"
 
 @pytest.mark.parametrize("pattern", [
     "(a+)+$", "(a|aa)+$", "(a*)*", "(a)\\1", "(?=a)a", "(?<=a)a", "(?!a)b", "(a|a){1,40}", "(a+){9}",
-    "a*b*c*", "(?:ab|cd)*", "(x*)+", "(?P<n>a)(?P=n)"])
+    "a*b*c*", "(?:ab|cd)*", "(a?){22}a{22}", "(a|a)(a|a)(a|a)(a|a)(a|a)", "a?a?a?a?a?a?a?a?a?", "(x*)+", "(?P<n>a)(?P=n)"])
 def test_a_dangerous_pattern_is_refused_at_parse_time_with_its_position(pattern):
     text = f"profile.x matches '{pattern}'"
     with pytest.raises(expr.ExprError) as raised:
@@ -49,3 +49,10 @@ def test_the_evaluator_never_runs_code_of_the_catalog(name):
     tree = ast.parse((SRC / name).read_text())
     called = {n.func.id for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
     assert not called & {"eval", "exec", "compile", "__import__"}
+
+
+def test_a_huge_repeat_count_is_an_expression_error_not_a_crash():
+    with pytest.raises(expr.ExprError):
+        expr.parse("profile.x matches 'a{99999999999}'")
+    with pytest.raises(expr.ExprError):
+        expr.parse("profile.x matches 'x{4294967296}'")

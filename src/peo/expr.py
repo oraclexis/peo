@@ -16,6 +16,8 @@ MAX_PATTERN = 200
 MAX_INPUT = 512          # longer strings never match (spec 13, section 3)
 LARGE = 8                # a repeat of more than 8 occurrences is `large`
 MAX_LARGE_REPEATS = 2
+MAX_QUANTIFIERS = 8      # repeats other than {1}, in one pattern
+MAX_BRANCHES = 4
 _TOKEN = re.compile(r"""
     (?P<space>\s+)
   | (?P<number>\d+(?:\.\d+)?)
@@ -37,10 +39,10 @@ def check_pattern(regex: str) -> str | None:
     than two large repeats. Together with the 512-character input cap, this bounds the work of
     `fullmatch` without a timer. Assumes `regex` already compiles.
     """
-    large = 0
+    large = quantifiers = branches = 0
 
     def walk(sub, inside: bool) -> str | None:
-        nonlocal large
+        nonlocal large, quantifiers, branches
         for op, av in sub:
             if op in (_constants.GROUPREF, _constants.GROUPREF_EXISTS):
                 return "back-reference"
@@ -49,6 +51,11 @@ def check_pattern(regex: str) -> str | None:
             if op in _REPEATS:
                 lo, hi, body = av
                 is_large = hi > LARGE
+                quantifiers += not lo == hi == 1
+                if quantifiers > MAX_QUANTIFIERS:
+                    return f"more than {MAX_QUANTIFIERS} repeats"
+                if hi > 1 and body.getwidth()[0] == 0:
+                    return "repeat of a part that can match nothing"
                 if inside and hi > 1:
                     return "nested repeat inside an unbounded or large repeat"
                 large += is_large
@@ -60,6 +67,9 @@ def check_pattern(regex: str) -> str | None:
             elif op is _constants.ATOMIC_GROUP:
                 found = walk(av, inside)
             elif op is _constants.BRANCH:
+                branches += 1
+                if branches > MAX_BRANCHES:
+                    return f"more than {MAX_BRANCHES} alternatives"
                 if inside:
                     return "alternative inside an unbounded or large repeat"
                 found = next(filter(None, (walk(branch, inside) for branch in av[1])), None)
@@ -173,6 +183,8 @@ class _Parser:
             re.compile(regex)
         except re.error as e:
             raise ExprError(f"not a regular expression ({e})", pos) from None
+        except (OverflowError, RecursionError):
+            raise ExprError("pattern too large", pos) from None
         problem = check_pattern(regex)
         if problem:
             raise ExprError(f"pattern not allowed: {problem}", pos)
@@ -303,9 +315,11 @@ def _is_number(value: object) -> bool:
 
 
 def _equal(a: object, b: object) -> bool:
-    """Equality that keeps booleans apart from numbers: `true == 1` is false."""
+    """Equality that keeps booleans apart from numbers, in lists too: `true == 1` is false."""
     if isinstance(a, bool) != isinstance(b, bool):
         return False
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_equal(x, y) for x, y in zip(a, b, strict=True))
     return a == b
 
 

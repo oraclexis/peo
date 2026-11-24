@@ -52,6 +52,14 @@ def test_types_do_not_mix():
     assert holds("'b' > 'a'")
 
 
+def test_lists_keep_booleans_apart_from_numbers():
+    ctx = {"profile": {"f": [True], "n": [[1], [True]]}, "answers": {}, "selection": {}}
+    assert not expr.holds(expr.parse("profile.f == [1]"), ctx)
+    assert expr.holds(expr.parse("profile.f != [1]"), ctx) and expr.holds(expr.parse("profile.f == [true]"), ctx)
+    assert not expr.holds(expr.parse("profile.n == [[1], [1]]"), ctx)
+    assert not expr.holds(expr.parse("1 in profile.f"), ctx)
+
+
 def test_in_and_contains():
     assert holds("'php' in ['php', 'ts']") and not holds("'go' in ['php']")
     assert holds("'ph' in 'php'") and holds("profile.name contains 'split'")

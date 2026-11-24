@@ -98,3 +98,15 @@ def test_an_uncovered_hard_requirement_exits_6_and_keeps_the_selection(capsys, m
 def test_select_is_no_longer_reported_as_not_implemented(capsys, monkeypatch):
     code, _, err = run(capsys, monkeypatch, "--catalog", CATALOG, "select", "--profile", PROFILE)
     assert code == 0 and "E_NOT_IMPLEMENTED" not in err
+
+
+def test_a_wrong_shape_inside_the_inputs_exits_2_without_a_traceback(capsys, monkeypatch, tmp_path):
+    bad_declared = tmp_path / "d.json"
+    bad_declared.write_text('{"plugins": ["superpowers"]}')
+    code, out, _ = run(capsys, monkeypatch, "--json", "--catalog", CATALOG, "select", "--profile", PROFILE,
+                       "--declared", str(bad_declared))
+    assert code == 2 and json.loads(out)["errors"][0]["code"] == "E_USAGE"
+    bad_profile = tmp_path / "p.json"
+    bad_profile.write_text('{"present_tools": "x"}')
+    code, out, _ = run(capsys, monkeypatch, "--json", "--catalog", CATALOG, "select", "--profile", str(bad_profile))
+    assert code == 2 and json.loads(out)["errors"][0]["code"] == "E_USAGE"

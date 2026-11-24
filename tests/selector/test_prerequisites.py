@@ -50,3 +50,9 @@ def test_the_cost_counts_one_per_unmet_fix():
     unmet = status("claude-plugin:php-lsp", golden("fx-split-stack"))
     met = status("claude-plugin:php-lsp", golden("fx-split-stack"), present=["cli:intelephense"])
     assert selector.cost(entry, unmet) == 2 and selector.cost(entry, met) == 1
+
+
+def test_a_bare_component_placeholder_on_the_root_is_met():
+    cat = make_catalog_doc([tool("cli:r", [], prerequisites=[{"check": "path:{component:root}", "blocking": True}])])
+    prof = profile(components=[{"id": "root", "path": ".", "languages": ["ts"]}])
+    assert selector.prerequisites(cat, cat.entries["cli:r"], prof, set())[0].status == "met"
