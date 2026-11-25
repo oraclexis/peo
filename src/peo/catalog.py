@@ -76,6 +76,10 @@ class _Run:
         self.errors: list[CatalogError] = []
         self.warnings: list[CatalogError] = []
         self.capabilities_known = True      # False when capabilities.toml could not be read
+        self.capability_docs: dict[str, bool] = {}
+        self.rule_docs: list[dict] = []
+        self.question_docs: list[dict] = []
+        self.entry_docs: dict[str, dict] = {}
         self.answers: set[str] = set()   # answer ids read by any expression (rule S-5)
 
     def error(self, file: str, location: str, code: str, message: str) -> None:
@@ -205,6 +209,7 @@ class _Run:
             if not isinstance(need.get("strength"), str) or need["strength"] not in STRENGTHS:
                 self.error("requirements.toml", where, "rule",
                            f"strength {need.get('strength')!r} is not hard or soft")
+        self.rule_docs = rules
         return len(rules)
 
     def date_of(self, rel: str, location: str, text: Any) -> date | None:
@@ -344,6 +349,7 @@ class _Run:
                 if feed not in PEO_TOML_CONSUMED and key not in self.answers:
                     self.error("questions.toml", f"/questions/{i}/feeds", "unconsumed",
                                f"question {qid!r} feeds {feed!r}, which nothing reads")
+        self.question_docs = found
         return len(found)
 
     def entries(self, capabilities: dict[str, bool]) -> int:
@@ -372,22 +378,59 @@ class _Run:
                     self.error(rel, "/id", "duplicate", f"duplicate entry {key!r}")
         for rel, doc in loaded:
             self.references(rel, doc, known)
+        self.entry_docs = {f"{doc['kind']}:{doc['id']}": doc for _, doc in loaded}
         return count
 
 
-def validate(path: str | Path, today: date | None = None) -> Report:
-    """Check the catalog folder at `path`; `today` is injectable so the output is reproducible."""
+@dataclass(frozen=True)
+class Catalog:
+    """A catalog that passed `validate`, as the Selector reads it (research D3)."""
+
+    capabilities: dict[str, bool]       # id -> exclusive, in file order
+    rules: tuple[dict, ...]             # requirements.toml, in file order
+    entries: dict[str, dict]            # "<kind>:<id>" -> TOML document, sorted by reference
+    questions: tuple[dict, ...]
+
+
+class CatalogInvalid(Exception):
+    """The catalog has errors; `report` holds all of them."""
+
+    def __init__(self, report: Report):
+        lines = [f"{e.file}{('#' + e.location) if e.location else ''}: {e.message}"
+                 for e in report.errors[:5]]
+        more = f" (+{len(report.errors) - 5} more)" if len(report.errors) > 5 else ""
+        super().__init__("invalid catalog: " + "; ".join(lines) + more)
+        self.report = report
+
+
+def _check(path: str | Path, today: date | None) -> tuple[Report, _Run]:
     root = Path(path)
     if not root.is_dir():
         raise CatalogNotFound(f"catalog folder not found: {root.name}")
     run = _Run(root, today or date.today())
     capabilities = run.capabilities()
+    run.capability_docs = capabilities
     rules = run.rules(capabilities)
     entries = run.entries(capabilities)
     opaque = run.opaque()
     questions = run.questions()
     order = lambda e: (e.file, e.location, e.message)  # noqa: E731
-    return Report(root=root.resolve().name, errors=sorted(run.errors, key=order),
-                  warnings=sorted(run.warnings, key=order),
-                  counts={"capabilities": len(capabilities), "entries": entries, "opaque": opaque,
-                          "questions": questions, "rules": rules})
+    report = Report(root=root.resolve().name, errors=sorted(run.errors, key=order),
+                    warnings=sorted(run.warnings, key=order),
+                    counts={"capabilities": len(capabilities), "entries": entries,
+                            "opaque": opaque, "questions": questions, "rules": rules})
+    return report, run
+
+
+def validate(path: str | Path, today: date | None = None) -> Report:
+    """Check the catalog folder at `path`; `today` is injectable so the output is reproducible."""
+    return _check(path, today)[0]
+
+
+def load(path: str | Path, today: date | None = None) -> Catalog:
+    """The catalog at `path`, or CatalogInvalid with the whole report; never writes."""
+    report, run = _check(path, today)
+    if report.errors:
+        raise CatalogInvalid(report)
+    return Catalog(capabilities=dict(run.capability_docs), rules=tuple(run.rule_docs),
+                   entries=dict(sorted(run.entry_docs.items())), questions=tuple(run.question_docs))

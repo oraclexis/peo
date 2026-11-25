@@ -1,0 +1,247 @@
+{
+  "ci": {
+    "file": null,
+    "kind": "none"
+  },
+  "commands": {
+    "verify": {
+      "confidence": "unknown",
+      "evidence": "no verify/check target in Makefile",
+      "value": null
+    }
+  },
+  "components": [
+    {
+      "commands": {
+        "build": {
+          "confidence": "fact",
+          "evidence": "package.json scripts.build",
+          "value": "npm run build"
+        },
+        "e2e": {
+          "confidence": "fact",
+          "evidence": "package.json scripts.test:e2e",
+          "value": "npm run test:e2e"
+        },
+        "lint": {
+          "confidence": "unknown",
+          "evidence": "no eslint, no lint script",
+          "value": null
+        },
+        "test": {
+          "confidence": "fact",
+          "evidence": "package.json scripts.test",
+          "value": "npm test"
+        },
+        "typecheck": {
+          "confidence": "fact",
+          "evidence": "package.json scripts.typecheck",
+          "value": "npm run typecheck"
+        }
+      },
+      "ecosystems": [
+        "node"
+      ],
+      "id": "root",
+      "kind": "frontend",
+      "languages": [
+        "typescript",
+        "css"
+      ],
+      "path": ".",
+      "paths": {
+        "code": [
+          "**/*.vue",
+          "**/*.ts",
+          "**/*.css",
+          "!backend/**"
+        ]
+      },
+      "runtime": {
+        "confidence": "fact",
+        "evidence": "no compose service builds '.'; node on PATH",
+        "value": "host"
+      },
+      "stacks": [
+        {
+          "confidence": "fact",
+          "evidence": "package.json: nuxt",
+          "id": "nuxt",
+          "version": "4"
+        },
+        {
+          "confidence": "fact",
+          "evidence": "package.json: vue",
+          "id": "vue",
+          "version": "3"
+        },
+        {
+          "confidence": "fact",
+          "evidence": "package.json: @nuxtjs/tailwindcss",
+          "id": "tailwind"
+        },
+        {
+          "confidence": "fact",
+          "evidence": "package.json: three",
+          "id": "threejs"
+        },
+        {
+          "confidence": "fact",
+          "evidence": "package.json: vitest",
+          "id": "vitest"
+        },
+        {
+          "confidence": "fact",
+          "evidence": "package.json: @playwright/test",
+          "id": "playwright"
+        },
+        {
+          "confidence": "fact",
+          "evidence": "package.json: typescript, vue-tsc",
+          "id": "typescript"
+        }
+      ]
+    }
+  ],
+  "conventions": {
+    "branches": {
+      "confidence": "fact",
+      "evidence": "46 of 46 branches outside main",
+      "id_shares": {
+        "alnum-id": 0.52,
+        "free": 0.48
+      },
+      "id_style": "mixed",
+      "pattern": "^(feat|fix)/[A-Za-z0-9-]+$",
+      "prefixes": [
+        "feat",
+        "fix"
+      ],
+      "share": 1.0
+    },
+    "commits": {
+      "confidence": "fact",
+      "evidence": "47 of 47 non-merge subjects",
+      "excluded_merges": 46,
+      "language": "fr",
+      "share": 1.0,
+      "style": "conventional"
+    }
+  },
+  "docs": {
+    "adr": null,
+    "agents_md": false,
+    "claude_md": {
+      "class": "rich",
+      "lines": 27,
+      "rules_count": 9
+    },
+    "handoff": "HANDOFF.md",
+    "readme": true
+  },
+  "docs_drift": [
+    {
+      "confidence": "likely",
+      "file": "CLAUDE.md",
+      "line": 27,
+      "message": "Line marked 'TODO' cites ContentBlock.vue, which exists (app/components/ContentBlock.vue)",
+      "rule": "D1"
+    },
+    {
+      "confidence": "likely",
+      "file": "README.md",
+      "line": 82,
+      "message": "Line marked '- [ ]' cites ContentBlock.vue, which exists (app/components/ContentBlock.vue)",
+      "rule": "D1"
+    },
+    {
+      "confidence": "likely",
+      "file": "README.md",
+      "line": 72,
+      "message": "Path apps/api/ does not exist",
+      "rule": "D3"
+    },
+    {
+      "confidence": "likely",
+      "file": "HANDOFF.md",
+      "message": "Last changed 92 commits before HEAD while files it cites changed since",
+      "rule": "D4"
+    }
+  ],
+  "gaps": [
+    "no-ci",
+    "no-verify"
+  ],
+  "generated": "2026-11-11T15:00:00Z",
+  "git": {
+    "default_branch": "main",
+    "remote": false
+  },
+  "intent_from_docs": [
+    {
+      "confidence": "likely",
+      "evidence": "README.md:68 mentions Spec Kit",
+      "tool": "spec-kit"
+    }
+  ],
+  "kind": {
+    "confidence": "fact",
+    "evidence": "93 commits",
+    "value": "existing"
+  },
+  "metrics": {
+    "commits": 93,
+    "contributors": 1,
+    "loc": {
+      "css": 123,
+      "php": 1114,
+      "ts": 1129,
+      "vue": 2351
+    },
+    "loc_total": 4717,
+    "tracked_files": 99
+  },
+  "monorepo": false,
+  "multi_component": false,
+  "present_tools": [],
+  "schema": 1,
+  "sensitive": {
+    "data_dumps": [],
+    "data_stores": [
+      {
+        "kind": "postgres",
+        "service": "db",
+        "source": "docker-compose.yml"
+      }
+    ],
+    "log_dirs": [],
+    "nested_claude_settings": [],
+    "secret_files": [],
+    "walk": {
+      "depth_pruned": true,
+      "linked_dirs": []
+    }
+  },
+  "signals": {
+    "auth": {
+      "confidence": "likely",
+      "evidence": "README.md:63 mentions OIDC",
+      "value": true
+    },
+    "design_rules_in_instructions": {
+      "confidence": "fact",
+      "evidence": "CLAUDE.md: 4 design rules",
+      "value": true
+    },
+    "frontend_heavy": {
+      "confidence": "fact",
+      "evidence": "package.json: three",
+      "value": true
+    },
+    "public_surface": {
+      "confidence": "likely",
+      "evidence": "README.md:64 mentions Formulaire",
+      "value": true
+    }
+  }
+}

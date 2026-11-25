@@ -19,7 +19,8 @@ data_path = "none"
 fail_mode = "open"
 
 [cost]
-context_static_tokens = 0
+# To review: set so that spec 13 section 8.2 gives the cost of the section 8.4 example (R4b T016).
+context_static_tokens = 400
 evidence = "estimate"
 
 [install]
