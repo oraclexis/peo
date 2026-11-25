@@ -13,7 +13,7 @@ CATALOG = make_catalog_doc([
 
 
 def declared(plugins=(), servers=()):
-    return {"plugins": [{"id": p} for p in plugins], "mcp_servers": [{"ref": s} for s in servers]}
+    return {"plugins": [{"id": p} for p in plugins], "mcp_servers": [{"tool_ref": s} for s in servers]}
 
 
 def test_the_profile_lists_present_tools_with_their_evidence():
@@ -43,3 +43,11 @@ def test_a_declared_alternative_backbone_is_not_a_present_tool_but_a_conflict():
 def test_a_reference_unknown_to_the_catalog_is_ignored():
     prof = profile(present_tools=[{"ref": "cli:ghost", "evidence": "x"}])
     assert selector.present_tools(CATALOG, prof, declared()) == {}
+
+
+def test_a_server_of_the_real_inventory_output_is_recognised_by_its_tool_ref():
+    """Shape of `inventory.declared` (spec 14 section 3.2): `tool_ref`, never `ref`."""
+    server = {"source": "settings:project", "plugin_index": None, "index": 0, "name": "serena",
+              "transport": "stdio", "args_hint": None, "tool_ref": "mcp:serena"}
+    assert list(selector.present_tools(CATALOG, profile(), {"plugins": [], "mcp_servers": [server]})) == [
+        "mcp:serena"]

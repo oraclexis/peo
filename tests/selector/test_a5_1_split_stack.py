@@ -6,6 +6,8 @@ import time
 from jsonschema import Draft202012Validator
 
 from peo import selector
+from peo.validate import load_schema
+from peo.validate import validate as validate_schema
 
 from .conftest import EXAMPLES, GOLDEN, ROOT, golden
 
@@ -36,3 +38,13 @@ def test_a5_1_the_output_validates_against_the_schema(real_catalog):
     out = selector.select(real_catalog, golden("fx-split-stack"), {}, {})
     assert list(Draft202012Validator(schema).iter_errors(out)) == []
     assert json.loads((GOLDEN / "fx-split-stack" / "selection.json").read_text()) == EXPECTED
+
+
+def test_a5_1_validate_py_and_jsonschema_give_the_same_verdict(real_catalog):
+    out = selector.select(real_catalog, golden("fx-split-stack"), {}, {})
+    schema = json.loads((ROOT / "docs/design/spec/schemas/selection.schema.json").read_text())
+    assert validate_schema(out, load_schema("selection")) == []
+    assert list(Draft202012Validator(schema).iter_errors(out)) == []
+    broken = {**out, "cost_total": -1}
+    assert validate_schema(broken, load_schema("selection")) != []
+    assert list(Draft202012Validator(schema).iter_errors(broken)) != []

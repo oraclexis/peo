@@ -271,7 +271,8 @@ Règles de validation (`catalog validate`) :
               spec 14 §3.2 ; H27) reconnus par [detect] (E6) → capacités couvertes à coût 0.
               Un élément déclaré est reconnu quand sa valeur est égale (chaîne exacte) à un
               jeton de `detect.plugin` d'une fiche, ou son nom avant `@` ; un serveur MCP
-              déclaré est reconnu quand `identify` lui a donné la référence d'une fiche ;
+              déclaré est reconnu quand `identify` lui a donné la référence d'une fiche
+              (champ `tool_ref` de `declared()`) ;
               s'il correspond à une fiche `backbone-alt`, ce n'est pas un outil présent mais
               un socle alternatif (étape 1)
 4. candidats = fiches t telles que
@@ -337,7 +338,7 @@ Un outil qui fournit une capacité exclusive déjà couverte par un outil **pré
 
 Ordre d'évaluation des codes pour une fiche (un seul code, le premier qui s'applique ; précisé le 2026-11-23, R4b) : `STATUS`, `BACKBONE_EXCLUSIVE`, outil présent (`REUSED`, ou `NOT_REQUIRED` s'il ne couvre aucune exigence), `CONDITION_FALSE`, `CONTRAINDICATED`, `NOT_REQUIRED`, `REDUNDANT`, `PREREQ_UNMET` ; après la recherche : `CONFLICT`, puis `COST`.
 
-Textes (`reason` d'un retenu, `detail` d'un écarté) : gabarits fixes, en anglais, sans chemin absolu ni valeur d'environnement. `CONDITION_FALSE` : `<expression> is false` (la première expression fausse de `when.all`, sinon les expressions de `when.any` jointes par ` or `) ; `CONTRAINDICATED` : `<expression> is true` ; `NOT_REQUIRED` : `<capacités> not required` ; `BACKBONE_EXCLUSIVE` : `alternative backbone` ; `STATUS` : `status <statut>` ; `REDUNDANT` : `<capacité> already provided by <ref>` ; `CONFLICT` : `conflicts with <ref>` ; `COST` : `same coverage at a higher cost than <refs>` ; `PREREQ_UNMET` : `<check> unmet and no fix`. `reason` d'un retenu : `covers <capacités>`, ou `required by <ref>` / `prerequisite of <ref>`. Le test A5.1 compare tout le reste de la sortie octet pour octet ; il ne compare pas `reason` ni `detail`.
+Textes (`reason` d'un retenu, `detail` d'un écarté) : gabarits fixes, en anglais, sans chemin absolu ni valeur d'environnement. `CONDITION_FALSE` : `<expression> is false` (la première expression fausse de `when.all`, sinon les expressions de `when.any` jointes par ` or `) ; `CONTRAINDICATED` : `<expression> is true` ; `NOT_REQUIRED` : `<capacités> not required` ; `BACKBONE_EXCLUSIVE` : `alternative backbone` ; `STATUS` : `status <statut>` ; `REDUNDANT` : `<capacité> already provided by <ref>` ; `CONFLICT` : `conflicts with <ref>` ; `COST` : `same coverage at a higher cost than <refs>` ; `PREREQ_UNMET` : `<check> unmet and no fix`, ou `requires <ref> unavailable` quand un outil requis est indisponible ; `NOT_REQUIRED` d'une fiche qui ne fournit aucune capacité : `not required by a selected tool` ; `COST` sans recouvrement avec un retenu : `not needed by the cheapest set`. `reason` d'un retenu : `covers <capacités>`, ou `required by <ref>` / `prerequisite of <ref>`. Le test A5.1 compare tout le reste de la sortie octet pour octet ; il ne compare pas `reason` ni `detail`.
 
 ### 8.4 Sortie
 

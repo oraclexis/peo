@@ -7,6 +7,8 @@ import shutil
 from jsonschema import Draft202012Validator
 
 from peo import cli
+from peo.validate import load_schema
+from peo.validate import validate as validate_schema
 
 from .conftest import GOLDEN, ROOT
 
@@ -27,6 +29,7 @@ def test_a_complete_selection_exits_0_with_a_valid_envelope(capsys, monkeypatch)
     env = json.loads(out)
     assert code == 0 and env["command"] == "select" and env["ok"] is True and err == ""
     assert list(Draft202012Validator(SCHEMA).iter_errors(env["data"])) == []
+    assert validate_schema(env["data"], load_schema("selection")) == []
     assert out.strip() == json.dumps(env, sort_keys=True) and str(ROOT) not in out
 
 

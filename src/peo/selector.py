@@ -122,8 +122,8 @@ def _declared_refs(catalog: Catalog, declared: dict) -> dict[str, str]:
             if _plugin_matches(plugin.get("id"), _list(doc, "detect", "plugin")):
                 found.setdefault(ref, f"declared plugin {plugin.get('id')}")
     for server in declared.get("mcp_servers", []):
-        if isinstance(server, dict) and server.get("ref") in catalog.entries:
-            found.setdefault(server["ref"], "declared MCP server")
+        if isinstance(server, dict) and server.get("tool_ref") in catalog.entries:
+            found.setdefault(server["tool_ref"], "declared MCP server")
     return found
 
 
